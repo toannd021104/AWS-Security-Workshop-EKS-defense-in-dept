@@ -144,6 +144,13 @@ Apply the file with `kubectl apply -f unsafe-pod.yaml`. Expected result: the API
 
 Namespaces scope names and some RBAC policies. They do not isolate the kernel, node, or network by themselves. Combine them with NetworkPolicy, workload identity, admission controls, and separate node groups or clusters when a workload's risk or compliance boundary requires stronger isolation. Avoid giving application service accounts permission to create Pods, RoleBindings, or privileged workloads; those permissions can become an indirect privilege escalation path.
 
+### Screenshots to capture
+
+Save these as `05-01-pod-security-namespace.png` and `05-02-hardened-pods.png`.
+
+- **05-01 Namespace security policy:** Place after applying the namespace Pod Security Admission labels. AWS Console is not needed here. In the terminal, show `kubectl get namespace payments --show-labels` with the `pod-security.kubernetes.io/enforce=restricted` label visible. This proves the admission baseline is enabled.
+- **05-02 Hardened workload:** Place after deploying the sample pods. Show `kubectl get pods -n payments -o wide` with the sample pods `Running` and `READY`, plus the relevant sanitized pod YAML showing non-root, `RuntimeDefault` seccomp, dropped capabilities, read-only root filesystem, and resource limits. Do not include Secret data or environment values.
+
 ### Further reading
 
 - [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/)

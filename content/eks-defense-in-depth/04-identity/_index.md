@@ -39,7 +39,6 @@ Example AWS permission policy for these operators (replace account and region):
 
 This AWS policy lets the CLI discover the cluster endpoint and certificate; it does not grant Kubernetes permissions. If you use the AWS Console to inspect Kubernetes resources, add only the console-specific EKS read actions required for that workflow and retain the same EKS authorization scope.
 
-**Screenshot to capture:** IAM Identity Center account assignments showing distinct permission sets for admin, DevOps, and read-only access. Redact user names and account IDs before publishing.
 
 Each role needs the AWS-side ability to call `eks:DescribeCluster` and obtain an EKS token through the supported authentication flow. Attach only the specific IAM permissions required for these operations; do not attach `AdministratorAccess` as a shortcut. The IAM policy is not a substitute for the EKS/Kubernetes permissions below.
 
@@ -166,11 +165,18 @@ aws eks list-access-entries --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION
 
 Identify the original creator principal by its exact IAM role ARN. Confirm the new `EKSDepthAdmin` role can run `kubectl get nodes` and `kubectl auth can-i '*' '*'` from an approved network. Then remove or disassociate only the creator's cluster-admin entry in the console. Keep the bootstrap AWS identity's `eks:DescribeCluster` permission if it still needs to run EKS management commands; that AWS permission alone does not grant Kubernetes access.
 
-**Screenshot to capture:** access-entry list with distinct admin, DevOps, and observer principals and their scopes. Redact account IDs and role paths before sharing.
 
 {{% notice warning %}}
 Do not remove the only administrative access entry until a second tested admin path exists. Keep the bootstrap role protected and avoid using the root account for routine access.
 {{% /notice %}}
+
+### Screenshots to capture
+
+Save these as `04-01-human-role-assignments.png`, `04-02-eks-access-entries.png`, and `04-03-rbac-permission-checks.png`.
+
+- **04-01 Human role assignments:** Place after **Create separate operator roles**. IAM Identity Center → **AWS accounts → select the lab account → Assigned users and groups**. Show distinct admin, DevOps, and observer permission sets. Replace real names with labels such as `Admin`, `DevOps`, and `Observer` before sharing.
+- **04-02 EKS access entries:** Place after **Add an administrator entry** and the DevOps entry. EKS → **Clusters → select the cluster → Access → Access entries**. Show each principal's access policy and scope (cluster or `payments` namespace). Blur account IDs and role ARNs.
+- **04-03 RBAC permission checks:** Place after **Test each identity**. Capture the terminal results of `kubectl auth can-i` while using each role. Include both allowed and denied actions; remove shell prompts that contain usernames or account information.
 
 ### Further reading
 

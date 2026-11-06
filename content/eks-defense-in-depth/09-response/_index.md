@@ -78,6 +78,13 @@ Close the incident with a timeline, affected identities/resources, evidence loca
 Containment commands can interrupt service or destroy forensic evidence. Follow the organization's incident authority and evidence-retention policy. This lab scenario is a defensive exercise; do not simulate credential theft or malware in an account containing production resources.
 {{% /notice %}}
 
+### Screenshots to capture
+
+Save these as `09-01-quarantine-policy.png` and `09-02-containment-evidence.png`.
+
+- **09-01 Quarantine control:** Place after applying the quarantine policy in the tabletop exercise. Show the `incident-quarantine` NetworkPolicy and the affected lab pod's quarantine label, with namespace and pod name visible. This is a controlled tabletop exercise; do not create a real security incident.
+- **09-02 Evidence checklist:** Place after the recovery steps. Show a sanitized incident worksheet listing finding ID placeholder, UTC time, namespace, pod, node, image digest, evidence locations, and actions taken. Use placeholders instead of real account IDs, user data, or finding details.
+
 ### Further reading
 
 - [AWS security incident response guide](https://docs.aws.amazon.com/whitepapers/latest/aws-security-incident-response-guide/welcome.html)

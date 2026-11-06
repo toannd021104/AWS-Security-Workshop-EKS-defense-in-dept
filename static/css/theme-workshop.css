@@ -26,6 +26,26 @@
 
 }
 
+@font-face {
+    font-family: 'Amazon Ember';
+    font-style: normal;
+    font-weight: 400;
+    src: url("../fonts/AmazonEmber_W_Rg.woff2") format("woff2"),
+         url("../fonts/AmazonEmber_W_Rg.woff") format("woff"),
+         url("../fonts/AmazonEmber_Rg.ttf") format("truetype");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Amazon Ember';
+    font-style: italic;
+    font-weight: 400;
+    src: url("../fonts/AmazonEmber_W_RgIt.woff2") format("woff2"),
+         url("../fonts/AmazonEmber_W_RgIt.woff") format("woff"),
+         url("../fonts/AmazonEmber_RgIt.ttf") format("truetype");
+    font-display: swap;
+}
+
 body {
     color: var(--MAIN-TEXT-color) !important;
 }
@@ -151,10 +171,10 @@ div.notices p:first-child:before {
 
 body {
     color: var(--MAIN-TEXT-color) !important;
-    font-family: 'Amazon Ember', 'Work Sans', Arial, sans-serif;
+    font-family: 'Amazon Ember', 'Work Sans', sans-serif;
     font-size: 17px !important;
     font-weight: 400;
-    line-height: 1.7;
+    line-height: 1.68;
     text-align: left;
 }
 
@@ -182,8 +202,19 @@ h1, h2, h3, h4, h5 {
     font-size: 1.3rem;
 }
 
-#body p, #body li {
-    max-width: 78ch;
+#body .padding {
+    padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 5vw, 4.5rem);
+}
+
+#body-inner {
+    width: 100%;
+    max-width: 960px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+#body p, #body li, #body blockquote {
+    max-width: 74ch;
 }
 
 #body p {
@@ -192,6 +223,78 @@ h1, h2, h3, h4, h5 {
 
 #body li {
     margin: 0.3rem 0;
+}
+
+#body table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-size: 0.94em;
+}
+
+#body th, #body td {
+    padding: 0.65rem 0.8rem;
+    vertical-align: top;
+}
+
+#body th {
+    background: #edf3f8;
+    color: #243b53;
+}
+
+#body pre {
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: 6px;
+    padding: 1rem 1.15rem;
+}
+
+#body .mermaid {
+    max-width: 100%;
+    margin: 1.5rem auto 2rem;
+    overflow-x: auto;
+}
+
+#body .mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+
+#body-inner p:has(> img[src*="eks-defense-in-depth/architecture.svg"]) {
+    max-width: none;
+    overflow-x: auto;
+}
+
+#body-inner img[src*="eks-defense-in-depth/architecture.svg"] {
+    width: 100%;
+    max-width: 960px;
+    height: auto;
+    margin: 1.5rem auto 2rem;
+}
+
+@media only screen and (max-width: 47.938em) {
+    #body h1 {
+        font-size: 1.85rem;
+    }
+
+    #body h2 {
+        font-size: 1.45rem;
+    }
+
+    #body h3 {
+        font-size: 1.18rem;
+    }
+
+    body {
+        font-size: 16px !important;
+    }
+
+    #body-inner img[src*="eks-defense-in-depth/architecture.svg"] {
+        width: 760px;
+        min-width: 760px;
+        max-width: none;
+    }
 }
 
 #sidebar, #sidebar ul {

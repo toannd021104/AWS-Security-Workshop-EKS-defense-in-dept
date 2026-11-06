@@ -318,7 +318,6 @@ Expected outcome: HTTPS requests to the configured hostname reach the app; HTTP 
 
 ## Console inspection and screenshot
 
-**Screenshot to capture:** the ALB listener showing HTTPS and its ACM certificate, the attached WAF web ACL, and target health. Redact public DNS names if the endpoint should not be shared. Also capture the network policy YAML and a successful/denied connectivity test from test pods.
 
 ## Trade-offs and common failures
 
@@ -327,6 +326,13 @@ Expected outcome: HTTPS requests to the configured hostname reach the app; HTTP 
 - Default-deny egress can break DNS, telemetry, image pulls from in-pod tools, and application dependencies. Add only required destinations and ports, then observe logs and test.
 - NetworkPolicy semantics for host-network pods and traffic to node-local services vary. Verify using the chosen CNI and version.
 - `target-type: ip` is convenient and avoids NodePort traffic, but requires correct subnet discovery, security-group behavior, and pod routability.
+
+### Screenshots to capture
+
+Save these as `06-01-https-alb-waf.png` and `06-02-network-policy-tests.png`.
+
+- **06-01 HTTPS ingress:** Place after creating the Ingress. AWS Console → **EC2 → Load Balancers → select the lab ALB → Listeners and rules / Security**. Show the HTTPS listener, ACM certificate, WAF association, and healthy target group. Crop out the public DNS name if you do not want it shared.
+- **06-02 Network policy proof:** Place after verifying both client paths. Show the applied default-deny and allow policies, then terminal results where the `frontend` test reaches `web` and the unrelated `default` namespace client is denied. Include the namespace and command output, but no account credentials.
 
 ### Further reading
 

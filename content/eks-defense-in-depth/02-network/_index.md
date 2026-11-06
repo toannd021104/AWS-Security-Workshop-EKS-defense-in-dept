@@ -16,7 +16,6 @@ Put internet-facing load balancers and private EKS nodes in different subnets, t
 4. For a simple lab, create one NAT gateway per AZ for private-subnet outbound access. This is resilient but can be a significant fixed hourly cost. For a short-lived learning cluster, one NAT gateway costs less but creates an AZ dependency. VPC endpoints can reduce NAT use, but each endpoint has its own cost and must cover the services your nodes and pods call.
 5. Keep **Enable DNS hostnames** and **Enable DNS resolution** enabled. Create the VPC and note its ID, subnet IDs, route tables, and NAT gateway ID.
 
-**Screenshot to capture:** VPC resource map showing public subnets routed to the internet gateway and private subnets routed through NAT. Confirm the diagram is for the lab VPC before capturing it.
 
 ## Verify the route boundary
 
@@ -62,6 +61,15 @@ Two NAT gateways improve AZ independence but add fixed cost. A single NAT gatewa
 ### Checkpoint
 
 Before continuing, identify the public subnet IDs, private subnet IDs, route tables, NAT choice, and VPC ID. Nodes will use only private subnets; the load balancer will use public subnets for public traffic.
+
+### Screenshots to capture
+
+Save these as `02-01-vpc-resource-map.png` and `02-02-subnet-routes.png`.
+
+- **02-01 VPC resource map:** Place after **Create the VPC in the console**. AWS Console → **VPC → Your VPCs → select the lab VPC → Resource map**. Fit the whole diagram so both Availability Zones, public and private subnets, the Internet Gateway, and NAT Gateway(s) are visible. This shows the intended public/private layout.
+- **02-02 Subnet routes:** Place after **Verify the route boundary**. **VPC → Route tables**. Capture the public table with `0.0.0.0/0 → igw-…` and a private table with `0.0.0.0/0 → nat-…` (or your endpoint-only design). Include subnet associations so the route is tied to the correct subnet.
+
+Hide account IDs, unrelated VPC names, and any unrelated resource identifiers before sharing.
 
 ### Further reading
 

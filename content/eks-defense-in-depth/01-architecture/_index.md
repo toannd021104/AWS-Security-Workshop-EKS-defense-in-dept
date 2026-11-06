@@ -12,52 +12,9 @@ Before clicking through the console, decide which paths should exist. Defense in
 
 The diagram separates the public request path, the Kubernetes control plane, and the two identity paths. The EKS control plane is an AWS-managed service; it is not a group of pods running on the worker nodes. EKS creates network interfaces in the selected cluster subnets so the managed control plane can communicate privately with nodes.
 
-{{< mermaid >}}
-flowchart LR
-    user[Internet user] -->|HTTPS 443| dns[Route 53 DNS]
-    dns --> waf[Regional AWS WAF]
-    waf --> alb[Internet-facing ALB]
+![Reference architecture for defense in depth on Amazon EKS: public HTTPS ingress, two-AZ VPC, private EKS nodes, separate human and workload identities, and centralized detection.](/images/eks-defense-in-depth/architecture.svg)
 
-    subgraph vpc[Customer VPC across two Availability Zones]
-      subgraph az1[Availability Zone A]
-        pub1[Public subnet A\nALB ENI]
-        priv1[Private subnet A\nEKS node, no public IP]
-      end
-      subgraph az2[Availability Zone B]
-        pub2[Public subnet B\nALB ENI]
-        priv2[Private subnet B\nEKS node, no public IP]
-      end
-      igw[Internet Gateway]
-      nat[NAT Gateway or VPC endpoints\nnode and pod egress]
-      api[Private EKS API endpoint\nTCP 443 from approved network]
-      alb -->|target group: NodePort| priv1
-      alb -->|target group: NodePort| priv2
-      priv1 --> svc[NodePort Service\nClusterIP routing]
-      priv2 --> svc
-      svc --> pod[payments namespace\nweb Pods]
-      igw --- pub1
-      igw --- pub2
-      priv1 --> nat
-      priv2 --> nat
-      api --- priv1
-      api --- priv2
-    end
-
-    operator[Operator via VPN or approved network] -->|IAM auth| access[EKS access entry]
-    access --> rbac[Kubernetes RBAC\nadmin / DevOps / observer]
-    rbac --> api
-    pod -->|Pod Identity association\nleast-privilege role| awsapi[AWS API such as S3]
-    control[EKS managed control plane] --> api
-    control -. audit and control-plane logs .-> logs[CloudWatch Logs]
-    awsapi -. API activity .-> trail[CloudTrail]
-    guard[GuardDuty EKS Protection\nand Runtime Monitoring] -. findings .-> logs
-    classDef public fill:#fff3e0,stroke:#ef8b24,color:#38220a;
-    classDef private fill:#e9f3ff,stroke:#2875b9,color:#102c45;
-    classDef identity fill:#f2eaff,stroke:#8052a8,color:#28153d;
-    class pub1,pub2,alb,waf public;
-    class priv1,priv2,api,svc,pod private;
-    class operator,access,rbac identity;
-{{< /mermaid >}}
+On a phone or narrow screen, swipe horizontally across the diagram to inspect each layer.
 
 The ALB is the only internet-facing application entry point in this lab. Route 53 provides DNS; the regional WAF is associated with the ALB. ALB nodes are placed in public subnets in at least two Availability Zones, while managed worker nodes use private subnets and have no public IP addresses. Public subnet route tables point to an Internet Gateway; private subnet routes use a NAT Gateway for outbound internet access or VPC endpoints for selected AWS services. NAT provides egress, not unsolicited inbound access.
 
@@ -92,7 +49,7 @@ EKS control-plane logs show Kubernetes API and authentication activity. CloudTra
 - **Instance target mode:** aligns with the NodePort Service used in this lab and uses node security groups to constrain ALB traffic. IP targets can remove the NodePort hop, but require a different pod ingress and security-group design.
 - **WAF and GuardDuty:** add request filtering and detection respectively, with separate costs and tuning needs. Neither replaces least privilege, network boundaries, or incident response.
 
-**Screenshot to capture:** replace the generated diagram with an annotated version of this architecture after building the VPC and cluster. Include public/private subnet boundaries, two AZs, the ALB-to-NodePort path, the private API path, and both identity paths. Redact account IDs, role ARNs, and public hostnames before sharing.
+The Mermaid diagram above is the architecture illustration for this module. Use the later console captures to document your account's actual VPC, cluster, access, and traffic settings.
 
 ## Threats and controls
 
@@ -126,10 +83,6 @@ Expected result: `get-caller-identity` returns the AWS account and principal you
 - Plan for two public and two private subnets across two AZs. EKS and load balancer availability depend on subnet/AZ placement.
 - Save the cluster name, VPC ID, subnet IDs, IAM role ARNs, and created resource names. The final module uses them for cleanup.
 - Review every console confirmation page before choosing **Create**. This lab intentionally enables logging and security features that may add usage charges.
-
-{{% notice note %}}
-**Screenshot to capture:** one architecture diagram annotated with public/private subnet boundaries and the two identity paths (human role to RBAC, workload service account to AWS role). Avoid recording account IDs or credential values in screenshots.
-{{% /notice %}}
 
 ### Further reading
 

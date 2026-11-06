@@ -36,4 +36,8 @@ The [original AWS security workshop](reference-workshop/) remains available as r
 
 ## How to use the labs
 
-Each module explains the security goal, the choice being made, console navigation where useful, implementation steps, expected output, and verification. Console screenshot prompts are marked **Screenshot to capture**. Capture your own account's screens; account IDs, endpoints, and findings are environment-specific.
+Each module explains the security goal, the choice being made, console navigation where useful, implementation steps, expected output, and verification. Modules that benefit from account-specific evidence end with a **Screenshots to capture** list: it gives each image a filename, capture location, required details, and placement in the article. The architecture module already includes its own diagram.
+
+## Images for your workshop notes
+
+The architecture page already includes a rendered architecture diagram. For account-specific evidence, follow the screenshot list in each module and save captures under `static/images/eks-defense-in-depth/` using the exact filenames shown there. The instructions say where each image should be inserted after you add the files. Capture your own AWS account; do not expose credentials, tokens, secret values, personal information, or unrelated account findings. Blur account IDs, IAM role ARNs, cluster endpoints, and public DNS names before publishing.

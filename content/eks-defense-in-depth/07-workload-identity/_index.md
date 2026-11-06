@@ -217,6 +217,13 @@ Use AWS Secrets Manager or Systems Manager Parameter Store for application secre
 
 EKS Kubernetes Secret data is base64-encoded, not encrypted by base64. Review EKS envelope encryption for Kubernetes API secrets, restrict `get/list/watch` on `secrets`, and avoid exposing secret values through logs or environment dumps. Secret rotation is not complete until the workload reloads the new value and old credentials are revoked.
 
+### Screenshots to capture
+
+Save these as `07-01-pod-identity-association.png` and `07-02-workload-aws-permissions.png`.
+
+- **07-01 Pod Identity association:** Place after creating the association. AWS Console → **EKS → Clusters → select the lab cluster → Access → Pod Identity associations**. Show the `payments` namespace, `web-reader` service account, and associated IAM role. Blur account ID and role ARN.
+- **07-02 Workload permission test:** Place after running the allow/deny S3 checks. Show terminal output from inside the test workload where `sts get-caller-identity` succeeds, the allowed `payments/` S3 object can be read, and the unrelated prefix is denied. Do not show access keys, tokens, object contents, or full bucket names if private.
+
 ### Further reading
 
 - [EKS Pod Identity](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html)

@@ -26,7 +26,6 @@ The cluster API endpoint being private means `kubectl` must run on a host that c
 With a private-only EKS endpoint, `aws eks update-kubeconfig` can run outside the VPC, but Kubernetes API requests (`kubectl`) cannot. Run `kubectl` from an approved connected host. EKS console operations use AWS APIs and do not require your browser to resolve the private Kubernetes endpoint.
 {{% /notice %}}
 
-**Screenshot to capture:** cluster networking page showing the selected VPC, private subnets, API endpoint setting, and authentication mode. Redact account-specific IDs if publishing the image.
 
 ## Verify control-plane configuration
 
@@ -49,7 +48,6 @@ Expected result: `Status` is `ACTIVE`, `Private` is `true`, `Public` is `false` 
 
 To block ordinary pods from reaching the node's EC2 instance profile, create an EC2 launch template before creating the node group: open **EC2 → Launch templates → Create launch template → Advanced details → Metadata options**, require IMDSv2, and set the response hop limit to `1`. Select that launch template when creating the managed node group. Do not add subnet IDs, a network interface, or an instance profile to the template; EKS manages those settings for a managed node group. A hop limit of 1 can break workloads that rely on IMDS, so test the cluster add-ons and use EKS Pod Identity/IRSA for AWS credentials. If you already created nodes without a hardened template, roll out a replacement node group and move workloads gradually rather than changing every node at once.
 
-**Screenshot to capture:** launch-template metadata options showing IMDSv2 required and hop limit `1`, with launch-template IDs redacted.
 
 ## Connect from an approved network
 
@@ -68,6 +66,13 @@ In **CloudWatch → Log groups**, open `/aws/eks/eks-depth-lab/cluster`. The `au
 ### Checkpoint
 
 The control plane is active, worker nodes are private, the endpoint is reachable only from the intended admin network, and control-plane logs are enabled. Next, separate AWS identity from Kubernetes authorization so each operator gets only the actions they need.
+
+### Screenshots to capture
+
+Save these as `03-01-eks-network-settings.png` and `03-02-node-imds-settings.png`.
+
+- **03-01 EKS network settings:** Place after **Configure cluster networking**. AWS Console → **EKS → Clusters → select the lab cluster → Networking**. Show the VPC, private subnet selection, Kubernetes API endpoint access setting, and authentication mode in the same frame if possible. This proves the API and nodes use the intended network boundary.
+- **03-02 Node metadata settings:** Place after **Create the managed node group**. **EC2 → Launch templates → select the lab template → Advanced details → Metadata options**. Show **IMDSv2 required** and **Hop limit 1**. Crop out launch-template IDs and account details.
 
 ### Further reading
 

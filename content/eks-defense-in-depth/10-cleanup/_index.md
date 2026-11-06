@@ -67,3 +67,10 @@ Keep audit evidence according to your retention requirement. Avoid broad `aws ..
 - Namespaces and NetworkPolicy improve isolation but do not equal separate kernels or separate accounts.
 - GuardDuty and audit logs improve detection, but require an owner, a retention plan, and a tested response path.
 - No single control guarantees safety. The useful result is several independently enforced boundaries plus a way to detect and recover when one fails.
+
+## Screenshots to capture
+
+Save these as `10-01-final-validation.png` and `10-02-cleanup-confirmation.png`.
+
+- **10-01 Final validation:** Place after **End-to-end validation**. Show the terminal checks for the admin, DevOps, and observer roles, including expected `yes` and `no` results, plus the successful/denied network test. Keep the cluster and namespace context visible; redact usernames and account identifiers.
+- **10-02 Cleanup confirmation:** Place after resource deletion. After cleanup, capture **EKS → Clusters** showing the lab cluster is gone and **VPC → Your VPCs** showing the lab VPC is deleted. If you intentionally retain logs or evidence, note that in the image caption rather than deleting them to make the screenshot look empty.

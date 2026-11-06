@@ -31,7 +31,6 @@ Set the log group's retention in **CloudWatch → Log groups → select group �
 - **GuardDuty:** open **GuardDuty → EKS Protection** and enable Kubernetes audit log monitoring for the region; then open **Runtime Monitoring → EKS Runtime Monitoring** and enable it for the lab account/cluster where supported. Runtime coverage requires the supported GuardDuty agent/configuration and compatible nodes. Review region support, prerequisites, exclusions, and pricing before enabling it. If GuardDuty was already enabled by the account security team, do not change organization-wide settings for this lab.
 - **Amazon Inspector:** use it for supported compute and container image vulnerability findings; it does not replace runtime threat detection or admission policy.
 
-**Screenshot to capture:** GuardDuty protection plan showing EKS Protection and the runtime coverage state, with account identifiers and findings redacted. Record which region and cluster are in scope.
 
 ## Make a test finding without attacking the cluster
 
@@ -74,6 +73,14 @@ Test one alert end to end. Confirm detection, notification, on-call ownership, a
 ## Retention and access trade-offs
 
 More detailed logs improve investigation but increase ingestion, storage, and query cost. Restrict log-group deletion and security-tool administration separately from cluster administration. Set retention based on the time needed to discover and investigate incidents; export evidence to a protected destination if it must outlive the CloudWatch retention window. Confirm that workload logs do not contain credentials before broadening access to them.
+
+### Screenshots to capture
+
+Save these as `08-01-eks-control-plane-logs.png`, `08-02-audit-event.png`, and `08-03-guardduty-eks-coverage.png`.
+
+- **08-01 Control-plane logs:** Place after enabling cluster logging. EKS → **Clusters → select the lab cluster → Logging**. Show the enabled API, audit, authenticator, controller manager, and scheduler log types.
+- **08-02 Audit event:** Place after running the audit-check query. CloudWatch → **Logs Insights** → select the EKS cluster log group. Show the query and the harmless `audit-check` ConfigMap event with timestamp, verb, namespace, and caller type. Blur usernames and account IDs.
+- **08-03 GuardDuty coverage:** Place after enabling/confirming the protection plan. GuardDuty → **Settings / Protection plans**. Show EKS Protection and Runtime Monitoring coverage status for the lab region. Do not expose unrelated findings or account identifiers.
 
 ### Further reading
 
