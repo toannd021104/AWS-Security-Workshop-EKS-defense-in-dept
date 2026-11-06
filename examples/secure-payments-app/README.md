@@ -5,11 +5,11 @@ A small, deployable application that ties the workshop's security controls toget
 ## What this project demonstrates
 
 - A real container image built locally and pushed to Amazon ECR.
-- An EKS Deployment and NodePort Service with non-root execution, a read-only root filesystem, dropped Linux capabilities, resource bounds, and health probes.
+- An EKS Deployment and ClusterIP Service with non-root execution, a read-only root filesystem, dropped Linux capabilities, resource bounds, and health probes.
 - A restricted Pod Security Admission namespace.
 - Default-deny network policy with explicit DNS, Pod Identity agent, frontend-to-app, and ALB-subnet-to-app paths.
 - An EKS Pod Identity association whose IAM role trust is limited to one account and cluster. The role has no permissions because this sample does not call AWS services.
-- An optional HTTPS ALB Ingress using instance targets and an explicit allowed client CIDR. It requires the AWS Load Balancer Controller and an ACM certificate in the cluster's region; WAF is optional.
+- An optional HTTPS ALB Ingress using IP targets and an explicit allowed client CIDR. It requires the AWS Load Balancer Controller and an ACM certificate in the cluster's region; WAF is optional.
 - Namespace-scoped Kubernetes Roles for deployment operators and read-only observers.
 - A repeatable allow/deny connectivity check and a cleanup script that removes only this sample's resources.
 
@@ -18,14 +18,14 @@ The implementation is intentionally small enough to review. The web process does
 ## Request and identity paths
 
 ```text
-Browser --HTTPS--> WAF (optional) --> ALB --> NodePort --> Service --> web Pods
-                                            private EKS nodes
+Browser --HTTPS--> WAF (optional) --> ALB --> pod IPs --> web Pods
+                                      private EKS VPC subnets
 
 Operator --IAM role--> EKS access entry --> Kubernetes RBAC --> private EKS API
 web Pod --service account--> EKS Pod Identity agent --> short-lived role credentials
 ```
 
-The ALB uses **instance** targets to match the workshop's NodePort path. Nodes must be in private subnets, and their security group should accept the target NodePort from the ALB security group. The `allow-alb-subnets-to-web` policy separately permits the ALB's public subnet CIDRs to reach the application port; update those CIDRs if your VPC differs from the Terraform example. This is needed because an ALB target can be healthy while its forwarded request is denied by pod policy. NetworkPolicy complements the ALB/node security-group boundary. With the Amazon VPC CNI NetworkPolicy implementation, node-originated traffic is allowed for node-level operations, so verify the behavior described in Module 6 for your CNI version.
+The ALB uses **IP** targets and sends requests directly to pod IPs; the Service stays `ClusterIP`, so no NodePort is allocated. The VPC CNI must assign routable VPC IPs to pods, and the security group attached to pod ENIs/nodes must accept the app port from the ALB security group. The `allow-alb-subnets-to-web` NetworkPolicy permits only the ALB public subnet CIDRs to reach the app port; replace the example CIDRs if your VPC differs. Security groups and NetworkPolicy are separate boundaries, and both must allow the path. Verify target health and an HTTPS request end to end; target health alone does not prove app traffic is permitted.
 
 ## Requirements
 

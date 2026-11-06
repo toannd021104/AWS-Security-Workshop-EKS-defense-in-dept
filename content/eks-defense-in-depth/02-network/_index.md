@@ -48,7 +48,7 @@ The cluster tag helps controllers discover ownership. Do not tag a subnet public
 The EKS control plane, nodes, and ALB use different security groups. Keep inbound rules narrow:
 
 - Internet to ALB: TCP 443 from the intended client CIDRs (or `0.0.0.0/0` only when the application is deliberately public). Redirect HTTP to HTTPS if port 80 is enabled.
-- ALB to worker nodes: only the service's assigned NodePort from the ALB security group. The controller normally manages the target rule for instance targets; verify it after the ALB is created. Never expose the NodePort range to the internet.
+- ALB to application pods: only the application port from the ALB security group to VPC-routable pod IPs. For the workshop's IP target mode, verify the controller-managed security-group path after reconciliation. Do not expose pod or node application ports to arbitrary internet clients.
 - Operator to Kubernetes API: TCP 443 from the VPC or approved administration network, not the whole internet.
 - Node-to-node and node-to-control-plane traffic: use EKS-created rules and the documented ports needed by the selected CNI and cluster components. Avoid replacing generated rules without understanding their dependencies.
 

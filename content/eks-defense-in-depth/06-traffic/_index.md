@@ -8,7 +8,7 @@ chapter: false
 
 Allow the intended path from the public ALB to the app and deny unnecessary east-west traffic between pods. Use an AWS Load Balancer Controller for ingress resources; keep the Kubernetes API and worker nodes off the public internet.
 
-**Runnable example:** the [Secure Payments project](https://github.com/toannd021104/AWS-Security-Workshop-EKS-defense-in-dept/tree/main/examples/secure-payments-app) provides the instance-target Ingress, NodePort Service, NetworkPolicies, and scripts that verify one allowed and one denied pod path.
+**Runnable example:** the [Secure Payments project](https://github.com/toannd021104/AWS-Security-Workshop-EKS-defense-in-dept/tree/main/examples/secure-payments-app) provides the IP-target Ingress, ClusterIP Service, NetworkPolicies, and scripts that verify one allowed and one denied pod path.
 
 ## Important prerequisite: network policy enforcement
 
@@ -196,7 +196,7 @@ kubectl exec -n default deploy/blocked-client -- \
 
 The first request should return the NGINX welcome page. The second should time out or fail because `default` is not an allowed source namespace. If both requests work, first confirm `aws-node` has `2/2` containers and a `PolicyEndpoint` exists for the `web` pods before changing policies.
 
-The ALB's forwarded request reaches the app through a node and can be evaluated by the pod ingress policy. Add an ingress rule for the **public subnet CIDRs selected by the ALB**, limited to the application port, as shown in `examples/secure-payments-app/k8s/30-network-policy.yaml`. Replace the example CIDRs with your actual ALB subnet CIDRs. A healthy target-group check does not guarantee the forwarded request is allowed: during sandbox validation, targets were healthy while HTTPS returned `504`; adding the narrow subnet rule changed `/healthz` to HTTP `200`. Keep the NodePort security-group rule restricted to the ALB security group as a separate boundary. If you change to `target-type: ip`, re-design and test the ALB-to-pod ingress and security-group path for that target mode.
+With IP targets, ALB forwards directly to pod IPs. Add an ingress rule for the **public subnet CIDRs selected by the ALB**, limited to the application port, as shown in `examples/secure-payments-app/k8s/30-network-policy.yaml`. Replace the example CIDRs with your actual ALB subnet CIDRs. The pod ENI/node security group must also accept the application port from the ALB security group. A healthy target-group check alone does not prove the request reaches the app: during sandbox validation, targets were healthy while HTTPS returned `504`; adding the narrow subnet rule changed `/healthz` to HTTP `200`.
 
 ## Create an HTTPS ingress
 
@@ -290,14 +290,14 @@ For the certificate, open **AWS Certificate Manager → Request certificate**, r
 
 For WAF, open **AWS WAF & Shield → Web ACLs → Create web ACL**, choose **Regional** scope and the same region as the ALB, add a managed rule group appropriate for the app, and create the ACL. Start in count mode where possible, review false positives, then move to block mode. Record the Web ACL ARN. WAF has separate pricing and may block valid app traffic if rules are enabled without tuning.
 
-The sample Service starts as `ClusterIP`. For this lab, use ALB **instance targets**: the ALB sends traffic to a NodePort on private worker nodes, and Kubernetes forwards it to the pod. Change the Service to `NodePort` before creating the Ingress:
+Keep the sample Service as `ClusterIP` and configure ALB **IP targets**. The AWS Load Balancer Controller registers the ready pod IPs from EndpointSlices, and the ALB forwards directly to those pods. Confirm that the VPC CNI assigns VPC-routable pod IPs and that security groups permit the application port from the ALB security group:
 
 ```bash
-kubectl patch service web -n payments -p '{"spec":{"type":"NodePort"}}'
 kubectl get service web -n payments
+kubectl get endpointslice -n payments -l kubernetes.io/service-name=web
 ```
 
-Expected result: the Service shows a NodePort in the `30000-32767` range. Nodes have no public IP, and the controller should permit that node port only from the ALB security group. Verify the actual rules in EC2 after reconciliation.
+Expected result: the Service type is `ClusterIP`, and EndpointSlices show ready pod IPs on port `8080`. No NodePort should appear. After ALB reconciliation, the target group should list those pod IPs as healthy; verify that the target security group allows port `8080` only from the ALB security group.
 
 Example Ingress (replace the certificate ARN and host):
 
@@ -309,7 +309,7 @@ metadata:
   namespace: payments
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: instance
+    alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/REPLACE_ME
     alb.ingress.kubernetes.io/ssl-redirect: "443"
@@ -339,7 +339,7 @@ kubectl get events -n payments --sort-by=.lastTimestamp | tail -20
 
 Expected result: the Service has ready endpoints, the Ingress has an ALB address, and its events do not show reconciliation errors. If the Ingress remains pending, check the controller logs, public subnet tags, IAM policy/role association, and security group rules before opening additional ports.
 
-Expected outcome: HTTPS requests to the configured hostname reach the app; HTTP is redirected or unavailable; direct access to node addresses is not part of the design. ALB terminates TLS and sends HTTP to the NodePort inside the VPC in this example. If policy requires encryption to the target, configure HTTPS target protocol and certificates on the app as well. A newly created ALB can take several minutes. `ADDRESS` remaining blank usually means controller/IAM/subnet discovery errors; inspect controller logs before changing network rules.
+Expected outcome: HTTPS requests to the configured hostname reach the app; HTTP is redirected or unavailable; direct access to node addresses is not part of the design. ALB terminates TLS and sends HTTP directly to pod IPs inside the VPC in this example. If policy requires encryption to the target, configure HTTPS target protocol and certificates on the app as well. A newly created ALB can take several minutes. `ADDRESS` remaining blank usually means controller/IAM/subnet discovery errors; inspect controller logs before changing network rules.
 
 ## Console inspection and screenshot
 
@@ -350,7 +350,7 @@ Expected outcome: HTTPS requests to the configured hostname reach the app; HTTP 
 - WAF protects HTTP(S) requests at the ALB/CloudFront layer; it does not filter pod-to-pod traffic.
 - Default-deny egress can break DNS, telemetry, image pulls from in-pod tools, and application dependencies. Add only required destinations and ports, then observe logs and test.
 - NetworkPolicy semantics for host-network pods and traffic to node-local services vary. Verify using the chosen CNI and version.
-- `target-type: ip` is convenient and avoids NodePort traffic, but requires correct subnet discovery, security-group behavior, and pod routability.
+- `target-type: ip` avoids NodePort traffic, but requires correct subnet discovery, security-group behavior, and routable pod IPs.
 
 ### Screenshots to capture
 
