@@ -10,28 +10,89 @@ Before clicking through the console, decide which paths should exist. Defense in
 
 ## Reference architecture
 
-```text
-Internet users
-    | HTTPS :443
-    v
-Route 53 -> (optional CloudFront/WAF) -> internet-facing ALB
-                                      public subnets, 2+ AZs
-                                                |
-                                                | target traffic :NodePort
-                                                v
-                                   private worker subnets
-                                   EKS nodes / VPC CNI
-                                                |
-                                   ingress -> Service -> pods
-                                                |
-                                NetworkPolicy + namespace boundary
+The diagram separates the public request path, the Kubernetes control plane, and the two identity paths. The EKS control plane is an AWS-managed service; it is not a group of pods running on the worker nodes. EKS creates network interfaces in the selected cluster subnets so the managed control plane can communicate privately with nodes.
 
-Operators -> IAM Identity Center / IAM role -> EKS access entry -> RBAC
-Workloads -> Kubernetes service account -> Pod Identity / IRSA -> AWS API
-EKS control plane -> CloudTrail + control-plane logs + GuardDuty
-```
+{{< mermaid >}}
+flowchart LR
+    user[Internet user] -->|HTTPS 443| dns[Route 53 DNS]
+    dns --> waf[Regional AWS WAF]
+    waf --> alb[Internet-facing ALB]
 
-The ALB is the only internet-facing application entry point in this design. Nodes have no public IP addresses. The Kubernetes API endpoint is private for normal operations; if you enable public access during a temporary bootstrap, restrict it to a known administration CIDR and remove that path afterward. A private endpoint requires the operator to have network connectivity to the VPC, such as VPN, Direct Connect, a bastion, or an in-VPC runner.
+    subgraph vpc[Customer VPC across two Availability Zones]
+      subgraph az1[Availability Zone A]
+        pub1[Public subnet A\nALB ENI]
+        priv1[Private subnet A\nEKS node, no public IP]
+      end
+      subgraph az2[Availability Zone B]
+        pub2[Public subnet B\nALB ENI]
+        priv2[Private subnet B\nEKS node, no public IP]
+      end
+      igw[Internet Gateway]
+      nat[NAT Gateway or VPC endpoints\nnode and pod egress]
+      api[Private EKS API endpoint\nTCP 443 from approved network]
+      alb -->|target group: NodePort| priv1
+      alb -->|target group: NodePort| priv2
+      priv1 --> svc[NodePort Service\nClusterIP routing]
+      priv2 --> svc
+      svc --> pod[payments namespace\nweb Pods]
+      igw --- pub1
+      igw --- pub2
+      priv1 --> nat
+      priv2 --> nat
+      api --- priv1
+      api --- priv2
+    end
+
+    operator[Operator via VPN or approved network] -->|IAM auth| access[EKS access entry]
+    access --> rbac[Kubernetes RBAC\nadmin / DevOps / observer]
+    rbac --> api
+    pod -->|Pod Identity association\nleast-privilege role| awsapi[AWS API such as S3]
+    control[EKS managed control plane] --> api
+    control -. audit and control-plane logs .-> logs[CloudWatch Logs]
+    awsapi -. API activity .-> trail[CloudTrail]
+    guard[GuardDuty EKS Protection\nand Runtime Monitoring] -. findings .-> logs
+    classDef public fill:#fff3e0,stroke:#ef8b24,color:#38220a;
+    classDef private fill:#e9f3ff,stroke:#2875b9,color:#102c45;
+    classDef identity fill:#f2eaff,stroke:#8052a8,color:#28153d;
+    class pub1,pub2,alb,waf public;
+    class priv1,priv2,api,svc,pod private;
+    class operator,access,rbac identity;
+{{< /mermaid >}}
+
+The ALB is the only internet-facing application entry point in this lab. Route 53 provides DNS; the regional WAF is associated with the ALB. ALB nodes are placed in public subnets in at least two Availability Zones, while managed worker nodes use private subnets and have no public IP addresses. Public subnet route tables point to an Internet Gateway; private subnet routes use a NAT Gateway for outbound internet access or VPC endpoints for selected AWS services. NAT provides egress, not unsolicited inbound access.
+
+This workshop configures the AWS Load Balancer Controller to use **instance targets**. The ALB forwards to a NodePort on a private node; Kubernetes then routes the request through the Service to a ready pod. The node security group accepts that target traffic from the ALB security group, not from arbitrary internet clients. NetworkPolicy controls pod traffic inside the cluster; it does not replace the ALB and node security-group boundary.
+
+The Kubernetes API is reachable through a private endpoint from the VPC. Operators connect through a VPN, Direct Connect, or a trusted in-VPC runner, authenticate with an individual IAM role, and receive namespace or cluster permissions through an EKS access entry plus Kubernetes RBAC. Application pods use a separate Kubernetes service account associated with a narrowly scoped AWS role through EKS Pod Identity. Human permissions and workload permissions are separate paths.
+
+Control-plane audit/authenticator logs go to CloudWatch Logs. CloudTrail records AWS API activity such as role and access-entry changes. GuardDuty EKS Protection and Runtime Monitoring add detection signals. These are evidence and detection layers; they do not block traffic by themselves.
+
+### Request path, hop by hop
+
+| Hop | What happens | Boundary to verify |
+|---|---|---|
+| 1. Client to DNS | The user resolves the application hostname with Route 53. | The hostname points to the intended ALB, not a node address. |
+| 2. DNS to edge | The browser connects over HTTPS to the ALB; AWS WAF evaluates the HTTP request. | ACM certificate, HTTPS listener, WAF association, and intended client CIDRs. |
+| 3. ALB to node | The ALB target group forwards to the NodePort on healthy nodes in private subnets. | Target health is healthy; node security-group ingress names the ALB security group as source. |
+| 4. Node to Service to pod | Kubernetes forwards the request to the `web` Service and one ready `payments` pod. | Service selector matches pod labels; readiness probe passes. |
+| 5. Pod to other workloads | NetworkPolicy allows only the explicitly designed paths, such as frontend to web and DNS. | Confirm the VPC CNI policy agent is enforcing rules; applying YAML alone is not proof. |
+| 6. Pod to AWS | The pod obtains short-lived credentials through its Pod Identity association. | The role trust and policy name the intended cluster, namespace, service account, and AWS resources. |
+
+### Management and evidence paths
+
+An operator first authenticates to AWS through IAM Identity Center or a federated IAM role. `aws eks update-kubeconfig` obtains cluster connection details; `kubectl` uses the role to authenticate. EKS maps that principal through an access entry, and Kubernetes authorization then evaluates the associated access policy or RBAC group binding. The EKS API endpoint is not exposed to public clients in the baseline design.
+
+EKS control-plane logs show Kubernetes API and authentication activity. CloudTrail helps identify AWS API calls and IAM changes. VPC Flow Logs record accepted and rejected network metadata. GuardDuty can raise findings from supported EKS audit and runtime signals. Store these logs with deliberate retention and limit who can alter or delete them.
+
+### Architecture decisions and trade-offs
+
+- **Two Availability Zones:** spreads public ALB capacity and private nodes across AZs. Two NAT Gateways cost more but avoid a single-AZ egress dependency; one NAT Gateway is cheaper for a short-lived lab.
+- **Private nodes:** prevents direct internet connections to node addresses. Nodes still need controlled egress to pull images and reach AWS APIs; NAT or the necessary VPC endpoints provide it.
+- **Private cluster API:** limits the management plane to connected operator networks. This is safer than a public endpoint but requires VPN, Direct Connect, or an in-VPC administration runner.
+- **Instance target mode:** aligns with the NodePort Service used in this lab and uses node security groups to constrain ALB traffic. IP targets can remove the NodePort hop, but require a different pod ingress and security-group design.
+- **WAF and GuardDuty:** add request filtering and detection respectively, with separate costs and tuning needs. Neither replaces least privilege, network boundaries, or incident response.
+
+**Screenshot to capture:** replace the generated diagram with an annotated version of this architecture after building the VPC and cluster. Include public/private subnet boundaries, two AZs, the ALB-to-NodePort path, the private API path, and both identity paths. Redact account IDs, role ARNs, and public hostnames before sharing.
 
 ## Threats and controls
 

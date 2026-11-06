@@ -151,13 +151,65 @@ div.notices p:first-child:before {
 
 body {
     color: var(--MAIN-TEXT-color) !important;
-    font-family: 'Amazon Ember','Work Sans', sans-serif;
-	text-align: left;
+    font-family: 'Amazon Ember', 'Work Sans', Arial, sans-serif;
+    font-size: 17px !important;
+    font-weight: 400;
+    line-height: 1.7;
+    text-align: left;
 }
 
 h1, h2, h3, h4, h5 {
-    color: var(--MAIN-TITLES-TEXT-color) !important;
-    font-family: 'Amazon Ember','Montserrat', sans-serif;
+    color: #243b53 !important;
+    font-family: 'Work Sans', 'Amazon Ember', Arial, sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+}
+
+#body h1 {
+    font-size: 2.35rem;
+    text-align: left;
+    text-transform: none;
+}
+
+#body h2 {
+    margin-top: 2.2rem;
+    font-size: 1.75rem;
+}
+
+#body h3 {
+    margin-top: 1.7rem;
+    font-size: 1.3rem;
+}
+
+#body p, #body li {
+    max-width: 78ch;
+}
+
+#body p {
+    margin: 0.85rem 0;
+}
+
+#body li {
+    margin: 0.3rem 0;
+}
+
+#sidebar, #sidebar ul {
+    font-family: 'Work Sans', Arial, sans-serif;
+}
+
+#sidebar ul {
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+pre, code, kbd, samp {
+    font-family: 'Inconsolata', Consolas, monospace;
+}
+
+pre {
+    font-size: 0.9em;
+    line-height: 1.55;
 }
 
 .ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default, .ui-button, html .ui-button.ui-state-disabled:hover, html .ui-button.ui-state-disabled:active {
