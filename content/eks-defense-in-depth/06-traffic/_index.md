@@ -196,7 +196,7 @@ kubectl exec -n default deploy/blocked-client -- \
 
 The first request should return the NGINX welcome page. The second should time out or fail because `default` is not an allowed source namespace. If both requests work, first confirm `aws-node` has `2/2` containers and a `PolicyEndpoint` exists for the `web` pods before changing policies.
 
-With the instance-target path used here, VPC CNI network policy allows traffic from a pod's own node in addition to the explicit policy rules. This is needed for node-level forwarding but means the NetworkPolicy is not the control that distinguishes ALB traffic from other traffic arriving through a node. The node security group and ALB security group provide that boundary; NetworkPolicy limits pod-to-pod and egress traffic. If you change to `target-type: ip`, re-design and test the ALB-to-pod ingress policy and security-group path instead of assuming the pod-selector example will match ALB traffic.
+The ALB's forwarded request reaches the app through a node and can be evaluated by the pod ingress policy. Add an ingress rule for the **public subnet CIDRs selected by the ALB**, limited to the application port, as shown in `examples/secure-payments-app/k8s/30-network-policy.yaml`. Replace the example CIDRs with your actual ALB subnet CIDRs. A healthy target-group check does not guarantee the forwarded request is allowed: during sandbox validation, targets were healthy while HTTPS returned `504`; adding the narrow subnet rule changed `/healthz` to HTTP `200`. Keep the NodePort security-group rule restricted to the ALB security group as a separate boundary. If you change to `target-type: ip`, re-design and test the ALB-to-pod ingress and security-group path for that target mode.
 
 ## Create an HTTPS ingress
 
@@ -204,33 +204,56 @@ Prerequisites: AWS Load Balancer Controller installed, its service account has i
 
 ### Prepare the controller, certificate, and WAF
 
-The AWS Load Balancer Controller watches Kubernetes Ingress resources and creates AWS load balancers. It is not the same component as the EKS control plane. The following command path pins the controller release (`v2.14.1`) and Helm chart (`1.14.0`); check AWS's installation page for newer supported releases when you repeat this workshop. The controller role is scoped to its own Kubernetes service account through this cluster's OIDC provider.
+The AWS Load Balancer Controller watches Kubernetes Ingress resources and creates AWS load balancers. It is not the same component as the EKS control plane. The following command path pins the controller release (`v2.14.1`) and matching Helm chart (`1.14.1`); check AWS's installation page for newer supported releases when you repeat this workshop. The controller role is scoped to its own Kubernetes service account through this cluster's OIDC provider.
 
-1. Associate the cluster's OIDC provider and download the release-matched IAM policy:
+1. Confirm the cluster has an IAM OIDC provider. In the console, find the issuer at **EKS → Clusters → select the cluster → Overview → OpenID Connect provider URL**, then create or confirm it in **IAM → Identity providers** with audience `sts.amazonaws.com`. The Terraform foundation in [`infrastructure/terraform`](../../infrastructure/terraform/) creates this provider. Download and review the release-matched controller policy:
 
    ```bash
-   export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
    export LBC_VERSION=v2.14.1
-   eksctl utils associate-iam-oidc-provider --cluster "$CLUSTER_NAME" \
-     --region "$AWS_REGION" --approve
    curl -o iam_policy.json \
      "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/${LBC_VERSION}/docs/install/iam_policy.json"
+   cat iam_policy.json
    aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy \
      --policy-document file://iam_policy.json
    ```
 
    Inspect `iam_policy.json` before creating the policy. If the policy name already exists, retrieve its ARN and review the current default version instead of creating a duplicate. In the console, this is **IAM → Policies → Create policy → JSON**.
 
-2. Create the IAM role and `kube-system` service account association:
+2. Create a role whose trust is restricted to the controller service account. In the console, choose **IAM → Roles → Create role → Web identity**, select this cluster's OIDC provider, set audience `sts.amazonaws.com`, and subject `system:serviceaccount:kube-system:aws-load-balancer-controller`; attach only `AWSLoadBalancerControllerIAMPolicy`. The equivalent API steps are:
 
    ```bash
-   eksctl create iamserviceaccount --cluster "$CLUSTER_NAME" \
-     --namespace kube-system --name aws-load-balancer-controller \
-     --attach-policy-arn "arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy" \
-     --override-existing-serviceaccounts --region "$AWS_REGION" --approve
+   ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+   OIDC_ISSUER=$(aws eks describe-cluster --name "$CLUSTER_NAME" --region "$AWS_REGION" \
+     --query 'cluster.identity.oidc.issuer' --output text)
+   OIDC_HOSTPATH="${OIDC_ISSUER#https://}"
+   OIDC_PROVIDER_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC_HOSTPATH}"
+   cat > /tmp/lbc-trust.json <<EOF
+   {
+     "Version": "2012-10-17",
+     "Statement": [{
+       "Effect": "Allow",
+       "Principal": {"Federated": "${OIDC_PROVIDER_ARN}"},
+       "Action": "sts:AssumeRoleWithWebIdentity",
+       "Condition": {"StringEquals": {
+         "${OIDC_HOSTPATH}:aud": "sts.amazonaws.com",
+         "${OIDC_HOSTPATH}:sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"
+       }}
+     }]
+   }
+   EOF
+   aws iam create-role --role-name AWSLoadBalancerControllerRole \
+     --assume-role-policy-document file:///tmp/lbc-trust.json
+   aws iam attach-role-policy --role-name AWSLoadBalancerControllerRole \
+     --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy"
+   LBC_ROLE_ARN=$(aws iam get-role --role-name AWSLoadBalancerControllerRole \
+     --query 'Role.Arn' --output text)
+   kubectl create serviceaccount aws-load-balancer-controller -n kube-system \
+     --dry-run=client -o yaml | kubectl apply -f -
+   kubectl annotate serviceaccount aws-load-balancer-controller -n kube-system \
+     "eks.amazonaws.com/role-arn=${LBC_ROLE_ARN}" --overwrite
    ```
 
-   This command uses CloudFormation to create an IAM role whose trust is limited to the controller service account. The console alternative is **IAM → Roles → Create role → Web identity**, select this cluster's OIDC provider, set audience `sts.amazonaws.com`, and subject `system:serviceaccount:kube-system:aws-load-balancer-controller`; attach only the release-matched controller policy.
+   If the role or service account already exists, inspect its trust and annotation first instead of overwriting a role used by another cluster. This path does not require `eksctl` or CloudFormation.
 
 3. Install the Gateway API standard CRDs required by the current AWS controller installation guide. This lab uses Ingress resources, not Gateway resources:
 
@@ -246,7 +269,7 @@ The AWS Load Balancer Controller watches Kubernetes Ingress resources and create
    helm repo update eks
    helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
      --namespace kube-system \
-     --version 1.14.0 \
+     --version 1.14.1 \
      --set clusterName="$CLUSTER_NAME" \
      --set region="$AWS_REGION" \
      --set vpcId="$VPC_ID" \

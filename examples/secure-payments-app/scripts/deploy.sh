@@ -14,15 +14,19 @@ kubectl apply -f "$PROJECT_DIR/k8s/20-service.yaml"
 sed "s|REPLACE_WITH_IMAGE_URI|${IMAGE_URI}|g" "$PROJECT_DIR/k8s/10-deployment.yaml" | kubectl apply -f -
 
 if [[ -n "${ACM_CERTIFICATE_ARN:-}" ]]; then
+  : "${ALB_ALLOWED_CIDR:?Set ALB_ALLOWED_CIDR to a trusted client CIDR, preferably your current public IP /32}"
   ingress_file="$(mktemp)"
   trap 'rm -f "$ingress_file"' EXIT
   if [[ -n "${WAF_ACL_ARN:-}" ]]; then
     sed \
       -e "s|REPLACE_WITH_ACM_CERTIFICATE_ARN|${ACM_CERTIFICATE_ARN}|g" \
+      -e "s|REPLACE_WITH_ALLOWED_CLIENT_CIDR|${ALB_ALLOWED_CIDR}|g" \
       -e "s|# alb.ingress.kubernetes.io/wafv2-acl-arn: REPLACE_WITH_REGIONAL_WEB_ACL_ARN|alb.ingress.kubernetes.io/wafv2-acl-arn: ${WAF_ACL_ARN}|" \
       "$PROJECT_DIR/k8s/40-ingress.example.yaml" > "$ingress_file"
   else
-    sed "s|REPLACE_WITH_ACM_CERTIFICATE_ARN|${ACM_CERTIFICATE_ARN}|g" \
+    sed \
+      -e "s|REPLACE_WITH_ACM_CERTIFICATE_ARN|${ACM_CERTIFICATE_ARN}|g" \
+      -e "s|REPLACE_WITH_ALLOWED_CLIENT_CIDR|${ALB_ALLOWED_CIDR}|g" \
       "$PROJECT_DIR/k8s/40-ingress.example.yaml" > "$ingress_file"
   fi
   kubectl apply -f "$ingress_file"

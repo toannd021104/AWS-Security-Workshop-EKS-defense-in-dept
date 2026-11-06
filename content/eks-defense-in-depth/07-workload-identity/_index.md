@@ -14,17 +14,51 @@ Give an application a short-lived AWS identity without storing access keys in it
 
 The VPC CNI needs EC2 permissions to allocate pod IP addresses. AWS recommends a separate IAM role for its `kube-system/aws-node` service account. This is a cluster add-on identity, distinct from both the node role and application roles. The procedure below uses IRSA; the same CNI add-on also supports EKS Pod Identity.
 
-The AWS Load Balancer Controller module created the cluster's IAM OIDC provider. Confirm that one exists, then create a role using **IAM → Roles → Create role → Web identity** or `eksctl`:
+The VPC CNI managed add-on supports an IAM role directly. In **IAM → Roles → Create role → Web identity**, select this cluster's OIDC provider, set audience `sts.amazonaws.com`, and set the subject to `system:serviceaccount:kube-system:aws-node`. Attach `AmazonEKS_CNI_Policy`. This avoids putting pod-IP management permissions on every node.
+
+The equivalent AWS API sequence first reads the OIDC issuer, then creates a trust policy restricted to the `aws-node` service account:
 
 ```bash
-eksctl create iamserviceaccount --cluster "$CLUSTER_NAME" \
-  --namespace kube-system --name aws-node \
-  --role-name AmazonEKSVPCCNIRole \
-  --attach-policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy \
-  --override-existing-serviceaccounts --region "$AWS_REGION" --approve
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+OIDC_ISSUER=$(aws eks describe-cluster --name "$CLUSTER_NAME" --region "$AWS_REGION" \
+  --query 'cluster.identity.oidc.issuer' --output text)
+OIDC_HOSTPATH="${OIDC_ISSUER#https://}"
+OIDC_PROVIDER_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC_HOSTPATH}"
+
+cat > /tmp/vpc-cni-trust.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {"Federated": "${OIDC_PROVIDER_ARN}"},
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {"StringEquals": {
+      "${OIDC_HOSTPATH}:aud": "sts.amazonaws.com",
+      "${OIDC_HOSTPATH}:sub": "system:serviceaccount:kube-system:aws-node"
+    }}
+  }]
+}
+EOF
+
+aws iam create-role --role-name AmazonEKSVPCCNIRole \
+  --assume-role-policy-document file:///tmp/vpc-cni-trust.json
+aws iam attach-role-policy --role-name AmazonEKSVPCCNIRole \
+  --policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+ROLE_ARN=$(aws iam get-role --role-name AmazonEKSVPCCNIRole \
+  --query 'Role.Arn' --output text)
+aws eks update-addon --cluster-name "$CLUSTER_NAME" --addon-name vpc-cni \
+  --service-account-role-arn "$ROLE_ARN" --resolve-conflicts PRESERVE \
+  --region "$AWS_REGION"
 ```
 
-Expected result: the `aws-node` service account has an IAM role annotation scoped to this cluster's OIDC provider and the `kube-system:aws-node` subject. Existing pods do not receive changed service-account annotations, so roll the DaemonSet and watch it recover one node at a time:
+If the VPC CNI add-on is not managed yet, use `aws eks create-addon` with the same role ARN instead of `update-addon`. The Terraform fallback in [`infrastructure/terraform`](../../infrastructure/terraform/) creates this role and configures the add-on. Expected result: add-on status returns to `ACTIVE` and its role ARN is the dedicated role. Confirm it:
+
+```bash
+aws eks describe-addon --cluster-name "$CLUSTER_NAME" --addon-name vpc-cni \
+  --region "$AWS_REGION" --query 'addon.{Status:status,Role:serviceAccountRoleArn}'
+```
+
+Existing `aws-node` pods may need to restart to receive the updated identity; watch the DaemonSet recover one node at a time:
 
 ```bash
 kubectl rollout restart daemonset/aws-node -n kube-system
@@ -32,7 +66,7 @@ kubectl rollout status daemonset/aws-node -n kube-system --timeout=10m
 kubectl get pods -n kube-system -l k8s-app=aws-node -o wide
 ```
 
-If networking degrades, restore the previous node-role permission before continuing.
+Expected result: every `aws-node` pod is `2/2 Ready`. If networking degrades, restore the previous node-role permission before continuing.
 
 After confirming the CNI role works, remove `AmazonEKS_CNI_Policy` from the node role in IAM if it was attached during node-role setup. Do not remove the policy before the add-on has assumed its replacement role. This workshop's recommended node role omits it; the check matters if the console created a broader role.
 

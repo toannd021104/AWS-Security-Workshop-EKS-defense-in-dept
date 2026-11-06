@@ -7,8 +7,10 @@ PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 kubectl delete ingress web -n payments --ignore-not-found
 kubectl delete deployment web -n payments --ignore-not-found
 kubectl delete service web -n payments --ignore-not-found
-kubectl delete networkpolicy default-deny allow-dns-egress allow-pod-identity-agent allow-frontend-to-web -n payments --ignore-not-found
+kubectl delete networkpolicy default-deny allow-dns-egress allow-pod-identity-agent allow-frontend-to-web allow-alb-subnets-to-web -n payments --ignore-not-found
 kubectl delete serviceaccount web-reader -n payments --ignore-not-found
+kubectl delete rolebinding payments-deployers payments-observers -n payments --ignore-not-found
+kubectl delete role payments-deployer payments-observer -n payments --ignore-not-found
 kubectl delete deployment connectivity-check -n frontend --ignore-not-found
 kubectl delete deployment blocked-client -n default --ignore-not-found
 

@@ -7,10 +7,10 @@ A small, deployable application that ties the workshop's security controls toget
 - A real container image built locally and pushed to Amazon ECR.
 - An EKS Deployment and NodePort Service with non-root execution, a read-only root filesystem, dropped Linux capabilities, resource bounds, and health probes.
 - A restricted Pod Security Admission namespace.
-- Default-deny network policy with explicit DNS, Pod Identity agent, and frontend-to-app paths.
+- Default-deny network policy with explicit DNS, Pod Identity agent, frontend-to-app, and ALB-subnet-to-app paths.
 - An EKS Pod Identity association whose IAM role trust is limited to one account and cluster. The role has no permissions because this sample does not call AWS services.
-- An optional HTTPS ALB Ingress using instance targets. It requires the AWS Load Balancer Controller and an ACM certificate in the cluster's region; WAF is optional.
-- A read-only Kubernetes Role and RoleBinding for an observer group.
+- An optional HTTPS ALB Ingress using instance targets and an explicit allowed client CIDR. It requires the AWS Load Balancer Controller and an ACM certificate in the cluster's region; WAF is optional.
+- Namespace-scoped Kubernetes Roles for deployment operators and read-only observers.
 - A repeatable allow/deny connectivity check and a cleanup script that removes only this sample's resources.
 
 The implementation is intentionally small enough to review. The web process does not accept user-supplied URLs, object keys, shell commands, or secrets. `/api/identity` returns the credential provider name and expiration only; it never serializes access keys, session tokens, or the frozen credential object.
@@ -25,7 +25,7 @@ Operator --IAM role--> EKS access entry --> Kubernetes RBAC --> private EKS API
 web Pod --service account--> EKS Pod Identity agent --> short-lived role credentials
 ```
 
-The ALB uses **instance** targets to match the workshop's NodePort path. Nodes must be in private subnets, and their security group should accept the target NodePort from the ALB security group. NetworkPolicy separates ordinary pod traffic; it does not replace the ALB/node security-group boundary. With the Amazon VPC CNI NetworkPolicy implementation, node-originated traffic is allowed for node-level operations, so verify the behavior described in Module 6 for your CNI version.
+The ALB uses **instance** targets to match the workshop's NodePort path. Nodes must be in private subnets, and their security group should accept the target NodePort from the ALB security group. The `allow-alb-subnets-to-web` policy separately permits the ALB's public subnet CIDRs to reach the application port; update those CIDRs if your VPC differs from the Terraform example. This is needed because an ALB target can be healthy while its forwarded request is denied by pod policy. NetworkPolicy complements the ALB/node security-group boundary. With the Amazon VPC CNI NetworkPolicy implementation, node-originated traffic is allowed for node-level operations, so verify the behavior described in Module 6 for your CNI version.
 
 ## Requirements
 
@@ -65,6 +65,8 @@ export IMAGE_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/secure-payme
 ```
 
 Expected result: Docker pushes the image and ECR image scanning starts. Review scan results before using the image beyond this lab. For production, pin the base image and dependencies to approved digests/lock files, sign the image, and promote an immutable digest through your release process.
+
+In the sandbox verification on 2026-11-06, ECR reported **9 HIGH, 10 MEDIUM, and 3 LOW** findings for image tag `8484070e093b`. The findings included OS-library CVEs in SQLite, util-linux, glibc, zlib, and libtirpc. Treat this image as a lab artifact; check the current scan for your own build, refresh the base image, and do not promote an image with unresolved findings without an explicit risk review. Scanner results change over time, so these counts are evidence from that run, not a lasting assessment.
 
 ## 3. Create and associate the workload identity
 
@@ -106,12 +108,13 @@ Set a regional ACM certificate ARN and run the deploy script again. To attach WA
 
 ```bash
 export ACM_CERTIFICATE_ARN=arn:aws:acm:us-east-1:123456789012:certificate/REPLACE_ME
+export ALB_ALLOWED_CIDR=203.0.113.10/32
 export WAF_ACL_ARN=arn:aws:wafv2:us-east-1:123456789012:regional/webacl/REPLACE_ME
 ./scripts/deploy.sh
 kubectl get ingress web -n payments --watch
 ```
 
-Omit `WAF_ACL_ARN` to create an HTTPS ALB without WAF. Do not copy the example ARNs; replace them with resources from your own account. Verify the ALB's HTTPS listener, certificate, WAF association (if configured), target health, and security-group source rules in the console.
+Set `ALB_ALLOWED_CIDR` to a trusted client network, preferably a single `/32`; the script refuses to create an internet-facing ALB without this value. Omit `WAF_ACL_ARN` to create an HTTPS ALB without WAF. Do not copy the example ARNs; replace them with resources from your own account. Verify the ALB's HTTPS listener, certificate, WAF association (if configured), target health, and security-group source rules in the console.
 
 ## 5. Verify expected allow and deny results
 
@@ -127,6 +130,7 @@ Expected observations:
 - `/api/identity` returns a provider of `container-role`, a credential expiration, and `credential_values_returned: false`.
 - The unrelated client in the `default` namespace times out or is denied when it tries to reach the `payments` pods.
 - The app pods show `Running`, `READY 1/1`, and use the `web-reader` service account.
+- If the optional ALB is configured, an HTTPS request to `/healthz` returns HTTP 200. A healthy ALB target alone does not prove NetworkPolicy permits forwarded application traffic.
 
 Example identity response:
 
@@ -155,6 +159,32 @@ kubectl apply -f k8s/60-observer-rbac.yaml
 ```
 
 Use the real role ARN from your account. Test the role with `kubectl auth can-i`: it should read pods and logs in `payments`, but not create Deployments or read Secrets.
+
+## 7. Namespace-scoped DevOps RBAC
+
+For a daily DevOps role, prefer a custom Kubernetes group and Role over `AmazonEKSEditPolicy`. The managed edit policy is convenient, but the sandbox check confirmed that it can read namespace Secrets. The sample Role can deploy and roll back Deployments, inspect pods and logs, and read Services/events; it cannot read Secrets, change RBAC, or access other namespaces.
+
+Create an IAM role with only `eks:DescribeCluster` for this cluster, then map it to the Kubernetes group and bind the namespace Role:
+
+```bash
+export DEVOPS_ROLE_ARN=arn:aws:iam::123456789012:role/EKSDepthDevOps
+aws eks create-access-entry --cluster-name "$CLUSTER_NAME" \
+  --principal-arn "$DEVOPS_ROLE_ARN" --type STANDARD \
+  --kubernetes-groups payments-deployers --region "$AWS_REGION"
+kubectl apply -f k8s/61-devops-rbac.yaml
+```
+
+If the access entry already exists, update it to the group instead of creating a second entry for the same principal. Do not also associate `AmazonEKSEditPolicy`, because EKS access-policy grants combine with Kubernetes RBAC and would restore the broader permissions.
+
+Check with the DevOps IAM role:
+
+```bash
+kubectl auth can-i create deployments -n payments  # yes
+kubectl auth can-i get pods/log -n payments         # yes
+kubectl auth can-i get secrets -n payments          # no
+kubectl auth can-i create deployments -n default    # no
+kubectl auth can-i get nodes                        # no
+```
 
 ## Cleanup
 

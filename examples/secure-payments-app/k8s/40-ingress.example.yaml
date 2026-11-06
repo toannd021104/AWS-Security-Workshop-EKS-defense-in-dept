@@ -8,6 +8,7 @@ metadata:
     alb.ingress.kubernetes.io/target-type: instance
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/certificate-arn: REPLACE_WITH_ACM_CERTIFICATE_ARN
+    alb.ingress.kubernetes.io/inbound-cidrs: REPLACE_WITH_ALLOWED_CLIENT_CIDR
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
     alb.ingress.kubernetes.io/success-codes: "200"
     # Optional: add this after creating a regional AWS WAF web ACL:

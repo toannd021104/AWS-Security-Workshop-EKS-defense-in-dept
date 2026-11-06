@@ -74,7 +74,7 @@ The `payments` namespace is created in Module 4. Confirm its name before attachi
 kubectl get namespace payments
 ```
 
-Use an EKS-managed policy scoped to the application namespace for ordinary deployments:
+For a quick namespace-scoped setup, EKS provides a managed edit policy. The sandbox check showed that `AmazonEKSEditPolicy` can read Secrets in the namespace. That is often too much access for daily deploys, so this workshop uses a Kubernetes Role and group binding for the narrower baseline below. Use the managed policy only when that broader access is approved:
 
 ```bash
 aws eks create-access-entry --cluster-name "$CLUSTER_NAME" \
@@ -86,9 +86,30 @@ aws eks associate-access-policy --cluster-name "$CLUSTER_NAME" \
   --access-scope type=namespace,namespaces=payments --region "$AWS_REGION"
 ```
 
-Verify the policy's documented permissions. `AmazonEKSEditPolicy` is more permissive than read-only and may allow creating workloads that consume namespace resources; resource quotas and pod security still matter. The bootstrap operator creating these entries needs the corresponding EKS management API permissions.
+When you use `AmazonEKSEditPolicy`, verify its documented permissions and test `kubectl auth can-i get secrets -n payments`. In this sandbox it returned `yes`. The bootstrap operator creating access entries needs the corresponding EKS management API permissions.
+
+For the workshop's least-privilege DevOps role, create an access entry mapped to `payments-deployers` and apply the project Role/RoleBinding as the cluster administrator:
+
+```bash
+aws eks create-access-entry --cluster-name "$CLUSTER_NAME" \
+  --principal-arn "$DEVOPS_ROLE_ARN" --type STANDARD \
+  --kubernetes-groups payments-deployers --region "$AWS_REGION"
+kubectl apply -f examples/secure-payments-app/k8s/61-devops-rbac.yaml
+```
+
+If an access entry already exists, use `aws eks update-access-entry --kubernetes-groups payments-deployers` and disassociate any `AmazonEKSEditPolicy` association. EKS access-policy permissions and Kubernetes RBAC permissions are additive. The sample Role allows managing Deployments and reading pods, logs, Services, and Events in `payments`; it does not grant Secret access, RBAC changes, or access to another namespace.
 
 Treat permission to create or update workloads as access to the identities those workloads can use. A DevOps user who can create Pods in a namespace may be able to set `serviceAccountName` to an existing service account and receive that workload's AWS role. Keep high-impact service accounts in a namespace where only trusted operators can deploy, and grant each workload role only the specific AWS actions and resources it needs.
+
+Check the DevOps role from its own IAM identity. Expected results for the custom Role are `yes`, `yes`, `no`, `no`, and `no` respectively:
+
+```bash
+kubectl auth can-i create deployments -n payments
+kubectl auth can-i get pods/log -n payments
+kubectl auth can-i get secrets -n payments
+kubectl auth can-i create deployments -n default
+kubectl auth can-i get nodes
+```
 
 For a support user, use `AmazonEKSViewPolicy` scoped to `payments` instead of edit. It provides view access, not access to Secret contents. If a user needs a narrower custom permission set, use an access entry with a Kubernetes group and a hand-written Role/RoleBinding rather than granting cluster-wide access.
 

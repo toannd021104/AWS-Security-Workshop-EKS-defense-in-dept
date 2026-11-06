@@ -35,7 +35,7 @@ aws eks describe-cluster --name "$CLUSTER_NAME" --region "$AWS_REGION" \
   --output yaml
 ```
 
-Expected result: `Status` is `ACTIVE`, `Private` is `true`, `Public` is `false` for the final private-only setup, `Auth` includes `API`, and the enabled log types include the five selected above. A public endpoint can coexist with a private endpoint, but if used temporarily its CIDR list should be narrow and the temporary path should be removed.
+Expected result: `Status` is `ACTIVE`, `Private` is `true`, `Auth` includes `API`, and the enabled log types include the five selected above. For the preferred final design, set `Public` to `false` and use a VPN, Direct Connect, or in-VPC administration host. This workshop's Terraform sandbox instead enables both endpoints and restricts the public endpoint to the operator's `/32` so CLI verification can run from the workstation; use the exact CIDR shown by the command as the expected result for that path. A public endpoint can coexist with a private endpoint, but its CIDR list must remain narrow.
 
 ## Add a managed node group
 

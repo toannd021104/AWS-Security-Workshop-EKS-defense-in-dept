@@ -75,3 +75,26 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-alb-subnets-to-web
+  namespace: payments
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: secure-payments
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # Replace these with the public subnet CIDRs selected by the ALB.
+        # They match the workshop Terraform defaults in infrastructure/terraform.
+        - ipBlock:
+            cidr: 10.20.0.0/20
+        - ipBlock:
+            cidr: 10.20.16.0/20
+      ports:
+        - protocol: TCP
+          port: 8080

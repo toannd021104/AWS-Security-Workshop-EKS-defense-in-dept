@@ -1,0 +1,7 @@
+aws_region          = "us-east-1"
+aws_profile         = "guru"
+name                = "eks-depth-lab"
+kubernetes_version  = "1.36"
+admin_cidr          = "203.0.113.10/32" # Replace with your current public IPv4 address.
+node_instance_type  = "t3.medium"
+node_count          = 2
