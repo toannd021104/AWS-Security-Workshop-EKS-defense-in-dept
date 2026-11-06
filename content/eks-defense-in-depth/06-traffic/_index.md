@@ -8,6 +8,8 @@ chapter: false
 
 Allow the intended path from the public ALB to the app and deny unnecessary east-west traffic between pods. Use an AWS Load Balancer Controller for ingress resources; keep the Kubernetes API and worker nodes off the public internet.
 
+**Runnable example:** the [Secure Payments project](https://github.com/toannd021104/AWS-Security-Workshop-EKS-defense-in-dept/tree/main/examples/secure-payments-app) provides the instance-target Ingress, NodePort Service, NetworkPolicies, and scripts that verify one allowed and one denied pod path.
+
 ## Important prerequisite: network policy enforcement
 
 Kubernetes NetworkPolicy objects have no effect unless the network plugin enforces them. Amazon VPC CNI support depends on its version and network-policy feature configuration. Before applying policies, follow the current AWS VPC CNI documentation for your cluster version, enable the NetworkPolicy feature, and confirm the agent is healthy. A successful `kubectl apply` only proves the API stored the object; it does not prove packets are filtered.

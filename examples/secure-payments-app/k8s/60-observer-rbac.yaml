@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: payments-observer
+  namespace: payments
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: payments-observers
+  namespace: payments
+subjects:
+  - kind: Group
+    name: payments-observers
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: payments-observer
+  apiGroup: rbac.authorization.k8s.io

@@ -8,6 +8,8 @@ chapter: false
 
 Reduce what a compromised container can do to the node and cluster. A container is not a virtual machine: it shares the host kernel. Restrict privileges, use supported node images, and enforce a namespace-level baseline so a bad manifest is rejected before it runs.
 
+**Runnable example:** the [Secure Payments project](https://github.com/toannd021104/AWS-Security-Workshop-EKS-defense-in-dept/tree/main/examples/secure-payments-app) includes the image build, hardened Deployment, Service, probes, resource limits, and namespace labels used in this module.
+
 ## Harden the managed node group
 
 In **EKS → Cluster → Compute → Node groups**, confirm the group uses private subnets and has no SSH remote access configured. Prefer EKS-optimized Amazon Linux images and managed node group updates. Schedule updates: a managed node group does not remove the need to patch Kubernetes components and host packages.

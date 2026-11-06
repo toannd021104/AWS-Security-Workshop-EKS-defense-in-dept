@@ -8,6 +8,8 @@ chapter: false
 
 Give an application a short-lived AWS identity without storing access keys in its image, environment, or Kubernetes Secret. EKS Pod Identity is the path used here; IRSA is a valid alternative when its OIDC trust model better fits your organization.
 
+**Runnable example:** in the [Secure Payments project](https://github.com/toannd021104/AWS-Security-Workshop-EKS-defense-in-dept/tree/main/examples/secure-payments-app), the app checks that the SDK received credentials from the Pod Identity provider and returns only the provider name and expiry. The example IAM role intentionally has no AWS permissions.
+
 ## Move VPC CNI permissions off the node role
 
 The VPC CNI needs EC2 permissions to allocate pod IP addresses. AWS recommends a separate IAM role for its `kube-system/aws-node` service account. This is a cluster add-on identity, distinct from both the node role and application roles. The procedure below uses IRSA; the same CNI add-on also supports EKS Pod Identity.

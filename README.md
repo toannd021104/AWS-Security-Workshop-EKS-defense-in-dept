@@ -14,3 +14,7 @@ Open the [workshop landing page](content/_index.md), then follow the modules und
 - You have AWS CLI v2, `kubectl`, `helm`, `eksctl`, and `curl` installed. Console steps are included where they help learners inspect AWS settings or capture screenshots.
 
 Each module states prerequisites, implementation steps, expected results, and verification commands. Clean up the lab resources when finished.
+
+## Runnable application project
+
+The [`examples/secure-payments-app`](examples/secure-payments-app) directory contains a complete minimal application and the Kubernetes, IAM, container, and shell files used to exercise the workshop controls. Start with its [project guide](examples/secure-payments-app/README.md).

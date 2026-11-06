@@ -19,6 +19,10 @@ This lab creates billable AWS resources. Use a non-production account, record th
 
 An internet-facing application enters through a load balancer in public subnets. EKS worker nodes and pods run in private subnets. The cluster API is private or restricted to a known administration network. Human access uses individual IAM roles and EKS access entries; Kubernetes RBAC scopes namespace permissions. Workloads receive only the AWS permissions they need. Pod security, network policy, audit logging, and runtime detection add independent controls around the workload.
 
+## Runnable sample project
+
+The [Secure Payments sample application](https://github.com/toannd021104/AWS-Security-Workshop-EKS-defense-in-dept/tree/main/examples/secure-payments-app) contains a minimal HTTP app, Dockerfile, EKS manifests, Pod Identity trust policy, deployment and verification scripts, and safe cleanup steps. Build and deploy it alongside the modules to see the controls working together. It is a learning sample, not a payment processor.
+
 ## Workshop modules
 
 1. [Architecture, threat model, and preparation](eks-defense-in-depth/01-architecture/)
