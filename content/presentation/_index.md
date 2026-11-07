@@ -6,10 +6,10 @@ chapter: false
 
 # Kịch bản 25 phút: Phòng thủ theo chiều sâu cho Amazon EKS
 
-Kịch bản này đi theo đúng **11 slide** trong `EKS_Defense_in_Depth_Vietnamese.pptx`. Mở slide tương ứng và dùng lời thoại Hugo bên dưới. Thời lượng lời nói khoảng 25 phút; phần demo Console có thể thêm 3–5 phút.
+Kịch bản này đi theo đúng **11 slide** trong `EKS_Defense_in_Depth_Vietnamese.pptx`. Mở slide tương ứng, dùng phần Hugo làm lời dẫn và chỉ vào hình/nhãn mà bạn đang giải thích. Không cần đọc lại nguyên văn bullet trên slide. Thời lượng nói khoảng 25 phút; nếu demo Console trực tiếp, cộng thêm 3–5 phút.
 
 {{% notice note %}}
-Phạm vi là sandbox đã chạy và kiểm chứng: ALB dùng IP targets; Service `ClusterIP`; Deployment giữ hai pod `web`; EKS API có private endpoint và public endpoint giới hạn một CIDR `/32`. WAF, Route 53, SNS/email alert và certificate domain công khai chưa được cấu hình. Chứng chỉ ACM của lần thử là certificate thử nghiệm.
+Các kết quả được kể trong kịch bản là từ lần sandbox đã chạy và kiểm chứng: ALB dùng IP targets; Service `ClusterIP`; Deployment giữ hai pod `web`; EKS API có private endpoint và public endpoint giới hạn một CIDR `/32`. Trước buổi nói, kiểm tra xem sandbox hiện có đang chạy để demo trực tiếp hay cần dùng ảnh/kết quả đã lưu. WAF, Route 53, SNS/email alert và certificate domain công khai chưa được cấu hình. Chứng chỉ ACM của lần thử là certificate thử nghiệm.
 {{% /notice %}}
 
 ## Slide 1 — Phòng thủ theo chiều sâu cho Amazon EKS · 1 phút
@@ -18,9 +18,9 @@ Phạm vi là sandbox đã chạy và kiểm chứng: ALB dùng IP targets; Serv
 
 **Lời thoại:**
 
-“Xin chào mọi người. Hôm nay mình sẽ trình bày một workshop về phòng thủ theo chiều sâu cho Amazon EKS. Thay vì chỉ liệt kê các dịch vụ AWS, mình sẽ lần theo một request từ Internet đến ứng dụng, xem nó đi qua những ranh giới nào và mỗi ranh giới đang bảo vệ điều gì.
+“Xin chào mọi người. Hôm nay mình sẽ trình bày cách bảo vệ một ứng dụng chạy trên Amazon EKS. Mình sẽ không bắt đầu bằng danh sách tên dịch vụ. Thay vào đó, mình sẽ theo chân một request từ người dùng Internet đến ứng dụng, rồi xem các lớp bảo vệ ở dọc đường.
 
-Lab dùng một ứng dụng mẫu đơn giản. Nó không xử lý thanh toán thật và không chứa dữ liệu khách hàng. Mục tiêu là làm rõ các thành phần mạng, Kubernetes và AWS thông qua một luồng có thể kiểm chứng: từ ALB đến pod, từ người vận hành đến Kubernetes API và từ workload đến AWS identity.”
+Lab dùng một website mẫu tên `web`. Đây không phải hệ thống thanh toán thật và không chứa dữ liệu khách hàng. Qua ví dụ nhỏ này, mình sẽ giải thích ba luồng: request của người dùng vào pod, người vận hành gọi Kubernetes API, và ứng dụng lấy danh tính để gọi AWS khi cần.”
 
 **Chuyển ý:** “Trước khi xem kiến trúc, mình bắt đầu từ câu hỏi bảo mật cần trả lời.”
 
@@ -30,13 +30,13 @@ Lab dùng một ứng dụng mẫu đơn giản. Nó không xử lý thanh toán
 
 **Lời thoại:**
 
-“Khi một request đến ứng dụng, mình cần trả lời năm câu hỏi. Thứ nhất: ai được kết nối vào hệ thống? Thứ hai: khi đã vào được, request được đi tới workload nào? Thứ ba: container được chạy với quyền gì? Thứ tư: con người và ứng dụng được phép làm gì? Cuối cùng: nếu có hành vi bất thường, mình có bằng chứng nào để phát hiện và điều tra?
+“Hãy tưởng tượng ứng dụng như một tòa nhà. Câu hỏi đầu tiên là ai được qua cổng? Sau cổng, request được đi tới phòng nào? Một container trong phòng được chạy với quyền gì? Người vận hành và ứng dụng được phép làm gì? Cuối cùng, nếu có sự cố thì camera hay nhật ký nào giúp mình biết chuyện gì đã xảy ra?
 
-Các câu hỏi này nằm ở những lớp khác nhau. Security group có thể giới hạn kết nối từ mạng; NetworkPolicy kiểm soát giao tiếp giữa pod; Pod Security Admission từ chối một số cấu hình nguy hiểm; IAM và RBAC phân quyền danh tính; log và GuardDuty hỗ trợ quan sát.
+Trong AWS và Kubernetes, những câu hỏi đó tương ứng với các lớp khác nhau. Security group giới hạn kết nối tới network interface ở AWS. NetworkPolicy giới hạn luồng giữa các pod. Pod Security Admission kiểm tra cấu hình pod trước khi Kubernetes tạo nó. IAM, EKS Access Entry và Kubernetes RBAC xác định danh tính và quyền. Log cùng GuardDuty giúp phát hiện và điều tra.
 
-Không có một lớp nào thay thế hoàn toàn các lớp khác. Ví dụ, đặt node ở private subnet giảm khả năng bị truy cập trực tiếp từ Internet, nhưng không ngăn một pod trong cluster gọi nhầm sang workload khác. RBAC có thể giới hạn lệnh của người dùng, nhưng không tự lọc gói tin mạng. Logging cho mình biết chuyện gì đã xảy ra, nhưng bản thân log không chặn request.
+Mỗi lớp giải quyết một kiểu rủi ro. Private subnet giảm khả năng ai đó kết nối trực tiếp từ Internet vào node, còn NetworkPolicy giúp ngăn một pod gọi sang workload không liên quan. Security group lọc kết nối mạng; RBAC quyết định một người dùng Kubernetes được làm gì. Log ghi lại sự kiện để mình xem xét sau đó.
 
-Ý tưởng của defense in depth là một cấu hình sai ở một lớp không nên làm mọi lớp phía sau mất tác dụng. Và thay vì chỉ xem cấu hình, mình sẽ thử cả đường được phép lẫn đường phải bị chặn.”
+Đó là ý nghĩa của phòng thủ theo chiều sâu: có nhiều ranh giới, mỗi ranh giới làm một việc cụ thể. Cuối buổi mình sẽ chỉ kết quả thử nghiệm của cả đường được cho phép và đường bị chặn.”
 
 **Chuyển ý:** “Để hiểu các ranh giới đó nằm ở đâu, ta xem bản đồ tổng thể.”
 
@@ -46,13 +46,15 @@ Không có một lớp nào thay thế hoàn toàn các lớp khác. Ví dụ, �
 
 **Lời thoại:**
 
-“Đây là VPC riêng của lab, chia trên hai Availability Zone. Mỗi AZ có public subnet và private subnet. ALB nằm ở public subnets để có thể nhận kết nối từ phía người dùng. Worker node là các máy EC2 nằm trong private subnets; chúng không có public IP. Các pod ứng dụng được cấp IP trong mạng VPC thông qua Amazon VPC CNI.
+“Đây là mạng VPC của lab. VPC là mạng riêng do mình tạo trong AWS; nó được chia qua hai Availability Zone, tức hai khu vực hạ tầng tách biệt trong cùng region. Mỗi AZ có một public subnet và một private subnet. Subnet là một dải địa chỉ IP nằm trong VPC.
 
-Public subnet và private subnet không được xác định bởi tên. Điều quan trọng là route table: public subnet có route mặc định tới Internet Gateway; private subnet không có route trực tiếp đó. Private subnet của lab có đường outbound qua một NAT Gateway. NAT cho phép máy bên trong mở kết nối đi ra ngoài, chẳng hạn tải image hoặc gọi dịch vụ cần thiết; nó không có nghĩa Internet có thể tự mở kết nối mới vào node.
+ALB — Application Load Balancer — được đặt ở public subnets để nhận kết nối của người dùng. Worker node là các máy EC2 chạy Kubernetes worker; chúng nằm ở private subnets và không có public IP. Pod ứng dụng chạy trên các node. VPC CNI cấp địa chỉ IP VPC cho pod trong cấu hình này.
+
+Tên subnet không quyết định nó public hay private; route table mới quyết định. Route table giống bảng chỉ đường: public subnet có đường mặc định tới Internet Gateway, cánh cổng kết nối VPC với Internet. Private subnet không có đường trực tiếp đó. Nó dùng NAT Gateway cho kết nối outbound, ví dụ worker tải container image. NAT cho phép máy trong VPC bắt đầu kết nối đi ra; nó không mở cổng để người ngoài tự kết nối vào node.
 
 Lab dùng một NAT Gateway để giảm chi phí. Đây là trade-off: hai AZ có node, nhưng đường outbound phụ thuộc vào NAT nằm ở một AZ. Vì thế không nên gọi đây là thiết kế HA đầy đủ.
 
-Phần control plane là Kubernetes API server và các thành phần điều phối do EKS quản lý. Nó không phải pod ứng dụng chạy trên worker node. Worker node mới là EC2 do mình quản lý trong VPC; pod chạy trên worker node.
+EKS quản lý control plane — phần nhận lệnh Kubernetes và điều phối trạng thái cluster — còn worker node là EC2 chạy các pod của mình. Nói đơn giản: mình gửi cấu hình lên Kubernetes API; control plane quyết định cần tạo pod nào; worker node cung cấp máy tính để pod chạy.
 
 EKS API endpoint trong sandbox bật cả private lẫn public access, nhưng public bị giới hạn vào một CIDR `/32` để chạy CLI từ máy quản trị. Đây không phải private-only. Nếu triển khai thực tế chặt hơn, có thể tắt public endpoint và quản trị từ VPN, Direct Connect hoặc máy trong VPC.
 
@@ -68,17 +70,21 @@ WAF và Route 53 xuất hiện trong kiến trúc tham khảo, nhưng chưa đư
 
 **Lời thoại:**
 
-“Client gửi HTTPS tới ALB ở cổng 443. Listener của ALB nhận kết nối và chuyển request đến target group. Target group là danh sách backend mà ALB sẽ gọi; trong lab, danh sách có IP của hai pod `web`, port 8080.
+“Người dùng mở kết nối HTTPS tới ALB ở cổng 443. HTTPS mã hóa kết nối từ trình duyệt đến ALB. Trên ALB có listener — thành phần nghe ở một cổng, ở đây là 443 — rồi quyết định request được chuyển đi đâu.
 
-Vậy làm sao một Kubernetes manifest tạo ra ALB trong AWS? Mình cài AWS Load Balancer Controller trong cluster. Đây là một controller: nó liên tục theo dõi các tài nguyên Kubernetes mà nó quản lý. Khi thấy Ingress có class `alb`, controller gọi AWS API để tạo hoặc cập nhật ALB, listener, target group và các security-group rule cần thiết.
+Đích của ALB là target group. Có thể hiểu target group như danh sách địa chỉ của những máy chạy ứng dụng mà ALB được phép gọi. Trong lab, danh sách đó có IP của hai pod `web`, cùng cổng 8080.
 
-Ingress là cấu hình, không phải load balancer. Controller là thành phần chuyển cấu hình đó thành tài nguyên AWS. Target group mới là danh sách đích thực tế của ALB.
+Vậy làm sao cấu hình trong Kubernetes tạo được tài nguyên AWS? Trong cluster có AWS Load Balancer Controller. Controller là chương trình chạy liên tục để theo dõi cấu hình và giữ tài nguyên thật khớp với cấu hình đó. Khi thấy Ingress khai báo dùng ALB, controller gọi AWS API để tạo hoặc cập nhật ALB, listener, target group và security-group rule cần thiết.
 
-Trong manifest, `target-type: ip` yêu cầu controller đăng ký IP pod trực tiếp. App lắng nghe ở 8080. ALB kết thúc TLS tại listener HTTPS và trong cấu hình lab gửi HTTP nội bộ tới pod.
+Ingress là bản khai báo về đường vào ứng dụng; nó không phải chính cái ALB. Controller là người thực hiện bản khai báo đó trên AWS. Target group là nơi ta nhìn thấy các đích mà ALB thực sự có thể gọi.
 
-Service `web` vẫn được khai báo kiểu `ClusterIP`. Nó cung cấp địa chỉ ổn định để các workload khác trong cluster gọi ứng dụng. Nhưng ở IP target mode, ALB không gửi request qua NodePort hay ClusterIP. Controller lấy các backend pod qua EndpointSlice do Kubernetes duy trì.
+Manifest chọn `target-type: ip`, nghĩa là đăng ký IP pod vào target group. App bên trong pod lắng nghe ở cổng 8080. ALB giải mã HTTPS tại listener, rồi gửi HTTP tới pod bên trong VPC. Vì vậy client dùng HTTPS, còn đoạn ALB tới app trong lab là HTTP.
 
-Nếu một pod dừng, Deployment nhận thấy số bản sẵn sàng thấp hơn hai và tạo pod khác. Pod mới có thể có IP mới. EndpointSlice cập nhật; controller quan sát thay đổi rồi đăng ký địa chỉ mới vào target group, đồng thời gỡ địa chỉ cũ. ALB health check `/healthz`; khi target mới khỏe thì traffic được gửi tới đó.
+Service `web` có loại `ClusterIP`. Service là địa chỉ ổn định trong cluster để các ứng dụng nội bộ gọi `web`, kể cả khi pod được thay thế và đổi IP. Nhưng với IP target mode, ALB đi thẳng đến pod IP; request ALB không chạy qua ClusterIP và cũng không qua NodePort.
+
+Kubernetes duy trì EndpointSlice, tức danh sách pod IP hiện đang làm backend cho Service. Controller đọc danh sách này để cập nhật target group.
+
+Nếu một pod dừng, Deployment — cấu hình giữ số bản chạy mong muốn — tạo pod mới để duy trì hai bản sao. Pod mới có thể nhận IP khác. EndpointSlice đổi theo; controller gỡ IP cũ và thêm IP mới vào target group. ALB liên tục gọi health check `/healthz`. Khi pod mới trả kết quả khỏe, ALB bắt đầu gửi request tới nó.
 
 Đây cũng là điểm khác cách quen thuộc ở ECS. Với ECS, mình thường gắn target group vào ECS Service và ECS Service đồng bộ các task. Với EKS, trách nhiệm được tách ra giữa Deployment, Service, Ingress và AWS Load Balancer Controller.”
 
@@ -92,13 +98,13 @@ Nếu một pod dừng, Deployment nhận thấy số bản sẵn sàng thấp h
 
 **Lời thoại:**
 
-“Security group là firewall stateful gắn với network interface hoặc tài nguyên AWS. ALB nhận HTTPS từ CIDR được cho phép. Trên đường backend, security group chỉ cho port ứng dụng từ security group của ALB. Như vậy client Internet không được mở kết nối tùy ý thẳng tới node hoặc pod.
+“Security group có thể hình dung như firewall gắn ở phía AWS. Trong lab, nó chỉ nhận HTTPS từ địa chỉ client đã cho phép. Ở chiều backend, nó cho phép cổng ứng dụng 8080 từ security group của ALB. Client Internet không được kết nối tùy ý thẳng tới node hoặc pod.
 
-NetworkPolicy hoạt động ở lớp Kubernetes pod. Namespace `payments` có default-deny cho ingress và egress. Sau đó mình thêm các allow rule cụ thể: DNS, Pod Identity agent, frontend test client và nguồn ALB tới app port. NetworkPolicy không thay security group; một lớp giới hạn traffic bên trong cluster, lớp kia điều khiển traffic ở ranh giới AWS network interface.
+NetworkPolicy là luật mạng áp cho pod. Namespace `payments` bắt đầu bằng default-deny: chặn mọi luồng vào và ra, trừ các luồng được mở rõ ràng. Sau đó lab cho phép DNS, liên lạc với Pod Identity agent, frontend test client và ALB tới app port. Tóm lại, security group bảo vệ ranh giới network của AWS; NetworkPolicy giới hạn giao tiếp giữa workload Kubernetes.
 
 Điều kiện quan trọng là CNI phải thực thi policy. Trong lab, VPC CNI add-on bật NetworkPolicy và agent chạy trên node. Nếu chỉ `kubectl apply` một object NetworkPolicy nhưng plugin không hỗ trợ/enforce, người vận hành có thể tưởng traffic đã bị chặn trong khi thực tế chưa.
 
-Khi kiểm tra lần đầu, AWS Target Group báo cả hai target healthy, nhưng gọi HTTPS vào app bị 504. Target healthy chỉ cho biết health check của target group đạt yêu cầu; nó không chứng minh mọi request user đi qua policy giống health check. Mình đối chiếu NetworkPolicy và thấy thiếu nguồn traffic từ ALB. Sau khi thêm rule hẹp cho các CIDR public subnet của ALB tới port 8080, `/healthz` trả HTTP 200.
+Khi kiểm tra lần đầu, Target Group báo cả hai pod healthy nhưng gọi HTTPS vào website bị lỗi 504. Health check và request người dùng là hai phép thử khác nhau; target xanh chưa chứng minh toàn bộ request path hoạt động. Mình lần theo đường đi và thấy NetworkPolicy chưa cho nguồn traffic của ALB vào pod. Thêm rule chỉ cho các CIDR của public subnets đặt ALB tới port 8080 thì `/healthz` trả HTTP 200.
 
 Bài học là kiểm tra theo đường đi end-to-end, không dừng ở một dấu xanh. Đồng thời thử request được phép và request không được phép. Trong lab, frontend được vào `payments`; client ở namespace `default` bị timeout như mong muốn.”
 
@@ -112,11 +118,11 @@ Bài học là kiểm tra theo đường đi end-to-end, không dừng ở một
 
 **Lời thoại:**
 
-“Container không phải máy ảo. Nó chia sẻ kernel của node với các workload khác, nên nếu cấp quá nhiều quyền thì một lỗi trong app có thể gây ảnh hưởng rộng hơn.
+“Container đóng gói ứng dụng và thư viện của nó, nhưng không phải một máy tính hoàn toàn tách biệt. Các container trên cùng node vẫn dùng chung kernel Linux của máy đó. Nếu một container được chạy với quyền quá cao, sự cố của nó có thể ảnh hưởng tới node hoặc workload khác.
 
-Namespace `payments` bật Pod Security Admission ở mức `restricted`. Đây là admission control tích hợp trong Kubernetes API server: khi người dùng gửi manifest, API server kiểm tra cấu hình trước khi tạo pod. Mình thử một manifest privileged; API từ chối và pod không được tạo.
+Namespace `payments` bật Pod Security Admission mức `restricted`. Có thể hiểu đây là cửa kiểm tra ở Kubernetes API: trước khi nhận một Pod mới, API kiểm tra các trường bảo mật trong manifest. Một pod khai báo privileged — tức xin quyền gần như toàn bộ máy chủ — bị từ chối ngay, trước khi container được chạy.
 
-Deployment app cũng được harden ở runtime: chạy non-root, filesystem root chỉ đọc, bỏ Linux capabilities không cần thiết, đặt resource request/limit và health probes. Readiness probe giúp hệ thống không gửi traffic vào pod chưa sẵn sàng; limit giúp một workload không dùng tài nguyên vô hạn.
+Các pod ứng dụng cũng được cấu hình hạn chế quyền: chạy bằng user thường thay vì root; filesystem gốc chỉ đọc; bỏ các Linux capabilities không cần. Resource request cho Kubernetes biết lượng CPU/bộ nhớ tối thiểu để sắp xếp pod; limit đặt mức sử dụng tối đa. Readiness probe là phép thử xem app đã sẵn sàng nhận request chưa; nếu chưa, Kubernetes và load balancer không nên gửi traffic tới pod đó.
 
 Không phải cấu hình nào cũng tương thích với restricted policy. Với ứng dụng thật, nên thử ở môi trường lab, xem warning/audit, rồi áp enforcement có kế hoạch. Một lớp admission tốt ngăn cấu hình nguy hiểm ngay từ đầu, nhưng không thay thế việc cập nhật image và theo dõi runtime.”
 
@@ -130,15 +136,15 @@ Không phải cấu hình nào cũng tương thích với restricted policy. V�
 
 **Lời thoại:**
 
-“Có hai identity path riêng. Người vận hành gọi `kubectl`; ứng dụng trong pod gọi AWS API. Không nên dùng chung quyền.
+“Ở đây có hai loại danh tính. Một là danh tính của người vận hành chạy `kubectl` để xem hoặc thay đổi cluster. Hai là danh tính của ứng dụng trong pod khi nó cần gọi AWS API, chẳng hạn đọc một object từ S3. Hai loại này nên được cấp quyền riêng.
 
-Với con người, IAM xác thực AWS principal. EKS Access Entry cho cluster biết principal đó được phép xác thực vào cluster và có thể ánh xạ họ vào nhóm Kubernetes. Kubernetes RBAC mới là nơi quyết định user được get, create hay delete resource nào trong namespace nào. Nói ngắn gọn: IAM cho biết bạn là ai ở AWS; RBAC quyết định bạn làm gì trong Kubernetes.
+Với người dùng, IAM là dịch vụ AWS xác thực tài khoản hoặc role. EKS Access Entry nối IAM principal đó với cluster. Sau khi xác thực xong, Kubernetes RBAC quyết định người đó được xem hay thay đổi loại tài nguyên nào, trong namespace nào. Ví dụ: IAM/EKS nhận biết đây là role DevOps; RoleBinding Kubernetes giới hạn role đó vào Deployment trong `payments`.
 
-Lab có admin, DevOps và observer. Admin dành cho quản trị. DevOps có quyền triển khai trong namespace `payments`, xem pod/log và service liên quan, nhưng không đọc Secrets, sửa RoleBinding hay truy cập namespace khác. Observer chỉ xem thông tin workload và log. Mình kiểm tra cả allow và deny bằng `kubectl auth can-i`.
+Lab kiểm tra ba vai trò. Admin có quyền quản trị cluster. DevOps có thể triển khai ứng dụng trong namespace `payments` và xem pod/log cần thiết, nhưng không đọc Secret, sửa RoleBinding hay triển khai sang namespace khác. Observer chỉ xem pod và log, không deploy. Lệnh `kubectl auth can-i` giúp hỏi API “danh tính hiện tại có được phép làm thao tác này không?” Mình chạy cả câu trả lời `yes` lẫn `no`.
 
-Có một gotcha quan trọng: trong sandbox, policy EKS managed `AmazonEKSEditPolicy` cho phép đọc Secret trong namespace. Vì vậy nếu yêu cầu là deploy nhưng không đọc Secret, mình không dùng managed edit policy; mình ánh xạ group `payments-deployers` vào Kubernetes Role tùy chỉnh hẹp hơn.
+Có một điểm dễ bỏ sót: khi thử `AmazonEKSEditPolicy`, mình phát hiện policy có thể cho đọc Secret trong namespace. Secret thường chứa mật khẩu hoặc token, nên quyền này có thể rộng hơn nhu cầu của đội triển khai. Vì vậy lab dùng Kubernetes Role tự viết cho group `payments-deployers`, chỉ cấp các thao tác cần để quản lý app.
 
-Với workload, pod dùng Kubernetes ServiceAccount `web-reader`, liên kết với IAM role thông qua EKS Pod Identity. Agent trên node cung cấp credential tạm thời cho AWS SDK. Không đặt access key dài hạn trong image, environment manifest hay source code.
+Với ứng dụng, pod chạy bằng Kubernetes ServiceAccount `web-reader`. ServiceAccount là danh tính trong cluster. EKS Pod Identity nối danh tính đó với một IAM role; agent trên node giúp AWS SDK trong container lấy credential tạm thời. Nhờ vậy mình không phải ghi access key dài hạn vào source code, container image hoặc manifest.
 
 Role mẫu của app không có quyền AWS vì app không cần gọi dịch vụ AWS. Node role cũng là một danh tính riêng dành cho node, ví dụ để kéo image; không nên để application tự thừa hưởng quyền node. Tách danh tính giúp giảm blast radius nếu một pod bị khai thác.”
 
@@ -152,9 +158,9 @@ Role mẫu của app không có quyền AWS vì app không cần gọi dịch v�
 
 **Lời thoại:**
 
-“EKS audit logs cho biết ai gọi Kubernetes API, verb gì và tác động đến object nào. VPC Flow Logs ghi metadata kết nối mạng ở cấp VPC/ENI. GuardDuty Runtime Monitoring cung cấp tín hiệu runtime trên node. CloudTrail ghi lại hoạt động gọi AWS API. Tài khoản đã có organization CloudTrail từ trước; lab giữ nguyên trail đó, không sửa hay xóa.
+“EKS audit log ghi lại hoạt động với Kubernetes API: danh tính nào gọi, thao tác gì và tài nguyên nào bị tác động. VPC Flow Logs ghi thông tin metadata về kết nối mạng, ví dụ địa chỉ nguồn/đích và trạng thái cho phép hay từ chối. GuardDuty Runtime Monitoring phân tích tín hiệu trên node để tìm hành vi đáng ngờ. CloudTrail lưu hoạt động gọi AWS API, như thay đổi IAM hoặc EKS. Tài khoản có organization CloudTrail từ trước; lab giữ nguyên cấu hình dùng chung đó.
 
-Các nguồn này bổ sung góc nhìn chứ không tự chặn request. GuardDuty finding cần người xem xét và quy trình ứng cứu. Log cần retention và quyền truy cập phù hợp. Alert cần có người nhận, nếu không thì alert chỉ tồn tại trên màn hình.
+Những nguồn này giúp phát hiện và điều tra; chúng không tự chặn request của ứng dụng. Finding cần người xem xét và quy trình phản ứng. Log cần thời hạn lưu trữ và quyền truy cập có kiểm soát. Alert cần người nhận và quy trình làm tiếp.
 
 Trong sandbox có EKS control-plane logs, VPC Flow Logs và GuardDuty coverage để kiểm tra. WAF, Route 53, certificate domain công khai và SNS/email alert chưa cấu hình. Đây là phần cần triển khai bổ sung nếu biến workshop thành môi trường production.”
 
@@ -168,11 +174,11 @@ Trong sandbox có EKS control-plane logs, VPC Flow Logs và GuardDuty coverage �
 
 **Lời thoại:**
 
-“Mình xác minh từng lớp bằng kết quả cụ thể. Ở network edge, ALB ở public subnet và node ở private subnet, node không có public IP. Ở ingress, target group hiển thị hai pod IP trên port 8080. Ở NetworkPolicy, nguồn được phép truy cập được; client ở `default` không vào được `payments`.
+“Mình không chỉ kiểm tra rằng các tài nguyên đã được tạo; mình thử hành vi thực tế. Về mạng, ALB đặt ở public subnet còn node ở private subnet và không có public IP. Về đường vào, target group có hai pod IP ở cổng 8080. Về NetworkPolicy, frontend được vào ứng dụng còn client ở namespace `default` bị chặn.
 
-Ở admission, privileged pod bị API server từ chối trước khi chạy. Ở RBAC, DevOps làm được thao tác cần cho công việc nhưng không đọc Secret hoặc thao tác ngoài namespace. Ở workload identity, SDK nhận provider `container-role` mà app không in giá trị credential.
+Về admission, Kubernetes API từ chối pod privileged trước khi chạy. Về RBAC, DevOps triển khai được trong phạm vi cần thiết nhưng không đọc Secret hoặc làm việc ngoài namespace. Về Pod Identity, AWS SDK bên trong app nhận credential provider `container-role`; endpoint kiểm thử chỉ trả tên provider và thời hạn, không trả access key hay token.
 
-Ở observability, mình tạo sự kiện kiểm thử để xác nhận audit log đến CloudWatch, kiểm tra trạng thái Flow Logs và GuardDuty coverage. Những kiểm tra này quan trọng hơn một ảnh chụp chỉ có chữ ACTIVE, vì chúng chứng minh đường dữ liệu hoặc quyền thực sự hoạt động.
+Về quan sát, mình tạo thay đổi Kubernetes có kiểm soát rồi tìm nó trong audit log ở CloudWatch. Mình cũng kiểm tra Flow Logs đang gửi dữ liệu và GuardDuty báo coverage trên node. Những kiểm tra này cho biết dữ liệu có đi tới nơi cần đến hay không; một ảnh chụp chữ `ACTIVE` riêng lẻ chưa chứng minh pipeline đầy đủ.
 
 Kết quả cũng cho thấy kiểm chứng cần gồm cả điều kiện âm: thử điều không nên làm và xác nhận hệ thống từ chối.”
 
@@ -195,9 +201,9 @@ Khi chuyển qua Console, che account ID, IP cá nhân, role ARN, cluster endpoi
 
 **Lời thoại:**
 
-“Lớp entry là ALB HTTPS; EKS API public chỉ mở cho `/32`. Lớp network là private nodes/pods, security group và NetworkPolicy. Lớp workload là restricted admission, non-root, read-only filesystem. Lớp identity gồm IAM, EKS Access Entry, RBAC và Pod Identity. Lớp detection gồm audit logs, Flow Logs và GuardDuty.
+“Mình có thể tóm tắt kiến trúc bằng năm nhóm. Cửa vào ứng dụng là ALB HTTPS; Kubernetes API của sandbox vẫn có public endpoint nhưng giới hạn vào một địa chỉ quản trị `/32`. Mạng bên trong gồm worker/pod private, security group và NetworkPolicy. Workload bị giới hạn bởi Pod Security Admission và container chạy non-root, filesystem chỉ đọc. Danh tính được tách giữa người dùng và ứng dụng. Cuối cùng, audit log, Flow Logs và GuardDuty cung cấp tín hiệu để điều tra.
 
-Mỗi quyết định đều có trade-off. Public API giới hạn `/32` giúp workstation chạy được CLI nhưng private-only sẽ hẹp hơn. Một NAT rẻ hơn hai NAT nhưng tạo phụ thuộc AZ. IP targets bỏ NodePort và chuyển thẳng tới pod, nhưng cần CNI cung cấp pod IP routable và phải cấu hình security group cùng NetworkPolicy đúng.”
+Các lựa chọn đều có giá phải trả. `/32` giúp máy quản trị chạy CLI nhưng private-only sẽ giảm thêm bề mặt public. Một NAT rẻ hơn hai NAT nhưng tạo phụ thuộc một AZ. IP targets giúp ALB gọi pod trực tiếp nên không cần NodePort, nhưng yêu cầu pod có IP VPC routable và security group cùng NetworkPolicy cho đúng luồng.”
 
 **Chuyển ý:** “Slide cuối là checklist để trình bày trực tiếp bằng các trang Hugo và Console.”
 
@@ -207,11 +213,11 @@ Mỗi quyết định đều có trade-off. Public API giới hạn `/32` giúp 
 
 **Lời thoại:**
 
-“Khi demo, mình đi theo cùng thứ tự với request. Đầu tiên mở VPC Resource Map để chỉ public/private subnet, route và NAT. Tiếp theo vào EC2 Target Groups để cho thấy hai pod IP và health status. Sau đó quay lại Kubernetes để đối chiếu Ingress, ClusterIP Service và EndpointSlice.
+“Khi trình bày trực tiếp, mình đi cùng chiều với request. Đầu tiên mở VPC Resource Map để chỉ đâu là public/private subnet, Internet Gateway và NAT. Tiếp theo mở EC2 Target Groups để chỉ hai pod IP và trạng thái healthy — tức health check đang thành công. Sau đó vào Kubernetes để đối chiếu: Ingress khai báo đường vào, Service ClusterIP dùng nội bộ, còn EndpointSlice liệt kê các pod IP hiện tại.
 
-Tiếp theo xem NetworkPolicy và kể lại sự cố 504: target healthy không có nghĩa mọi policy cho request đều đúng. Sau đó xem pod security context và chạy `kubectl auth can-i` dưới context DevOps để minh họa quyền được phép/từ chối. Cuối cùng xem audit logs, Flow Logs và GuardDuty coverage.
+Tiếp theo mở NetworkPolicy và kể câu chuyện 504. Điều này cho thấy khi thấy lỗi, mình lần theo từng hop thay vì mở rộng firewall thật rộng. Sau đó xem security context của pod, chuyển sang kubeconfig đã đăng nhập bằng role DevOps và chạy `kubectl auth can-i` để minh họa quyền được phép hoặc từ chối. Cuối cùng mở audit logs, Flow Logs và GuardDuty để nói về điều tra.
 
-Trước buổi nói, kiểm tra lại các trang này trong account của mình; tên menu Console và dữ liệu thay đổi theo vùng. Không chiếu credential, account ID hay IP cá nhân. Lab tạo tài nguyên AWS thật và có phí; xong buổi nên chạy cleanup trong đúng sandbox account.”
+Trước buổi nói, xác nhận cluster và tài nguyên đang tồn tại trong đúng AWS account/region; menu Console và dữ liệu thay đổi theo vùng. Nếu lab đã dọn, dùng ảnh chụp hoặc chạy lại các bước tạo lab trước buổi demo. Không chiếu credential, account ID, role ARN hay IP cá nhân. Tài nguyên AWS thật có thể phát sinh phí; sau khi trình bày xong, cleanup trong đúng sandbox account.”
 
 **Kết:**
 
