@@ -31,6 +31,20 @@ Set the log group's retention in **CloudWatch → Log groups → select group �
 - **GuardDuty:** open **GuardDuty → EKS Protection** and enable Kubernetes audit log monitoring for the region; then open **Runtime Monitoring → EKS Runtime Monitoring** and enable it for the lab account/cluster where supported. Runtime coverage requires the supported GuardDuty agent/configuration and compatible nodes. Review region support, prerequisites, exclusions, and pricing before enabling it. If GuardDuty was already enabled by the account security team, do not change organization-wide settings for this lab.
 - **Amazon Inspector:** use it for supported compute and container image vulnerability findings; it does not replace runtime threat detection or admission policy.
 
+GuardDuty EKS Protection analyzes a GuardDuty-managed stream of supported Kubernetes audit activity. That collection is separate from the EKS control-plane log copy delivered to your CloudWatch log group; enabling one does not automatically configure retention, access controls, or queries for the other. Runtime Monitoring is a different signal source focused on supported node and process behavior. Confirm coverage for the specific cluster and node type rather than assuming that enabling a protection plan covers every workload.
+
+### Match the evidence source to the question
+
+| Evidence source | Questions it helps answer | What it does not provide |
+|---|---|---|
+| CloudTrail | Which AWS principal changed an IAM role, security group, or EKS setting? | Full Kubernetes object-level audit history |
+| EKS audit log | Which Kubernetes identity created or changed a resource? | Packet contents or all AWS API activity |
+| VPC Flow Logs | Which network interfaces exchanged traffic, and was it accepted? | HTTP payloads or application intent |
+| GuardDuty | Did supported audit/runtime signals match a threat pattern? | A guaranteed block or complete incident explanation |
+| ALB/WAF/application logs | Which requests or application actions were observed? | These logs are absent until their respective access logging is configured |
+
+Correlate timestamps, workload identity, pod/node identity, and AWS role sessions. Avoid collecting raw credentials or secret values while investigating.
+
 
 ## Make a test finding without attacking the cluster
 

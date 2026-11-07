@@ -17,7 +17,7 @@ This lab creates billable AWS resources. Use a non-production account, record th
 
 ## What you will build
 
-An internet-facing application enters through a load balancer in public subnets. EKS worker nodes and pods run in private subnets. The cluster API is private or restricted to a known administration network. Human access uses individual IAM roles and EKS access entries; Kubernetes RBAC scopes namespace permissions. Workloads receive only the AWS permissions they need. Pod security, network policy, audit logging, and runtime detection add independent controls around the workload.
+The workshop follows four separate security flows: user requests through an ALB to application pods; human operators through IAM and the EKS API; workloads through service accounts to AWS APIs; and evidence from AWS/Kubernetes logs to detection and incident response. It covers VPC boundaries, ALB target modes, NetworkPolicy, pod hardening, image supply chain, secrets, human and workload identity, detection, and response. Each module labels controls as hands-on, optional, or reference architecture so the material does not imply that every service is deployed in the sandbox.
 
 ## Runnable sample project
 
@@ -28,7 +28,7 @@ The [Secure Payments sample application](https://github.com/toannd021104/AWS-Sec
 1. [Architecture, threat model, and preparation](eks-defense-in-depth/01-architecture/)
 2. [Internet edge, VPC, and subnet boundaries](eks-defense-in-depth/02-network/)
 3. [EKS control plane and cluster access](eks-defense-in-depth/03-cluster/)
-4. [Node, namespace, and pod hardening](eks-defense-in-depth/05-workloads/)
+4. [Workload, pod, and image security](eks-defense-in-depth/05-workloads/)
 5. [Ingress and network policy](eks-defense-in-depth/06-traffic/)
 6. [IAM, EKS access entries, and Kubernetes RBAC](eks-defense-in-depth/04-identity/)
 7. [Workload identity and secrets](eks-defense-in-depth/07-workload-identity/)

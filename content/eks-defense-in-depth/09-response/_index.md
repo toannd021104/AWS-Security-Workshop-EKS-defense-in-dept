@@ -74,6 +74,12 @@ Rebuild the workload from a reviewed image digest and trusted source. Fix the en
 
 Close the incident with a timeline, affected identities/resources, evidence locations, containment actions, recovery checks, and a concrete prevention change. Update the detection rule and runbook, then run a tabletop exercise to check the procedure without creating a real compromise.
 
+## Optional: automate notification, keep containment deliberate
+
+A common notification path is **GuardDuty finding → EventBridge rule → SNS/email or incident platform**. The workshop's detection module gives an example rule and asks you to verify delivery. Automation can enrich a finding, open a ticket, preserve logs, or page the on-call team. Keep high-impact containment actions behind an approved runbook or human approval until the signal quality and rollback path are proven.
+
+Do not automatically delete every pod on a finding. Deleting a pod can erase volatile evidence, and its Deployment may recreate an identical vulnerable pod. Cordon only affects future scheduling; it does not isolate existing traffic. Choose an action based on whether the suspected compromise is limited to an application pod, its AWS role, or the node itself, then verify that containment actually took effect.
+
 {{% notice warning %}}
 Containment commands can interrupt service or destroy forensic evidence. Follow the organization's incident authority and evidence-retention policy. This lab scenario is a defensive exercise; do not simulate credential theft or malware in an account containing production resources.
 {{% /notice %}}

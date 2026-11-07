@@ -89,8 +89,8 @@ spec:
     - Ingress
   ingress:
     - from:
-        # Replace these with the public subnet CIDRs selected by the ALB.
-        # They match the workshop Terraform defaults in infrastructure/terraform.
+        # Example values for the tested Terraform lab. Observe the actual source
+        # as seen by your CNI before copying this rule into another environment.
         - ipBlock:
             cidr: 10.20.0.0/20
         - ipBlock:

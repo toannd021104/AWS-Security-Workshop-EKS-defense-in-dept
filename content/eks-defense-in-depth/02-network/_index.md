@@ -54,6 +54,12 @@ The EKS control plane, nodes, and ALB use different security groups. Keep inboun
 
 Security groups are stateful. A return packet for an allowed connection is permitted automatically, but that does not make a broad inbound rule safe. Network ACLs are stateless and are not a substitute for a clear security-group policy.
 
+### Optional subnet-level controls
+
+Network ACLs apply to a whole subnet and are **stateless**: allow the request and its return path separately, including the required ephemeral ports. They can add a subnet-wide guardrail, but are harder to troubleshoot than security groups. Keep the default allow rules for this lab unless you have a specific requirement and a tested rule set. When a connection times out, inspect both directions before changing NACLs.
+
+Security Groups for Pods are another optional VPC CNI feature. They assign security groups to selected pod network interfaces (branch ENIs) so a pod can have a distinct VPC-level egress/ingress boundary. They require compatible instance types, CNI settings, and enforcement mode. Do not enable them just to solve an ALB routing issue; test the feature and its interaction with NetworkPolicy in a disposable namespace first. The base sandbox uses node security groups plus Kubernetes NetworkPolicy and does not enable Security Groups for Pods.
+
 ## Cost and availability trade-off
 
 Two NAT gateways improve AZ independence but add fixed cost. A single NAT gateway is cheaper for a disposable lab, but if its AZ fails, private nodes in the other AZ lose that egress path. Interface endpoints can keep AWS API traffic private, but the endpoint list must match the image-pull, logging, identity, and application requirements. Document the choice instead of assuming "private subnet" means no internet dependency.

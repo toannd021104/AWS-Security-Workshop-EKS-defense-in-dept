@@ -196,7 +196,7 @@ kubectl exec -n default deploy/blocked-client -- \
 
 The first request should return the NGINX welcome page. The second should time out or fail because `default` is not an allowed source namespace. If both requests work, first confirm `aws-node` has `2/2` containers and a `PolicyEndpoint` exists for the `web` pods before changing policies.
 
-With IP targets, ALB forwards directly to pod IPs. Add an ingress rule for the **public subnet CIDRs selected by the ALB**, limited to the application port, as shown in `examples/secure-payments-app/k8s/30-network-policy.yaml`. Replace the example CIDRs with your actual ALB subnet CIDRs. The pod ENI/node security group must also accept the application port from the ALB security group. A healthy target-group check alone does not prove the request reaches the app: during sandbox validation, targets were healthy while HTTPS returned `504`; adding the narrow subnet rule changed `/healthz` to HTTP `200`.
+With IP targets, ALB forwards directly to pod IPs. The security group on the pod/node network must accept the application port from the ALB security group. NetworkPolicy also needs to allow the packet as its source is presented to the selected CNI datapath. During the sandbox test, an allow rule for the ALB public subnet CIDRs fixed a `504`; do not assume those CIDRs are always the source identity in every target mode, CNI, or policy enforcement path. Correlate VPC Flow Logs where they expose the relevant ENI traffic with VPC CNI policy-agent behavior and the version-matched AWS documentation; then allow only the required source and port. A healthy target-group check alone does not prove the request reaches the application.
 
 ## Create an HTTPS ingress
 
@@ -204,7 +204,11 @@ Prerequisites: AWS Load Balancer Controller installed, its service account has i
 
 ### Prepare the controller, certificate, and WAF
 
-The AWS Load Balancer Controller watches Kubernetes Ingress resources and creates AWS load balancers. It is not the same component as the EKS control plane. The following command path pins the controller release (`v2.14.1`) and matching Helm chart (`1.14.1`); check AWS's installation page for newer supported releases when you repeat this workshop. The controller role is scoped to its own Kubernetes service account through this cluster's OIDC provider.
+The AWS Load Balancer Controller watches Kubernetes Ingress resources and creates AWS load balancers. It is not the same component as the EKS control plane. The following command path pins the controller release (`v2.14.1`) and matching Helm chart (`1.14.1`); check AWS's installation page for newer supported releases when you repeat this workshop. The controller role is scoped to its own Kubernetes service account through this cluster's OIDC provider. Because the controller can create and modify AWS resources, keep its IAM policy release-matched and avoid granting `AdministratorAccess`. Restrict who can create or edit Ingress objects and their security-sensitive annotations.
+
+#### Treat shared Ingress groups as a trust boundary
+
+An explicit `alb.ingress.kubernetes.io/group.name` lets multiple Ingress objects share one ALB. A user who can join that group may be able to add or change listener rules on the shared load balancer. Use an IngressGroup only for namespaces and teams with the same trust level; otherwise keep separate groups/load balancers and enforce ownership through RBAC and admission policy. Do not let an untrusted namespace attach itself to a privileged shared ALB.
 
 1. Confirm the cluster has an IAM OIDC provider. In the console, find the issuer at **EKS → Clusters → select the cluster → Overview → OpenID Connect provider URL**, then create or confirm it in **IAM → Identity providers** with audience `sts.amazonaws.com`. The Terraform foundation in [`infrastructure/terraform`](../../infrastructure/terraform/) creates this provider. Download and review the release-matched controller policy:
 
@@ -354,9 +358,9 @@ Expected outcome: HTTPS requests to the configured hostname reach the app; HTTP 
 
 ### Screenshots to capture
 
-Save these as `06-01-https-alb-waf.png` and `06-02-network-policy-tests.png`.
+Save these as `06-01-https-alb-targets.png` and `06-02-network-policy-tests.png`. If you separately configure WAF, add a distinct screenshot for the Web ACL and its association.
 
-- **06-01 HTTPS ingress:** Place after creating the Ingress. AWS Console → **EC2 → Load Balancers → select the lab ALB → Listeners and rules / Security**. Show the HTTPS listener, ACM certificate, WAF association, and healthy target group. Crop out the public DNS name if you do not want it shared.
+- **06-01 HTTPS ingress:** Place after creating the Ingress. AWS Console → **EC2 → Load Balancers → select the lab ALB → Listeners and rules / Security**. Show the HTTPS listener, ACM certificate, IP target group, and healthy pod targets. The base sandbox has no WAF association; if you enable WAF as an extension, show it separately. Crop out the public DNS name if you do not want it shared.
 - **06-02 Network policy proof:** Place after verifying both client paths. Show the applied default-deny and allow policies, then terminal results where the `frontend` test reaches `web` and the unrelated `default` namespace client is denied. Include the namespace and command output, but no account credentials.
 
 ### Further reading

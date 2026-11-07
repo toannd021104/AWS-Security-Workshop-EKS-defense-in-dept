@@ -25,7 +25,7 @@ Operator --IAM role--> EKS access entry --> Kubernetes RBAC --> private EKS API
 web Pod --service account--> EKS Pod Identity agent --> short-lived role credentials
 ```
 
-The ALB uses **IP** targets and sends requests directly to pod IPs; the Service stays `ClusterIP`, so no NodePort is allocated. The VPC CNI must assign routable VPC IPs to pods, and the security group attached to pod ENIs/nodes must accept the app port from the ALB security group. The `allow-alb-subnets-to-web` NetworkPolicy permits only the ALB public subnet CIDRs to reach the app port; replace the example CIDRs if your VPC differs. Security groups and NetworkPolicy are separate boundaries, and both must allow the path. Verify target health and an HTTPS request end to end; target health alone does not prove app traffic is permitted.
+The ALB uses **IP** targets and sends requests directly to pod IPs; the Service stays `ClusterIP`, so no NodePort is allocated. The VPC CNI must assign routable VPC IPs to pods, and the security group attached to pod ENIs/nodes must accept the app port from the ALB security group. The sample `allow-alb-subnets-to-web` policy contains the public subnet CIDRs observed in the Terraform lab. For another CNI, target mode, or routing path, observe the source as seen by the policy datapath before copying this rule; do not assume it is always the ALB subnet CIDR. Security groups and NetworkPolicy are separate boundaries, and both must allow the path. Verify target health and an HTTPS request end to end; target health alone does not prove app traffic is permitted.
 
 ## Requirements
 

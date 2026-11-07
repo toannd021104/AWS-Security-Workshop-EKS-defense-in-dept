@@ -12,7 +12,7 @@ Run the checks with the intended identities, not only as cluster admin. Save out
 
 - Public subnets have an internet-gateway route; private node subnets have no direct internet-gateway route.
 - Nodes have no public IP addresses and the API endpoint is private or restricted to a documented admin CIDR.
-- The ALB exposes only the intended HTTPS listener, uses an ACM certificate, and has the expected WAF association.
+- The ALB exposes only the intended HTTPS listener, uses the expected ACM certificate, and has the intended WAF association if WAF is part of this deployment.
 - An external client can reach the application hostname; a node public address is not an alternate entry path.
 
 ### Identity and workload
@@ -26,11 +26,13 @@ kubectl get pods -n payments -o jsonpath='{range .items[*]}{.metadata.name}{"\t"
 
 Run these as the DevOps, observer, and admin roles. Confirm expected allow/deny results. Confirm application pods use a dedicated service account and a workload role, not the node role. In a test namespace, verify restricted Pod Security Admission rejects the privileged sample.
 
+Inspect the exact deployed image digest and scan status. If the pipeline generates an SBOM or signature, verify that artifact is tied to the same digest. Do not describe scanning as deployment enforcement unless an actual CI/CD or admission gate rejects noncompliant images. Confirm Kubernetes Secret read permissions are limited, API data encryption settings match the cluster version, and any external secret rotation is reflected in the running application.
+
 ### Network and detection
 
 - Verify NetworkPolicy enforcement with a temporary client pod: allowed DNS and intended app traffic work; unrelated pod-to-pod traffic fails. Remove test pods afterward.
 - Confirm EKS audit events arrive in CloudWatch and identify the actor for the ConfigMap test from Module 8.
-- Confirm GuardDuty EKS coverage is active and test notifications reach an owned responder. A missing finding from a benign test is not proof the service is broken; validate coverage status and use AWS's documented test methods.
+- Confirm GuardDuty EKS coverage is active. If you configured an EventBridge/SNS or incident-platform target, test delivery to an owned responder; otherwise mark alert routing as an unimplemented extension. A missing finding from a benign test is not proof the service is broken; validate coverage status and use AWS's documented test methods.
 - Confirm incident responders know where logs and evidence are stored and who can revoke each access path.
 
 ## Remove lab resources

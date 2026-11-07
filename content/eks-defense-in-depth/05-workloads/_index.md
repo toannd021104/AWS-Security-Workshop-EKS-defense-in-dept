@@ -1,5 +1,5 @@
 ---
-title: "4. Node, namespace, and pod hardening"
+title: "4. Workload, pod, and image security"
 weight: 4
 chapter: false
 ---
@@ -94,6 +94,53 @@ kubectl get pods -n payments
 
 Expected result: two pods reach `Running` and `READY 1/1`. The unprivileged NGINX image listens on port 8080 and supplies its own non-root UID, so the pod can drop all Linux capabilities without trying to bind privileged port 80. The tag is mutable; for a reproducible deployment, resolve and pin an approved digest, and scan it before promotion.
 
+## Check the image supply chain
+
+An image can run with a strong `securityContext` and still contain a vulnerable operating-system package or dependency. Treat image review as a release step: build from a trusted base, scan the exact image digest, keep an inventory of its components, and promote only the reviewed artifact.
+
+The sample ECR repository enables scan-on-push. Wait for the scan to finish, then inspect findings for the immutable tag you built:
+
+```bash
+: "${IMAGE_URI:?Build and push the sample image first}"
+IMAGE_TAG="${IMAGE_TAG:-${IMAGE_URI##*:}}"
+aws ecr describe-images \
+  --repository-name "${ECR_REPOSITORY:-secure-payments-workshop}" \
+  --image-ids "imageTag=${IMAGE_TAG}" \
+  --query 'imageDetails[0].imageScanStatus.status' --output text
+aws ecr describe-image-scan-findings \
+  --repository-name "${ECR_REPOSITORY:-secure-payments-workshop}" \
+  --image-id "imageTag=${IMAGE_TAG}" \
+  --query 'imageScanFindings.{Counts:findingSeverityCounts,Findings:findings[*].{Severity:severity,CVE:name,Description:description}}' \
+  --output json
+```
+
+Expected result: scan status is `COMPLETE`; review each HIGH/CRITICAL finding, its package, fixed version, and whether the affected code path is used. If status is `IN_PROGRESS`, wait and retry; if no scan is available, confirm repository scan-on-push settings and that the image finished pushing. A scan reports risk; it does not block a deployment. Add a CI/CD gate or admission policy if unsigned or over-threshold images must be rejected. Enhanced scanning through Amazon Inspector is a separate repository/account configuration and can add cost.
+
+Generate a Software Bill of Materials (SBOM) for the same image with a tool such as Syft:
+
+```bash
+syft "${IMAGE_URI}" -o spdx-json=sbom.spdx.json
+```
+
+The SBOM lists operating-system packages and application dependencies. Store it with the image digest and build record; it helps identify affected releases when a new CVE is published. Do not commit private application source or credentials into the SBOM artifact.
+
+Image signing can establish which trusted build produced an image. With Cosign, generate a key pair once, keep the private key in an approved secret store, and sign/verify the immutable image reference:
+
+```bash
+cosign generate-key-pair
+: "${IMAGE_URI:?Build and push the sample image first}"
+IMAGE_TAG="${IMAGE_TAG:-${IMAGE_URI##*:}}"
+IMAGE_DIGEST="$(aws ecr describe-images \
+  --repository-name "${ECR_REPOSITORY:-secure-payments-workshop}" \
+  --image-ids "imageTag=${IMAGE_TAG}" \
+  --query 'imageDetails[0].imageDigest' --output text)"
+IMAGE_DIGEST_URI="${IMAGE_URI%:*}@${IMAGE_DIGEST}"
+cosign sign --key cosign.key "${IMAGE_DIGEST_URI}"
+cosign verify --key cosign.pub "${IMAGE_DIGEST_URI}"
+```
+
+Never commit `cosign.key` or print its contents in CI logs. Verification is evidence, not enforcement: EKS still admits an unsigned image unless an admission policy such as Kyverno or an equivalent verifier is installed and configured. Signature enforcement is an advanced extension and is not enabled in this sandbox.
+
 Expose the app only inside the cluster first. Add this Service to `web-deployment.yaml` (or save it as `web-service.yaml`):
 
 ```yaml
@@ -148,13 +195,17 @@ Namespaces scope names and some RBAC policies. They do not isolate the kernel, n
 
 ### Screenshots to capture
 
-Save these as `05-01-pod-security-namespace.png` and `05-02-hardened-pods.png`.
+Save these as `05-01-pod-security-namespace.png`, `05-02-hardened-pods.png`, and optionally `05-03-ecr-image-scan.png`.
 
 - **05-01 Namespace security policy:** Place after applying the namespace Pod Security Admission labels. AWS Console is not needed here. In the terminal, show `kubectl get namespace payments --show-labels` with the `pod-security.kubernetes.io/enforce=restricted` label visible. This proves the admission baseline is enabled.
 - **05-02 Hardened workload:** Place after deploying the sample pods. Show `kubectl get pods -n payments -o wide` with the sample pods `Running` and `READY`, plus the relevant sanitized pod YAML showing non-root, `RuntimeDefault` seccomp, dropped capabilities, read-only root filesystem, and resource limits. Do not include Secret data or environment values.
+- **05-03 ECR image scan:** Place after reviewing the image digest. Show the ECR scan status and severity counts, with account, repository identifiers, and private image names redacted if needed. State clearly that scan findings do not block deployment unless a CI/CD/admission gate is configured.
 
 ### Further reading
 
 - [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/)
 - [EKS security best practices for Pods](https://docs.aws.amazon.com/eks/latest/best-practices/pod-security.html)
 - [EKS identity and access management best practices](https://docs.aws.amazon.com/eks/latest/best-practices/identity-and-access-management.html)
+- [Amazon ECR image scanning](https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html)
+- [Syft SBOM generator](https://github.com/anchore/syft)
+- [Cosign image signing](https://docs.sigstore.dev/cosign/signing/signing_with_containers/)

@@ -6,7 +6,7 @@ chapter: false
 
 ## Goal
 
-Give an application a short-lived AWS identity without storing access keys in its image, environment, or Kubernetes Secret. EKS Pod Identity is the path used here; IRSA is a valid alternative when its OIDC trust model better fits your organization.
+Give an application a short-lived AWS identity without storing access keys in its image, environment, or Kubernetes Secret. EKS Pod Identity is the path used here; IRSA is a valid alternative when its OIDC trust model better fits your organization. EKS Auto Mode includes the Pod Identity Agent as part of its managed data plane; this lab uses a standard managed node group and installs the managed `eks-pod-identity-agent` add-on.
 
 **Runnable example:** in the [Secure Payments project](https://github.com/toannd021104/AWS-Security-Workshop-EKS-defense-in-dept/tree/main/examples/secure-payments-app), the app checks that the SDK received credentials from the Pod Identity provider and returns only the provider name and expiry. The example IAM role intentionally has no AWS permissions.
 
@@ -251,14 +251,24 @@ Expected: the first command returns the workload role ARN; the permitted prefix 
 
 Use AWS Secrets Manager or Systems Manager Parameter Store for application secrets. Retrieve them through the workload role or a supported Secrets Store CSI/External Secrets integration, scoped to specific secret ARNs. Enable customer-managed KMS keys only when key ownership or separation requirements justify the added key-policy operations. Never put credentials in a ConfigMap, image layer, Git repository, or screenshot.
 
-EKS Kubernetes Secret data is base64-encoded, not encrypted by base64. Review EKS envelope encryption for Kubernetes API secrets, restrict `get/list/watch` on `secrets`, and avoid exposing secret values through logs or environment dumps. Secret rotation is not complete until the workload reloads the new value and old credentials are revoked.
+EKS Kubernetes Secret data is base64-encoded, not encrypted by base64. EKS clusters on Kubernetes 1.28 and later use default envelope encryption for Kubernetes API data with an AWS-owned key. A customer-managed KMS key is an optional choice for organizations that require key ownership or custom key policies. This encryption protects stored API data; it does not prevent an authorized Kubernetes user or compromised application from reading a Secret, and it does not encrypt EBS/EFS volumes or external databases.
+
+For a real secret, choose one authoritative store and scope the workload role to one secret ARN. For example, a workload that only reads a database credential should receive `secretsmanager:GetSecretValue` on that secret; add `kms:Decrypt` only when that secret uses a customer-managed KMS key and the key policy permits the role. Do not attach broad `secretsmanager:*` permissions. Prefer Secrets Manager or Parameter Store with a supported Secrets Store CSI/External Secrets integration when the application needs values projected into Kubernetes. Direct SDK retrieval avoids copying the value into a Kubernetes Secret but requires application code to fetch and refresh it.
+
+Apply these checks:
+
+1. Restrict Kubernetes RBAC so ordinary users cannot `get`, `list`, or `watch` Secrets they do not need. Remember that a user who can create arbitrary pods in a namespace may be able to mount a Secret or select a privileged ServiceAccount; review workload-creation permissions as part of the same trust boundary.
+2. Keep secret values out of Git, ConfigMaps, container layers, command-line history, logs, and screenshots. Base64 in a Kubernetes Secret is only encoding.
+3. Define rotation and reload behavior. Updating a value in Secrets Manager does not guarantee an application that cached credentials will reload it. Verify that new credentials work and old credentials are revoked.
+4. Treat encryption at rest and access control separately. Encryption protects stored data; IAM/RBAC decides who can retrieve it.
 
 ### Screenshots to capture
 
-Save these as `07-01-pod-identity-association.png` and `07-02-workload-aws-permissions.png`.
+Save these as `07-01-pod-identity-association.png`, `07-02-workload-aws-permissions.png`, and optionally `07-03-api-data-encryption.png`.
 
 - **07-01 Pod Identity association:** Place after creating the association. AWS Console → **EKS → Clusters → select the lab cluster → Access → Pod Identity associations**. Show the `payments` namespace, `web-reader` service account, and associated IAM role. Blur account ID and role ARN.
 - **07-02 Workload permission test:** Place after running the allow/deny S3 checks. Show terminal output from inside the test workload where `sts get-caller-identity` succeeds, the allowed `payments/` S3 object can be read, and the unrelated prefix is denied. Do not show access keys, tokens, object contents, or full bucket names if private.
+- **07-03 API data encryption:** Place after reviewing the cluster's encryption settings. In **EKS → Clusters → select the cluster → Configuration / Secrets encryption**, show that Kubernetes API data is encrypted with the expected AWS-owned or customer-managed key. Do not include key material or unrelated cluster identifiers. Explain that this control does not replace RBAC and does not encrypt external data stores.
 
 ### Further reading
 
@@ -266,3 +276,5 @@ Save these as `07-01-pod-identity-association.png` and `07-02-workload-aws-permi
 - [Configure the Pod Identity Agent](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html)
 - [Assign an IAM role to a Kubernetes service account](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-association.html)
 - [Configure the VPC CNI to use IRSA](https://docs.aws.amazon.com/eks/latest/userguide/cni-iam-role.html)
+- [Default envelope encryption for EKS API data](https://docs.aws.amazon.com/eks/latest/userguide/envelope-encryption.html)
+- [EKS data encryption and secrets management best practices](https://docs.aws.amazon.com/eks/latest/best-practices/data-encryption-and-secrets-management.html)
