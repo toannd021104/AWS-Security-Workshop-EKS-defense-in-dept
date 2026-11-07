@@ -12,18 +12,18 @@ MAP={'alb':'aws/elastic-load-balancing-application-load-balancer.svg','eks':'aws
 class Diagram:
  def __init__(self,title,width,height,transparent=False,cards=True):
   self.transparent=transparent;self.cards=cards
-  self.w=width;self.h=height;self.shapes=[];self.edges=[];self.svg=[f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{width}" height="{height}" viewBox="0 0 {width} {height}"><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="none" stroke="#315675" stroke-width="1.5"/></marker></defs>'+('' if transparent else '<rect width="100%" height="100%" fill="white"/>')+'<g font-family="Arial, sans-serif">',f'<text x="32" y="39" font-size="23" font-weight="bold" fill="#173c60">{escape(title)}</text>']
+  self.w=width;self.h=height;self.shapes=[];self.edges=[];self.svg=[f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{width}" height="{height}" viewBox="0 0 {width} {height}"><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="none" stroke="#315675" stroke-width="1.5"/></marker></defs>'+('' if transparent else '<rect width="100%" height="100%" fill="white"/>')+'<g font-family="Arial, sans-serif">',f'<text x="32" y="39" font-size="23" font-weight="bold" fill="#173c60">{escape(title)}</text>' if title else '']
  def box(self,id,x,y,w,h,label,color='#148a98',fill='#f0f9fa'):
   self.svg.extend([f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="5" fill="{fill}" stroke="{color}" stroke-dasharray="7 5" stroke-width="1.5"/>',f'<text x="{x+14}" y="{y+24}" font-size="14" font-weight="bold" fill="{color}">{escape(label)}</text>']);self.shapes.append((id,label,x,y,w,h,f'rounded=0;dashed=1;fillColor={fill};strokeColor={color};verticalAlign=top;align=left;spacing=12;'))
- def node(self,id,x,y,label,icon=None,w=160,h=100):
+ def node(self,id,x,y,label,icon=None,w=160,h=100,icon_size=44,font_size=13):
   if self.cards:self.svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="white" stroke="#d0dce6"/>')
   text_y=y+39
   if icon:
    p=ICONS/MAP[icon];data=p.read_bytes();b64=base64.b64encode(data).decode()
-   self.svg.append(f'<image x="{x+(w-44)/2}" y="{y+9}" width="44" height="44" xlink:href="data:image/svg+xml;base64,{b64}"/>');text_y=y+73
-   self.shapes.append((id+'-icon','',x+(w-44)/2,y+9,44,44,'shape=image;image=data:image/svg+xml,'+urllib.parse.quote(data.decode(),safe='')+';'))
-  for i,line in enumerate(label.split('\n')):self.svg.append(f'<text x="{x+w/2}" y="{text_y+i*17}" text-anchor="middle" fill="#173c60" font-size="13">{escape(line)}</text>')
-  self.shapes.append((id,label,x,y,w,h,('rounded=1;fillColor=#ffffff;strokeColor=#d0dce6;' if self.cards else 'fillColor=none;strokeColor=none;')+'verticalAlign=bottom;spacingBottom=8;'))
+   self.svg.append(f'<image x="{x+(w-icon_size)/2}" y="{y+9}" width="{icon_size}" height="{icon_size}" xlink:href="data:image/svg+xml;base64,{b64}"/>');text_y=y+icon_size+29
+   self.shapes.append((id+'-icon','',x+(w-icon_size)/2,y+9,icon_size,icon_size,'shape=image;image=data:image/svg+xml,'+urllib.parse.quote(data.decode(),safe='')+';'))
+  for i,line in enumerate(label.split('\n')):self.svg.append(f'<text x="{x+w/2}" y="{text_y+i*(font_size+4)}" text-anchor="middle" fill="#173c60" font-size="{font_size}">{escape(line)}</text>')
+  self.shapes.append((id,label,x,y,w,h,('rounded=1;fillColor=#ffffff;strokeColor=#d0dce6;' if self.cards else 'fillColor=none;strokeColor=none;')+f'fontSize={font_size};verticalAlign=bottom;spacingBottom=8;'))
  def edge(self,a,b,points,label='',dashed=False):
   path='M'+' L'.join(f'{x},{y}' for x,y in points)
   self.svg.append(f'<path d="{path}" fill="none" stroke="#315675" stroke-width="1.7" marker-end="url(#arrow)"'+(' stroke-dasharray="6 4"' if dashed else '')+'/>')
@@ -48,10 +48,27 @@ class Diagram:
    for x,y in pts[1:-1]:ET.SubElement(arr,'mxPoint',x=str(x),y=str(y))
   ET.ElementTree(root).write(OUT/(name+'.drawio'),encoding='utf-8',xml_declaration=True)
 
-d=Diagram('High-level architecture · ba luồng, ba loại quyền',1320,620,transparent=True,cards=False)
-for id,x,y,label,icon in [('client',35,110,'Người dùng','user'),('edge',255,110,'Điểm vào công khai\nHTTPS / WAF','alb'),('front',475,110,'Frontend\nNginx','pod'),('api',695,110,'Backend\nAPI','pod'),('db',1085,110,'Dữ liệu\nRDS PostgreSQL','rds'),('queue',695,340,'Hàng đợi\nSQS','sqs'),('worker',1085,340,'Xử lý nền\nWorker','pod'),('admin',35,340,'Quản trị cluster\nIAM → EKS access → RBAC','iam')]:d.node(id,x,y,label,icon,w=190 if id=='admin' else 160)
-for a,b,p,l in [('client','edge',[(147,141),(303,141)],'①'),('edge','front',[(367,141),(523,141)],'②'),('front','api',[(587,141),(743,141)],'③'),('api','db',[(807,141),(1133,141)],'④ SQL / TLS'),('api','queue',[(775,214),(775,339)],'⑤ SendMessage'),('worker','queue',[(1133,371),(807,371)],'⑥ ReceiveMessage'),('worker','db',[(1165,339),(1165,214)],'⑦ SQL / TLS')]:d.edge(a,b,p,l)
-d.box('legend',270,500,970,80,'Network: ai kết nối được?  |  RBAC: ai sửa Kubernetes?  |  IAM: pod gọi AWS API nào?',fill='none')
+# Keep this overview focused on application traffic; detailed controls live in
+# their own diagrams and lessons. No visible title, cards, or legend.
+d=Diagram('',1220,390,transparent=True,cards=False)
+for id,x,y,label,icon in [
+ ('client',10,55,'Người dùng','user'),
+ ('edge',220,55,'ALB + WAF\nĐiểm vào ứng dụng','alb'),
+ ('front',430,55,'Frontend\nNginx','pod'),
+ ('api',650,55,'API\nXử lý nghiệp vụ','pod'),
+ ('db',1010,55,'RDS PostgreSQL\nDữ liệu','rds'),
+ ('queue',650,260,'Amazon SQS\nHàng đợi','sqs'),
+ ('worker',1010,260,'Worker\nTạo báo cáo','pod'),
+]:d.node(id,x,y,label,icon,h=110,icon_size=56,font_size=15)
+for a,b,points,label in [
+ ('client','edge',[(128,92),(262,92)],'HTTPS'),
+ ('edge','front',[(338,92),(472,92)],'HTTP'),
+ ('front','api',[(548,92),(692,92)],'HTTP'),
+ ('api','db',[(768,92),(1052,92)],'SQL / TLS'),
+ ('api','queue',[(730,176),(730,259)],'Gửi yêu cầu'),
+ ('worker','queue',[(1052,297),(768,297)],'Nhận yêu cầu'),
+ ('worker','db',[(1090,259),(1090,176)],'SQL / TLS'),
+]:d.edge(a,b,points,label)
 d.save('high-level')
 d=Diagram('AWS architecture · ALB target type IP / private EKS / managed database',1440,1030)
 d.box('cloud',180,65,1220,925,'AWS Cloud · us-east-1','#323e4b','#fff')
