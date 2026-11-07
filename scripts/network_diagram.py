@@ -97,6 +97,10 @@ class NetworkDiagram:
             for x,y in points[1:-1]:ET.SubElement(array,'mxPoint',x=str(x),y=str(y))
         # Nodes and every text background are above all connectors.
         for key,x,y,asset in self.nodes:
+            if key == 'igw':
+                # Mask the boundary behind the attached gateway, with no visible border.
+                svg.append(f'<circle cx="{x}" cy="{y}" r="32" fill="white"/>')
+                cell('igw-boundary-mask',x-32,y-32,64,64,'ellipse;fillColor=#ffffff;strokeColor=none;')
             image(key,x-30,y-30,60,self.asset(asset))
         for key,text,x,y,w,h,size,color in self.labels:
             svg.append(f'<g id="{key}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="2" fill="white"/><text x="{x+w/2}" y="{y+size}" text-anchor="middle" font-family="Arial, sans-serif" font-size="{size}" fill="{color}">{escape(text)}</text></g>')
@@ -120,7 +124,7 @@ def generate(out):
     d.frame('database',285,790,1210,160,'Database subnets · RDS private / Single-AZ trong lab','#00a4a6','private-subnet-group.svg')
     for args in [
       ('client',80,290,'Người dùng\nInternet','kubernetes/user.svg'),
-      ('igw',600,120,'Internet Gateway','aws/resource/amazon-vpc-internet-gateway.svg',(740,128)),
+      ('igw',240,290,'Internet\nGateway','aws/resource/amazon-vpc-internet-gateway.svg'),
       ('alb',600,290,'Application Load Balancer\nHTTPS :443 · IP targets','aws/resource/elastic-load-balancing-application-load-balancer.svg'),
       ('nat',1320,290,'NAT Gateway\nChỉ outbound','aws/resource/amazon-vpc-nat-gateway.svg'),
       ('front',600,625,'Frontend ×2\nNginx · HTTP :8080','kubernetes/pod.svg'),
@@ -130,8 +134,8 @@ def generate(out):
       ('controls',1650,290,'AWS WAF + ACM\nWeb ACL / certificate','aws/group/aws-waf.svg'),
       ('sqs',1650,670,'Amazon SQS\nHàng đợi báo cáo','aws/group/amazon-simple-queue-service.svg'),
     ]:d.node(*args)
-    d.edge('internet-ingress','client','igw',[(120,290),(165,290),(165,65),(600,65),(600,80)],'Kết nối Internet',(445,57))
-    d.edge('https-ingress','igw','alb',[(600,160),(600,250)],'HTTPS :443',(710,203))
+    d.edge('internet-ingress','client','igw',[(120,290),(200,290)])
+    d.edge('https-ingress','igw','alb',[(280,290),(560,290)],'HTTPS :443',(425,274))
     d.edge('controls-association','controls','alb',[(1650,250),(1650,180),(760,180),(760,290),(640,290)],'Gắn Web ACL / certificate với ALB',(1080,169),True)
     d.edge('alb-frontend','alb','front',[(600,390),(600,585)],'HTTP :8080 · IP target',(730,432))
     d.edge('frontend-api','front','api',[(640,625),(870,625)],'Proxy /api',(755,609))
