@@ -1,6 +1,6 @@
 ---
 title: "Cấp IAM roles và Pod Identity cho workload"
-weight: 6
+weight: 60
 chapter: false
 pre: "<b>0.6.</b> "
 ---

@@ -1,6 +1,6 @@
 ---
 title: "Tạo VPC, subnets và đường định tuyến"
-weight: 2
+weight: 20
 chapter: false
 pre: "<b>0.2.</b> "
 ---

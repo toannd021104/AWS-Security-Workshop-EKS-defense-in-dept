@@ -1,6 +1,6 @@
 ---
 title: "Chuẩn bị domain, ACM certificate và WAF"
-weight: 5
+weight: 50
 chapter: false
 pre: "<b>0.5.</b> "
 ---

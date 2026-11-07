@@ -1,6 +1,6 @@
 ---
 title: "Tạo EKS, CNI role và managed worker nodes"
-weight: 3
+weight: 30
 chapter: false
 pre: "<b>0.3.</b> "
 ---

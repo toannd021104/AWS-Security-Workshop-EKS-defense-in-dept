@@ -117,7 +117,14 @@ Lab cần quyền tạo/quản lý VPC, EC2, EKS, IAM roles/PassRole, ELB, RDS, 
 
 EKS, EC2, ALB, NAT Gateway/public IPv4, RDS và các dịch vụ bảo mật có thể phát sinh phí khi lab đang chạy. Xem [Cleanup](/cleanup/) để biết thứ tự gỡ tài nguyên khi kết thúc.
 
-**Kết quả cần có:** STS trả đúng account, các công cụ sẵn sàng, Docker daemon hoạt động và mã nguồn nằm trong thư mục làm việc. Tiếp tục [tạo VPC](/preparation/2-vpc/).
+**Kết quả cần có:** STS trả đúng account, các công cụ sẵn sàng, Docker daemon hoạt động và mã nguồn nằm trong thư mục làm việc.
+
+## Chọn cách tạo hạ tầng
+
+- **[Terraform: tạo toàn bộ hạ tầng lab](/preparation/9-terraform/)** — thay thế các bước Console 0.2–0.6. Sau `Apply complete`, chuyển thẳng đến [0.7: triển khai ứng dụng](/preparation/7-deploy-application/) và [0.8: kiểm tra baseline](/preparation/8-baseline/).
+- **[Console: bắt đầu từ VPC](/preparation/2-vpc/)** — thực hiện lần lượt 0.2–0.6, rồi đến 0.7–0.8.
+
+Chọn một cách tạo hạ tầng cho mỗi môi trường; không thực hiện cả hai nhánh trên cùng bộ tài nguyên.
 '''),
 ('2-vpc','Tạo VPC, subnets và đường định tuyến',r'''
 ## Mục tiêu chuẩn bị
@@ -751,10 +758,22 @@ kubectl get networkpolicy -n notes
 
 Khi các điều kiện trên đạt, đọc [Request Flow: Internet → ALB → Pod](/2-network-security/1-request-flow/). Từ đây, các lệnh sử dụng `$APP_HOST` và pod ứng dụng đã có đầy đủ đầu vào để chạy.
 '''),
-('9-terraform','Tùy chọn: dựng cùng lab bằng Terraform',r'''
+('9-terraform','Terraform: tạo toàn bộ hạ tầng lab',r'''
 ## Chọn nhánh triển khai
 
-Nhánh Console gồm các bước 0.2–0.7. Terraform là cách tạo cùng hạ tầng cho người muốn tái tạo lab bằng IaC. Chọn một nhánh tạo tài nguyên cho mỗi môi trường; các bước build/deploy và baseline vẫn dùng chung.
+Nhánh Terraform **thay thế toàn bộ các bước tạo hạ tầng trên Console 0.2–0.6**. Sau khi hoàn thành công cụ và tài khoản ở bước 0.1, có thể thực hiện ngay trang này, không cần tạo VPC, EKS hoặc các dịch vụ bằng tay trước.
+
+| Các bước Console được thay thế | Terraform tạo tương ứng |
+|---|---|
+| 0.2 — VPC | VPC, public/private/database subnets, routing, Internet Gateway, NAT Gateway |
+| 0.3 — EKS | Cluster, IAM roles, managed nodes, launch template, OIDC provider và add-ons |
+| 0.4 — Dịch vụ dữ liệu | RDS, database Security Group, SQS và ECR |
+| 0.5 — HTTPS/WAF | ACM certificate, DNS validation và WAF Web ACL khi bật `enable_waf` |
+| 0.6 — Quyền workload | IAM roles/policies và Pod Identity associations |
+
+Domain và public hosted zone được chuẩn bị ở 0.1; Terraform sử dụng hosted zone đó. **Build image, cài controller, triển khai ứng dụng/Ingress, tạo record ứng dụng và kiểm tra baseline vẫn thực hiện ở 0.7–0.8.** ALB được controller tạo từ Ingress ở bước triển khai.
+
+Chọn một nhánh tạo tài nguyên cho mỗi môi trường; Terraform không phải bước bổ sung sau khi đã tạo xong bằng Console.
 
 Nếu đã tạo bằng Console, có thể đọc mã Terraform để đối chiếu cấu hình. `terraform apply` với state rỗng sẽ cố tạo lại các tài nguyên cùng tên, nên không dùng nó như bước tiếp theo của nhánh Console.
 
@@ -810,21 +829,30 @@ Cleanup của nhánh này gỡ tài nguyên do Kubernetes controller tạo trư�
 ]
 
 def write_preparation(write):
-    body = '''Phần này dựng ứng dụng nền từ một tài khoản AWS trước khi thực hành các lớp bảo vệ. Thực hiện theo thứ tự bên dưới; mỗi trang nêu cấu hình và kết quả cần có để chuyển sang bước tiếp theo.
+    body = '''Phần này dựng ứng dụng nền từ một tài khoản AWS trước khi thực hành các lớp bảo vệ. Hoàn thành công cụ và tài khoản, sau đó chọn một trong hai cách tạo hạ tầng bên dưới.
 
 Ứng dụng gồm frontend, API và worker trên EKS; database dùng RDS và hàng đợi dùng SQS. Có thể xem [kiến trúc tổng quan](/1-introduction/4-architecture/) trước khi bắt đầu.
 
-## Nội dung
+## Chọn cách tạo hạ tầng trước khi bắt đầu
+
+1. Hoàn thành [0.1: tài khoản, công cụ và mã nguồn](/preparation/1-workstation/).
+2. Chọn **[Terraform: tạo toàn bộ hạ tầng lab](/preparation/9-terraform/)** để thay thế các bước Console 0.2–0.6, hoặc chọn **[Console: tạo từng thành phần](/preparation/2-vpc/)**.
+3. Cả hai nhánh đều tiếp tục ở [0.7: triển khai ứng dụng](/preparation/7-deploy-application/) và [0.8: baseline](/preparation/8-baseline/).
+
+**Không tạo hạ tầng bằng Console rồi chạy thêm Terraform với state rỗng.** Hai nhánh là hai lựa chọn thay thế nhau.
+
+## Tài liệu cho từng bước
 
 '''
-    body += '\n\n'.join(f'0.{i}. [{title}](/preparation/{slug}/)' for i,(slug,title,_) in enumerate(SETUP,1))
+    ordered = [(1, SETUP[0]), (9, SETUP[-1])] + list(enumerate(SETUP[1:-1], 2))
+    body += '\n\n'.join((f'[{title}](/preparation/{slug}/)' if i == 9 else f'0.{i}. [{title}](/preparation/{slug}/)') for i,(slug,title,_) in ordered)
     body += '''
 
 ## Trình tự thực hiện
 
 **Nhánh Console:** 0.1 → 0.2 → 0.3 → 0.4 → 0.5 → 0.6 → 0.7 → 0.8.
 
-**Nhánh Terraform:** 0.1 → 0.9 → 0.7 → 0.8.
+**Nhánh Terraform:** 0.1 → Terraform (thay thế 0.2–0.6) → 0.7 → 0.8.
 
 Sau bước 0.8, lab có domain HTTPS, ba workload chạy được, đọc/ghi RDS và xử lý SQS. NetworkPolicy chưa được áp dụng để còn quan sát trạng thái trước/sau trong chương 3. Cấu hình non-root và quyền workload cần để chạy ứng dụng đã nằm trong baseline; các chương sau giải thích và kiểm chứng chi tiết.
 
@@ -832,4 +860,4 @@ Sau bước 0.8, lab có domain HTTPS, ba workload chạy được, đọc/ghi R
 '''
     write(Path('preparation'), 'Chuẩn bị lab', 2, body)
     for i, (slug, title, content) in enumerate(SETUP, 1):
-        write(Path('preparation')/slug, title, i, content, f'<b>0.{i}.</b> ', **({'sequenceSkip': True, 'previousLesson': '/preparation/1-workstation/', 'nextLesson': '/preparation/7-deploy-application/'} if i == 9 else {}))
+        write(Path('preparation')/slug, title, 15 if i == 9 else i * 10, content, '' if i == 9 else f'<b>0.{i}.</b> ', **({'sequenceSkip': True, 'previousLesson': '/preparation/1-workstation/', 'nextLesson': '/preparation/7-deploy-application/'} if i == 9 else {}))

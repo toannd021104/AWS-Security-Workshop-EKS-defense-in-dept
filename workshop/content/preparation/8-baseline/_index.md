@@ -1,6 +1,6 @@
 ---
 title: "Kiểm tra lab hoạt động trước khi học các lớp bảo vệ"
-weight: 8
+weight: 80
 chapter: false
 pre: "<b>0.8.</b> "
 ---

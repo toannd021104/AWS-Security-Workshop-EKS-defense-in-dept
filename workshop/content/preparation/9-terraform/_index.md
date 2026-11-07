@@ -1,8 +1,8 @@
 ---
-title: "Tùy chọn: dựng cùng lab bằng Terraform"
-weight: 9
+title: "Terraform: tạo toàn bộ hạ tầng lab"
+weight: 15
 chapter: false
-pre: "<b>0.9.</b> "
+pre: ""
 sequenceSkip: true
 previousLesson: "/preparation/1-workstation/"
 nextLesson: "/preparation/7-deploy-application/"
@@ -10,7 +10,19 @@ nextLesson: "/preparation/7-deploy-application/"
 
 ## Chọn nhánh triển khai
 
-Nhánh Console gồm các bước 0.2–0.7. Terraform là cách tạo cùng hạ tầng cho người muốn tái tạo lab bằng IaC. Chọn một nhánh tạo tài nguyên cho mỗi môi trường; các bước build/deploy và baseline vẫn dùng chung.
+Nhánh Terraform **thay thế toàn bộ các bước tạo hạ tầng trên Console 0.2–0.6**. Sau khi hoàn thành công cụ và tài khoản ở bước 0.1, có thể thực hiện ngay trang này, không cần tạo VPC, EKS hoặc các dịch vụ bằng tay trước.
+
+| Các bước Console được thay thế | Terraform tạo tương ứng |
+|---|---|
+| 0.2 — VPC | VPC, public/private/database subnets, routing, Internet Gateway, NAT Gateway |
+| 0.3 — EKS | Cluster, IAM roles, managed nodes, launch template, OIDC provider và add-ons |
+| 0.4 — Dịch vụ dữ liệu | RDS, database Security Group, SQS và ECR |
+| 0.5 — HTTPS/WAF | ACM certificate, DNS validation và WAF Web ACL khi bật `enable_waf` |
+| 0.6 — Quyền workload | IAM roles/policies và Pod Identity associations |
+
+Domain và public hosted zone được chuẩn bị ở 0.1; Terraform sử dụng hosted zone đó. **Build image, cài controller, triển khai ứng dụng/Ingress, tạo record ứng dụng và kiểm tra baseline vẫn thực hiện ở 0.7–0.8.** ALB được controller tạo từ Ingress ở bước triển khai.
+
+Chọn một nhánh tạo tài nguyên cho mỗi môi trường; Terraform không phải bước bổ sung sau khi đã tạo xong bằng Console.
 
 Nếu đã tạo bằng Console, có thể đọc mã Terraform để đối chiếu cấu hình. `terraform apply` với state rỗng sẽ cố tạo lại các tài nguyên cùng tên, nên không dùng nó như bước tiếp theo của nhánh Console.
 

@@ -1,6 +1,6 @@
 ---
 title: "Tài khoản AWS, công cụ và mã nguồn"
-weight: 1
+weight: 10
 chapter: false
 pre: "<b>0.1.</b> "
 ---
@@ -119,4 +119,11 @@ Lab cần quyền tạo/quản lý VPC, EC2, EKS, IAM roles/PassRole, ELB, RDS, 
 
 EKS, EC2, ALB, NAT Gateway/public IPv4, RDS và các dịch vụ bảo mật có thể phát sinh phí khi lab đang chạy. Xem [Cleanup](/cleanup/) để biết thứ tự gỡ tài nguyên khi kết thúc.
 
-**Kết quả cần có:** STS trả đúng account, các công cụ sẵn sàng, Docker daemon hoạt động và mã nguồn nằm trong thư mục làm việc. Tiếp tục [tạo VPC](/preparation/2-vpc/).
+**Kết quả cần có:** STS trả đúng account, các công cụ sẵn sàng, Docker daemon hoạt động và mã nguồn nằm trong thư mục làm việc.
+
+## Chọn cách tạo hạ tầng
+
+- **[Terraform: tạo toàn bộ hạ tầng lab](/preparation/9-terraform/)** — thay thế các bước Console 0.2–0.6. Sau `Apply complete`, chuyển thẳng đến [0.7: triển khai ứng dụng](/preparation/7-deploy-application/) và [0.8: kiểm tra baseline](/preparation/8-baseline/).
+- **[Console: bắt đầu từ VPC](/preparation/2-vpc/)** — thực hiện lần lượt 0.2–0.6, rồi đến 0.7–0.8.
+
+Chọn một cách tạo hạ tầng cho mỗi môi trường; không thực hiện cả hai nhánh trên cùng bộ tài nguyên.

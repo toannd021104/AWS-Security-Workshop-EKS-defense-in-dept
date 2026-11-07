@@ -1,6 +1,6 @@
 ---
 title: "Tạo RDS PostgreSQL, SQS và ECR"
-weight: 4
+weight: 40
 chapter: false
 pre: "<b>0.4.</b> "
 ---

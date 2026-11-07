@@ -1,6 +1,6 @@
 ---
 title: "Build image và triển khai ứng dụng lên EKS"
-weight: 7
+weight: 70
 chapter: false
 pre: "<b>0.7.</b> "
 ---
