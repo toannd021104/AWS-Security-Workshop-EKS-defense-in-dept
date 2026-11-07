@@ -73,8 +73,8 @@ Terraform được dùng ở nhánh triển khai tùy chọn. Hugo Extended ch�
 ## Lấy mã nguồn và thiết lập thư mục làm việc
 
 ```bash
-git clone https://github.com/toannd021104/eks-defense-in-depth-workshop.git
-cd eks-defense-in-depth-workshop
+git clone https://github.com/toannd021104/AWS-Security-Workshop-EKS-defense-in-dept.git
+cd AWS-Security-Workshop-EKS-defense-in-dept
 mkdir -p .local
 python3 -m venv .venv
 source .venv/bin/activate

@@ -1,6 +1,6 @@
 # A Layered Approach to Amazon EKS Security
 
-[Đọc workshop trên GitHub Pages](https://toannd021104.github.io/eks-defense-in-depth-workshop/).
+[Đọc workshop trên GitHub Pages](https://toannd021104.github.io/AWS-Security-Workshop-EKS-defense-in-dept/).
 
 Workshop tiếng Việt, tập trung từ Internet đến pod, Kubernetes workload security, IAM/RBAC và supply chain/data security. Bản mới được chắt lọc từ `../test.md`; không sửa bản gốc hoặc site `../AWS-Security-WS`.
 
@@ -16,7 +16,7 @@ Mở http://localhost:1314/. Năm module gồm 26 bài, có preparation, validat
 
 ## Chuẩn bị lab từ đầu
 
-[Chuẩn bị lab trên website](https://toannd021104.github.io/eks-defense-in-depth-workshop/preparation/) có 9 trang: sau công cụ/tài khoản, chọn ngay Terraform để tạo toàn bộ hạ tầng hoặc Console để tạo từng thành phần (VPC → EKS/nodes → RDS/SQS/ECR → certificate/WAF → workload permissions). Terraform thay thế các bước Console 0.2–0.6; cả hai nhánh tiếp tục ở build/deploy → baseline. Nhánh Console không cần đọc vòng sang chương 2 hoặc 4 để có ứng dụng chạy được.
+[Chuẩn bị lab trên website](https://toannd021104.github.io/AWS-Security-Workshop-EKS-defense-in-dept/preparation/) có 9 trang: sau công cụ/tài khoản, chọn ngay Terraform để tạo toàn bộ hạ tầng hoặc Console để tạo từng thành phần (VPC → EKS/nodes → RDS/SQS/ECR → certificate/WAF → workload permissions). Terraform thay thế các bước Console 0.2–0.6; cả hai nhánh tiếp tục ở build/deploy → baseline. Nhánh Console không cần đọc vòng sang chương 2 hoặc 4 để có ứng dụng chạy được.
 
 Sau bước baseline mới bắt đầu chương 2. Mỗi lệnh kiểm tra có output mẫu và ý nghĩa; `APP_HOST` được giải thích từ lúc thu thập cấu hình thay vì giả định đã có sẵn.
 
