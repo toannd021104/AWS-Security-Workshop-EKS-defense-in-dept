@@ -33,7 +33,7 @@ Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/pre
 
 ![Ba nhóm subnet của VPC lab](/images/console-subnets.png "① Public subnet. ② Private application subnet. ③ Database subnet.")
 
-Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.20`. Những dòng `172.31` còn lại thuộc default VPC của sandbox.
+Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.20`. Những dòng `172.31` còn lại thuộc default VPC của tài khoản AWS.
 
 3. Internet Gateways → tạo `eks-did-igw`, attach vào VPC.
 

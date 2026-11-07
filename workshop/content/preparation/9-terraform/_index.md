@@ -33,7 +33,7 @@ enable_kms = true
 enable_inspector = true
 ```
 
-Thay IP và zone bằng giá trị thật. Các flags liên quan dịch vụ bị sandbox chặn chỉ được tắt khi đã ghi nhận phần bài tương ứng chưa được kiểm chứng. WAF cần cho phép thử edge; KMS và Inspector được dùng ở chương 5.
+Thay IP và zone bằng giá trị thật. Các flags liên quan dịch vụ bị giới hạn bởi quyền truy cập hoặc chính sách tài khoản chỉ được tắt khi đã ghi nhận phần bài tương ứng chưa được kiểm chứng. WAF cần cho phép thử edge; KMS và Inspector được dùng ở chương 5.
 
 ## Tạo hạ tầng
 

@@ -13,7 +13,7 @@ Chạy cleanup trong đúng account/profile. Lab dùng prefix `eks-did` và kube
 
 1. EKS/Kubernetes: xóa Ingress trước, đợi controller xóa ALB, target groups và SG do nó quản lý. Sau đó gỡ namespace app, Kyverno và controller.
 
-2. Route 53: xóa **record ứng dụng `notes`**, không xóa public hosted zone sandbox.
+2. Route 53: xóa **record ứng dụng `notes`**, giữ lại public hosted zone đang sử dụng.
 
 3. Gỡ node group/add-ons/cluster; RDS, queue, ECR lab; NAT trước khi release EIP; subnet/route/IGW/VPC sau khi ENI không còn.
 

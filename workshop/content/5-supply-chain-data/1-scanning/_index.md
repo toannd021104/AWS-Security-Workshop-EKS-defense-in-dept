@@ -19,7 +19,7 @@ Image scanning tìm các package/dependency có vulnerability đã biết. Kết
 
 1. ECR → Private registry → Features & Settings → Scanning: xem loại scanning đang dùng. Basic scan tập trung OS packages; enhanced scanning tích hợp Inspector, có thể theo dõi cả language packages theo khả năng hỗ trợ.
 
-2. Inspector → Activate → ECR scanning, nếu sandbox cho phép. Đây là cấu hình account/Region; review phạm vi trước khi đổi trong account dùng chung.
+2. Inspector → Activate → ECR scanning, với quyền quản lý Inspector trong tài khoản AWS. Đây là cấu hình account/Region; review phạm vi trước khi đổi trong account dùng chung.
 
 3. Chọn repository `eks-did/notes`, xem digest đã push và scan findings. Chờ scan hoàn tất; “không thấy findings” trong lúc pending không phải kết quả sạch.
 
@@ -58,7 +58,7 @@ Basic scan APIs và Inspector có lifecycle/status khác nhau; không gọi `sta
 python3 scripts/scan-gate.py
 ```
 
-Script yêu cầu coverage đã scan, đọc findings của **đúng deployed digest**, trả exit 1 nếu có HIGH/CRITICAL hoặc chưa có coverage hoàn tất. [Kết quả scan thực tế](/evidence/image-scan.json) trong lượt lab ghi 4 HIGH, 8 MEDIUM, 2 LOW, 2 UNTRIAGED; 4 HIGH chưa có bản sửa theo Inspector. Gate trả `BLOCK`, không tự miễn trừ vì chưa có fix. App vẫn được dùng trong sandbox để kiểm tra network/identity; kết quả đó không phải phê duyệt release production.
+Script yêu cầu coverage đã scan, đọc findings của **đúng deployed digest**, trả exit 1 nếu có HIGH/CRITICAL hoặc chưa có coverage hoàn tất. [Kết quả scan thực tế](/evidence/image-scan.json) trong lượt lab ghi 4 HIGH, 8 MEDIUM, 2 LOW, 2 UNTRIAGED; 4 HIGH chưa có bản sửa theo Inspector. Gate trả `BLOCK`, không tự miễn trừ vì chưa có fix. Ứng dụng vẫn được dùng trong môi trường thực hành để kiểm tra network/identity; kết quả đó không phải phê duyệt release production.
 
 Khi có bản vá, cập nhật base/dependency, build digest mới, scan lại rồi mới review gate. Đừng trộn kết quả scan image unsigned với image đang chạy.
 

@@ -89,6 +89,6 @@ Egress HTTPS public hiện cho phép nhiều endpoint hơn SQS. Standard Network
 | Frontend → RDS | Chưa giới hạn theo pod | Bị chặn |
 | Lưu ghi chú và tạo báo cáo | Hoạt động | Hoạt động |
 
-[Báo cáo kiểm chứng sau policy trên sandbox](/evidence/network-proof-after.json) ghi lại kết quả của 5 phép thử thực tế.
+[Báo cáo kiểm chứng sau policy trên AWS](/evidence/network-proof-after.json) ghi lại kết quả của 5 phép thử thực tế.
 
 Các dòng baseline thể hiện kết quả cần quan sát khi chưa có policy. Script `--stage before` kiểm tra hai kết nối đến API và luồng nghiệp vụ; script `--stage after` kiểm tra thêm frontend → RDS. Một timeout chỉ có ý nghĩa khi phép thử kết nối hợp lệ và luồng ứng dụng cùng thành công.

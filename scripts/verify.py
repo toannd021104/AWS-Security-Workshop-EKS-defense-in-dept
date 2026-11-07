@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real sandbox validation. No secret values or credentials are logged."""
+"""Real AWS lab validation. No secret values or credentials are logged."""
 import argparse, datetime, json, os, pathlib, re, subprocess, sys, time, urllib.request, urllib.error, uuid
 import boto3
 from botocore.exceptions import ClientError

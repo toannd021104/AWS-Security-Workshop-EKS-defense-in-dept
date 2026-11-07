@@ -42,7 +42,7 @@ Phần đầu giới thiệu nguyên tắc bảo mật nhiều lớp và kiến 
 
 5. [Supply Chain & Data Security](/5-supply-chain-data/)
 
-[Kết quả kiểm chứng trên sandbox](/validation/results/) và [kết quả image scan](/evidence/image-scan.json) được công bố riêng. Các phép thử chức năng đạt không thay thế điều kiện chấp nhận image trước khi phát hành.
+[Kết quả kiểm chứng trên AWS](/validation/results/) và [kết quả image scan](/evidence/image-scan.json) được công bố riêng. Các phép thử chức năng đạt không thay thế điều kiện chấp nhận image trước khi phát hành.
 ''')
 from preparation_content import write_preparation
 write_preparation(write)
@@ -269,7 +269,7 @@ Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/pre
 
 ![Ba nhóm subnet của VPC lab](/images/console-subnets.png "① Public subnet. ② Private application subnet. ③ Database subnet.")
 
-Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.20`. Những dòng `172.31` còn lại thuộc default VPC của sandbox.
+Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.20`. Những dòng `172.31` còn lại thuộc default VPC của tài khoản AWS.
 
 3. Internet Gateways → tạo `eks-did-igw`, attach vào VPC.
 
@@ -679,7 +679,7 @@ Egress HTTPS public hiện cho phép nhiều endpoint hơn SQS. Standard Network
 | Frontend → RDS | Chưa giới hạn theo pod | Bị chặn |
 | Lưu ghi chú và tạo báo cáo | Hoạt động | Hoạt động |
 
-[Báo cáo kiểm chứng sau policy trên sandbox](/evidence/network-proof-after.json) ghi lại kết quả của 5 phép thử thực tế.
+[Báo cáo kiểm chứng sau policy trên AWS](/evidence/network-proof-after.json) ghi lại kết quả của 5 phép thử thực tế.
 
 Các dòng baseline thể hiện kết quả cần quan sát khi chưa có policy. Script `--stage before` kiểm tra hai kết nối đến API và luồng nghiệp vụ; script `--stage after` kiểm tra thêm frontend → RDS. Một timeout chỉ có ý nghĩa khi phép thử kết nối hợp lệ và luồng ứng dụng cùng thành công.
 ''')
@@ -1301,7 +1301,7 @@ Image scanning tìm các package/dependency có vulnerability đã biết. Kết
 
 1. ECR → Private registry → Features & Settings → Scanning: xem loại scanning đang dùng. Basic scan tập trung OS packages; enhanced scanning tích hợp Inspector, có thể theo dõi cả language packages theo khả năng hỗ trợ.
 
-2. Inspector → Activate → ECR scanning, nếu sandbox cho phép. Đây là cấu hình account/Region; review phạm vi trước khi đổi trong account dùng chung.
+2. Inspector → Activate → ECR scanning, với quyền quản lý Inspector trong tài khoản AWS. Đây là cấu hình account/Region; review phạm vi trước khi đổi trong account dùng chung.
 
 3. Chọn repository `eks-did/notes`, xem digest đã push và scan findings. Chờ scan hoàn tất; “không thấy findings” trong lúc pending không phải kết quả sạch.
 
@@ -1340,7 +1340,7 @@ Basic scan APIs và Inspector có lifecycle/status khác nhau; không gọi `sta
 python3 scripts/scan-gate.py
 ```
 
-Script yêu cầu coverage đã scan, đọc findings của **đúng deployed digest**, trả exit 1 nếu có HIGH/CRITICAL hoặc chưa có coverage hoàn tất. [Kết quả scan thực tế](/evidence/image-scan.json) trong lượt lab ghi 4 HIGH, 8 MEDIUM, 2 LOW, 2 UNTRIAGED; 4 HIGH chưa có bản sửa theo Inspector. Gate trả `BLOCK`, không tự miễn trừ vì chưa có fix. App vẫn được dùng trong sandbox để kiểm tra network/identity; kết quả đó không phải phê duyệt release production.
+Script yêu cầu coverage đã scan, đọc findings của **đúng deployed digest**, trả exit 1 nếu có HIGH/CRITICAL hoặc chưa có coverage hoàn tất. [Kết quả scan thực tế](/evidence/image-scan.json) trong lượt lab ghi 4 HIGH, 8 MEDIUM, 2 LOW, 2 UNTRIAGED; 4 HIGH chưa có bản sửa theo Inspector. Gate trả `BLOCK`, không tự miễn trừ vì chưa có fix. Ứng dụng vẫn được dùng trong môi trường thực hành để kiểm tra network/identity; kết quả đó không phải phê duyệt release production.
 
 Khi có bản vá, cập nhật base/dependency, build digest mới, scan lại rồi mới review gate. Đừng trộn kết quả scan image unsigned với image đang chạy.
 
@@ -1403,7 +1403,7 @@ Policy giới hạn namespace `notes` và repository app lab, yêu cầu signatu
 
 ### Kiểm tra phạm vi và kết quả admission
 
-Ở chart 3.9.2 đã kiểm chứng, `ClusterPolicy` là API legacy vẫn được hỗ trợ; đánh giá migration sang `ImageValidatingPolicy` khi nâng cấp. Policy này kiểm tra image API/worker của lab, chưa bao phủ mọi repository hoặc image Nginx upstream. Không khẳng định toàn cluster chỉ chạy signed images. Webhook fail-closed tăng bảo vệ nhưng phụ thuộc availability của verifier/registry; một replica Kyverno chỉ phù hợp sandbox. Native CEL admission có thể kiểm tra digest/registry pattern, nhưng không tự xác minh Cosign signature, nên lab dùng verifier thực.
+Ở chart 3.9.2 đã kiểm chứng, `ClusterPolicy` là API legacy vẫn được hỗ trợ; đánh giá migration sang `ImageValidatingPolicy` khi nâng cấp. Policy này kiểm tra image API/worker của lab, chưa bao phủ mọi repository hoặc image Nginx upstream. Không khẳng định toàn cluster chỉ chạy signed images. Webhook fail-closed tăng bảo vệ nhưng phụ thuộc availability của verifier/registry; một replica Kyverno chỉ phù hợp môi trường thực hành. Native CEL admission có thể kiểm tra digest/registry pattern, nhưng không tự xác minh Cosign signature, nên lab dùng verifier thực.
 
 Chạy bộ kiểm tra sau khi đã hoàn thành các lớp bảo vệ của workshop:
 
@@ -1547,7 +1547,7 @@ Chạy cleanup trong đúng account/profile. Lab dùng prefix `eks-did` và kube
 
 1. EKS/Kubernetes: xóa Ingress trước, đợi controller xóa ALB, target groups và SG do nó quản lý. Sau đó gỡ namespace app, Kyverno và controller.
 
-2. Route 53: xóa **record ứng dụng `notes`**, không xóa public hosted zone sandbox.
+2. Route 53: xóa **record ứng dụng `notes`**, giữ lại public hosted zone đang sử dụng.
 
 3. Gỡ node group/add-ons/cluster; RDS, queue, ECR lab; NAT trước khi release EIP; subnet/route/IGW/VPC sau khi ENI không còn.
 
@@ -1586,7 +1586,7 @@ aws ec2 describe-nat-gateways --filter Name=state,Values=available,pending \
 
 Kiểm tra EIP, CloudWatch log groups và KMS PendingDeletion. Giữ lại source, public key và báo cáo đã loại credentials; không upload state, registry auth secret hoặc private signing key.
 ''')
-write(Path('validation'),'Kiểm chứng và trạng thái sandbox',80,r'''
+write(Path('validation'),'Kiểm chứng và kết quả thực hành',80,r'''
 ## Ý định và kết quả là hai thứ khác nhau
 
 Hướng dẫn trong từng bài mô tả kết quả mong đợi. Báo cáo tại đây ghi những gì bộ kiểm tra thực sự quan sát. `PASS` chỉ áp dụng cho phép thử được nêu, không phải chứng nhận production-ready.

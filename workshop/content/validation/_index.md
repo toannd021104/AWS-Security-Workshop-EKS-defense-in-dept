@@ -1,5 +1,5 @@
 ---
-title: "Kiểm chứng và trạng thái sandbox"
+title: "Kiểm chứng và kết quả thực hành"
 weight: 80
 chapter: false
 pre: ""

@@ -35,4 +35,4 @@ Phần đầu giới thiệu nguyên tắc bảo mật nhiều lớp và kiến 
 
 5. [Supply Chain & Data Security](/5-supply-chain-data/)
 
-[Kết quả kiểm chứng trên sandbox](/validation/results/) và [kết quả image scan](/evidence/image-scan.json) được công bố riêng. Các phép thử chức năng đạt không thay thế điều kiện chấp nhận image trước khi phát hành.
+[Kết quả kiểm chứng trên AWS](/validation/results/) và [kết quả image scan](/evidence/image-scan.json) được công bố riêng. Các phép thử chức năng đạt không thay thế điều kiện chấp nhận image trước khi phát hành.

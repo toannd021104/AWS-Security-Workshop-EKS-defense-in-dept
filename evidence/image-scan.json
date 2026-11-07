@@ -31,5 +31,5 @@
       "fix_available": "NO"
     }
   ],
-  "note": "The sandbox application demonstrates network/identity controls; it is not approved for production release. No exception is silently granted for a missing fix."
+  "note": "The workshop application demonstrates network/identity controls; it is not approved for production release. No exception is silently granted for a missing fix."
 }

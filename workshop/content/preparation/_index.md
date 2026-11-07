@@ -5,7 +5,7 @@ chapter: false
 pre: ""
 ---
 
-Phần này dựng ứng dụng nền từ một AWS account sandbox trước khi thực hành các lớp bảo vệ. Thực hiện theo thứ tự bên dưới; mỗi trang nêu cấu hình và kết quả cần có để chuyển sang bước tiếp theo.
+Phần này dựng ứng dụng nền từ một tài khoản AWS trước khi thực hành các lớp bảo vệ. Thực hiện theo thứ tự bên dưới; mỗi trang nêu cấu hình và kết quả cần có để chuyển sang bước tiếp theo.
 
 Ứng dụng gồm frontend, API và worker trên EKS; database dùng RDS và hàng đợi dùng SQS. Có thể xem [kiến trúc tổng quan](/1-introduction/4-architecture/) trước khi bắt đầu.
 

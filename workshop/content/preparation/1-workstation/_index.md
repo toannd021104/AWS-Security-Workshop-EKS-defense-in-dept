@@ -7,13 +7,13 @@ pre: "<b>0.1.</b> "
 
 ## Mục tiêu chuẩn bị
 
-Phần thực hành sử dụng một máy Ubuntu Linux x86_64 có kết nối Internet và một AWS account sandbox. Các thao tác AWS ưu tiên Console; terminal được dùng để build container, thao tác Kubernetes và đọc kết quả chính xác.
+Phần thực hành sử dụng một máy Ubuntu Linux x86_64 có kết nối Internet và một tài khoản AWS. Các thao tác AWS ưu tiên Console; terminal được dùng để build container, thao tác Kubernetes và đọc kết quả chính xác.
 
 Tài nguyên được tạo tại **US East (N. Virginia), us-east-1**, với prefix `eks-did`. Chọn cùng account và Region trong cả Console lẫn terminal. Nếu account đã có một lab cùng tên, kiểm tra tài nguyên hiện có trước khi tạo thêm.
 
 ## Đăng nhập và kiểm tra tài khoản
 
-1. Đăng nhập AWS Console bằng phương thức sandbox cấp, kiểm tra account ID ở góc phải và chọn Region **us-east-1**.
+1. Đăng nhập AWS Console vào tài khoản AWS của bạn, kiểm tra account ID ở góc phải và chọn Region **us-east-1**.
 2. Chuẩn bị một public domain hoặc public Route 53 hosted zone đã được delegate hợp lệ. Lab dùng subdomain `notes.<domain>` và ACM public certificate. Việc chỉ tạo hosted zone chưa làm domain được phân giải trên Internet.
 3. Trong terminal, kiểm tra profile đã được cấp:
 
@@ -33,7 +33,7 @@ Ví dụ kết quả, các giá trị account và ARN sẽ khác ở account c�
 }
 ```
 
-`guru` là tên profile trên máy, không phải tên tài khoản AWS. Nếu chưa có profile, dùng thông tin được sandbox cấp để cấu hình `aws configure --profile guru`. Credentials tạm thời cần đủ session token trong profile và còn hạn; SSO sử dụng quy trình `aws configure sso`. Không cần tạo access key mới nếu sandbox đã cung cấp cách truy cập.
+`guru` là tên profile trên máy, không phải tên tài khoản AWS. Nếu chưa có profile, dùng thông tin xác thực AWS của bạn để cấu hình `aws configure --profile guru`. Credentials tạm thời cần đủ session token trong profile và còn hạn; SSO sử dụng quy trình `aws configure sso`. Nếu sử dụng SSO hoặc thông tin xác thực tạm thời, không cần tạo access key dài hạn.
 
 Account trong kết quả phải trùng account đang mở trên Console. Tiếp tục sau khi lệnh STS thành công.
 
@@ -115,7 +115,7 @@ Trong terminal mới, kích hoạt lại `.venv`, đặt profile/Region và `sou
 
 ## Quyền và chi phí
 
-Lab cần quyền tạo/quản lý VPC, EC2, EKS, IAM roles/PassRole, ELB, RDS, SQS, ECR, ACM và Route 53. WAF, Inspector và KMS có thể bị giới hạn trong sandbox; ghi nhận đúng dịch vụ bị từ chối thay vì coi bài đó đã đạt.
+Lab cần quyền tạo/quản lý VPC, EC2, EKS, IAM roles/PassRole, ELB, RDS, SQS, ECR, ACM và Route 53. Tài khoản cần có quyền sử dụng WAF, Inspector và KMS cho các phần thực hành tương ứng. Nếu gặp lỗi thiếu quyền, kiểm tra IAM policies và chính sách của tổ chức trước khi tiếp tục.
 
 EKS, EC2, ALB, NAT Gateway/public IPv4, RDS và các dịch vụ bảo mật có thể phát sinh phí khi lab đang chạy. Xem [Cleanup](/cleanup/) để biết thứ tự gỡ tài nguyên khi kết thúc.
 

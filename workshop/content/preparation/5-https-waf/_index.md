@@ -11,8 +11,8 @@ pre: "<b>0.5.</b> "
 
 ## Xác nhận public hosted zone
 
-1. Route 53 → **Hosted zones**, chọn public zone được sandbox cấp hoặc domain bạn quản lý. Ghi tên zone, ví dụ `example.com.`.
-2. Đối chiếu NS records với nameservers được delegate ở domain cha/registrar. Nếu dùng zone sandbox đã được cấp sẵn, giữ nguyên delegation của môi trường đó.
+1. Route 53 → **Hosted zones**, chọn public hosted zone của domain bạn quản lý. Ghi tên zone, ví dụ `example.com.`.
+2. Đối chiếu NS records với nameservers được delegate ở domain cha/registrar. Nếu hosted zone đã được cấu hình, kiểm tra và giữ nguyên delegation đang sử dụng.
 3. Trong terminal, đặt tên zone thực tế:
 
 ```bash
@@ -42,7 +42,7 @@ Thay `example.com.` trước khi chạy. Domain hiện chưa cần có record �
 
 ![Rule kiểm chứng WAF](/images/console-waf-rule.png "① workshop-header-test. ② Action Block.")
 
-Rule header này tạo ra một kết quả thử rõ ràng; việc lựa chọn managed rules cho production nằm ngoài cấu hình baseline. Nếu sandbox cấm WAF, ghi nhận bước chưa thực hiện và phép thử WAF chưa đạt; không tự coi việc bỏ qua là PASS.
+Rule header này tạo ra một kết quả thử rõ ràng; việc lựa chọn managed rules cho production nằm ngoài cấu hình baseline. Nếu gặp lỗi thiếu quyền khi tạo WAF, kiểm tra quyền IAM và chính sách của tổ chức; chỉ kiểm chứng bước này sau khi tạo được Web ACL và gắn vào ALB.
 
 ## Kiểm tra trước khi triển khai ứng dụng
 
