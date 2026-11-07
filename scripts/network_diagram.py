@@ -72,15 +72,17 @@ class NetworkDiagram:
             c = ET.SubElement(cells, 'mxCell', id=key, value=value, style=style, vertex='1', parent='1')
             ET.SubElement(c, 'mxGeometry', x=str(x), y=str(y), width=str(w), height=str(h), attrib={'as':'geometry'})
         def image(key, x, y, size, uri):
-            svg.append(f'<image x="{x}" y="{y}" width="{size}" height="{size}" preserveAspectRatio="xMidYMid meet" href="{uri}"/>')
+            svg.append(f'<image id="{key}" x="{x}" y="{y}" width="{size}" height="{size}" preserveAspectRatio="xMidYMid meet" href="{uri}"/>')
             drawio_uri = 'data:image/svg+xml,'+urllib.parse.quote(base64.b64decode(uri.split(',',1)[1]).decode(), safe='')
             cell(key, x, y, size, size, 'shape=image;imageAspect=1;aspect=fixed;image='+drawio_uri+';')
         for key,x,y,w,h,color,fill,asset in self.frames:
-            dash = '' if key=='cloud' else ' stroke-dasharray="8 5"'
+            is_dashed = key not in ('cloud', 'ec2-workers')
+            dash = ' stroke-dasharray="8 5"' if is_dashed else ''
             svg.append(f'<rect id="{key}" x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" stroke="{color}" stroke-width="1.5"{dash}/>')
-            cell(key,x,y,w,h,f'fillColor={fill};strokeColor={color};dashed={int(key!="cloud")};dashPattern=8 5;')
+            cell(key,x,y,w,h,f'fillColor={fill};strokeColor={color};dashed={int(is_dashed)};dashPattern=8 5;')
             if asset:
-                image(key+'-corner',x+1,y+1,28,self.corner(asset))
+                uri = self.asset(asset) if '/' in asset else self.corner(asset)
+                image(key+'-corner',x+1,y+1,28,uri)
             elif key=='cloud':
                 image(key+'-corner',x+1,y+1,28,self.asset('aws/group/aws-cloud-logo-32.svg'))
         positions = {key:(x,y) for key,x,y,asset in self.nodes}
@@ -111,16 +113,19 @@ def generate(out):
     d.frame('region',215,75,1568,930,'Region · us-east-1','#00a4a6','region-group.svg')
     d.frame('vpc',240,120,1280,855,'VPC · 10.20.0.0/16','#8c4fff','vpc-group.svg')
     d.frame('public',335,205,1160,185,'Public subnets · 2 Availability Zones','#7aa116','public-subnet-group.svg')
-    d.frame('private',285,465,1210,260,'Private application subnets · Amazon EKS / managed nodes','#00a4a6','private-subnet-group.svg')
+    d.frame('private',285,465,1210,300,'Private subnets · 2 AZ','#00a4a6','private-subnet-group.svg')
+    d.frame('managed-nodes',310,510,1115,230,'EKS Managed Node Group','#ed7100','aws/group/amazon-eks-cloud.svg')
+    d.frame('ec2-workers',335,555,1065,170,'EC2 worker nodes ×2','#d86613','ec2-instance-contents-group.svg')
+    d.label('scheduler-note','Vị trí pod minh họa; scheduler phân bố replicas trên các node.',850,755,15)
     d.frame('database',285,790,1210,160,'Database subnets · RDS private / Single-AZ trong lab','#00a4a6','private-subnet-group.svg')
     for args in [
       ('client',80,290,'Người dùng\nInternet','kubernetes/user.svg'),
       ('igw',280,290,'Internet\nGateway','aws/resource/amazon-vpc-internet-gateway.svg'),
       ('alb',600,290,'Application Load Balancer\nHTTPS :443 · IP targets','aws/resource/elastic-load-balancing-application-load-balancer.svg'),
       ('nat',1320,290,'NAT Gateway\nChỉ outbound','aws/resource/amazon-vpc-nat-gateway.svg'),
-      ('front',600,550,'Frontend ×2\nNginx · HTTP :8080','kubernetes/pod.svg'),
-      ('api',910,550,'API ×2\nService → pod :8080','kubernetes/pod.svg'),
-      ('worker',1320,550,'Worker ×1\nXử lý báo cáo','kubernetes/pod.svg'),
+      ('front',600,625,'Frontend ×2\nNginx · HTTP :8080','kubernetes/pod.svg'),
+      ('api',910,625,'API ×2\nService → pod :8080','kubernetes/pod.svg'),
+      ('worker',1320,625,'Worker ×1\nXử lý báo cáo','kubernetes/pod.svg'),
       ('db',910,845,'RDS PostgreSQL\nTLS :5432','aws/group/amazon-rds.svg'),
       ('controls',1650,290,'AWS WAF + ACM\nWeb ACL / certificate','aws/group/aws-waf.svg'),
       ('sqs',1650,670,'Amazon SQS\nHàng đợi báo cáo','aws/group/amazon-simple-queue-service.svg'),
@@ -128,11 +133,11 @@ def generate(out):
     d.edge('internet-ingress','client','igw',[(120,290),(240,290)])
     d.edge('https-ingress','igw','alb',[(320,290),(560,290)],'HTTPS :443',(425,274))
     d.edge('controls-association','controls','alb',[(1610,290),(1555,290),(1555,180),(600,180),(600,250)],'Gắn Web ACL / certificate với ALB',(1080,169),True)
-    d.edge('alb-frontend','alb','front',[(600,390),(600,510)],'HTTP :8080 · IP target',(730,432))
-    d.edge('frontend-api','front','api',[(640,550),(870,550)],'Proxy /api',(755,534))
-    d.edge('api-db','api','db',[(910,650),(910,805)],'SQL / TLS',(973,750))
-    d.edge('worker-db','worker','db',[(1320,650),(1320,755),(1070,755),(1070,845),(950,845)],'SQL / TLS',(1130,741))
-    d.edge('api-nat','api','nat',[(950,550),(1095,550),(1095,290),(1280,290)],'Gửi yêu cầu · HTTPS',(1117,420))
-    d.edge('worker-nat','worker','nat',[(1320,510),(1320,390)],'Poll SQS · HTTPS',(1350,445))
+    d.edge('alb-frontend','alb','front',[(600,390),(600,585)],'HTTP :8080 · IP target',(730,432))
+    d.edge('frontend-api','front','api',[(640,625),(870,625)],'Proxy /api',(755,609))
+    d.edge('api-db','api','db',[(910,725),(910,805)],'SQL / TLS',(973,783))
+    d.edge('worker-db','worker','db',[(1320,725),(1320,775),(1070,775),(1070,845),(950,845)],'SQL / TLS',(1190,799))
+    d.edge('api-nat','api','nat',[(950,625),(1095,625),(1095,290),(1280,290)],'Gửi yêu cầu · HTTPS',(1117,420))
+    d.edge('worker-nat','worker','nat',[(1320,585),(1320,390)],'Poll SQS · HTTPS',(1350,445))
     d.edge('nat-sqs','nat','sqs',[(1360,290),(1450,290),(1450,670),(1610,670)],'Qua IGW · HTTPS :443',(1575,610))
     d.save(out)
