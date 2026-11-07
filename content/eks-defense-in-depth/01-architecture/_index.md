@@ -16,11 +16,11 @@ The diagram separates the public request path, the Kubernetes control plane, and
 
 On a phone or narrow screen, swipe horizontally across the diagram to inspect each layer.
 
-The ALB is the only internet-facing application entry point in this lab. Route 53 provides DNS; the regional WAF is associated with the ALB. ALB nodes are placed in public subnets in at least two Availability Zones, while managed worker nodes use private subnets and have no public IP addresses. Public subnet route tables point to an Internet Gateway; private subnet routes use a NAT Gateway for outbound internet access or VPC endpoints for selected AWS services. NAT provides egress, not unsolicited inbound access.
+The ALB is the only internet-facing application entry point in this lab. Its AWS-provided DNS name is used directly; no Route 53 record is configured. A regional WAF can be associated with the ALB, but WAF was not deployed in this sandbox. ALB nodes are placed in public subnets in at least two Availability Zones, while managed worker nodes use private subnets and have no public IP addresses. Public subnet route tables point to an Internet Gateway; private subnet routes use one NAT Gateway for outbound internet access. NAT provides egress, not unsolicited inbound access.
 
 This workshop configures the AWS Load Balancer Controller to use **IP targets**. The ALB forwards to ready pod IPs in private subnets, while the Kubernetes Service remains `ClusterIP`; no NodePort is needed. Security groups on the pod ENIs/nodes accept the app port from the ALB security group. NetworkPolicy separately limits which traffic can reach the selected pods.
 
-The Kubernetes API is reachable through a private endpoint from the VPC. Operators connect through a VPN, Direct Connect, or a trusted in-VPC runner, authenticate with an individual IAM role, and receive namespace or cluster permissions through an EKS access entry plus Kubernetes RBAC. Application pods use a separate Kubernetes service account associated with a narrowly scoped AWS role through EKS Pod Identity. Human permissions and workload permissions are separate paths.
+The Kubernetes API has a private endpoint and a public endpoint restricted to the sandbox operator's `/32`, allowing CLI access from the test workstation. For a private-only production design, operators would connect through a VPN, Direct Connect, or a trusted in-VPC runner. They authenticate with an individual IAM role and receive namespace or cluster permissions through an EKS access entry plus Kubernetes RBAC. Application pods use a separate Kubernetes service account associated with an AWS role through EKS Pod Identity. Human permissions and workload permissions are separate paths.
 
 Control-plane audit/authenticator logs go to CloudWatch Logs. CloudTrail records AWS API activity such as role and access-entry changes. GuardDuty EKS Protection and Runtime Monitoring add detection signals. These are evidence and detection layers; they do not block traffic by themselves.
 
@@ -45,7 +45,7 @@ EKS control-plane logs show Kubernetes API and authentication activity. CloudTra
 
 - **Two Availability Zones:** spreads public ALB capacity and private nodes across AZs. Two NAT Gateways cost more but avoid a single-AZ egress dependency; one NAT Gateway is cheaper for a short-lived lab.
 - **Private nodes:** prevents direct internet connections to node addresses. Nodes still need controlled egress to pull images and reach AWS APIs; NAT or the necessary VPC endpoints provide it.
-- **Private cluster API:** limits the management plane to connected operator networks. This is safer than a public endpoint but requires VPN, Direct Connect, or an in-VPC administration runner.
+- **Restricted cluster API:** the sandbox keeps the public endpoint limited to one trusted `/32` and also enables the private endpoint for VPC clients. A private-only endpoint further limits the management plane to connected operator networks but requires VPN, Direct Connect, or an in-VPC administration runner.
 - **IP target mode:** sends traffic directly to pods and avoids NodePort. It requires VPC-routable pod IPs and security-group/NetworkPolicy rules that allow only the ALB path.
 - **WAF and GuardDuty:** add request filtering and detection respectively, with separate costs and tuning needs. Neither replaces least privilege, network boundaries, or incident response.
 

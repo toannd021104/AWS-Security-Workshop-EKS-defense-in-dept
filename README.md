@@ -20,3 +20,5 @@ Each module states prerequisites, implementation steps, expected results, and ve
 The [`examples/secure-payments-app`](examples/secure-payments-app) directory contains a complete minimal application and the Kubernetes, IAM, container, and shell files used to exercise the workshop controls. Start with its [project guide](examples/secure-payments-app/README.md).
 
 For a reproducible AWS foundation, see the [Terraform deployment guide](infrastructure/terraform/README.md). The workshop modules remain console-first, with AWS CLI/API commands and Terraform as repeatable alternatives.
+
+To present the lab in Vietnamese, use the [presenter script](docs/presenter-script-vi.md). It explains the architecture, request flow, security layers, demo checkpoints, and sandbox limitations.
