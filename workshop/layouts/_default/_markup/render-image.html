@@ -1,1 +1,5 @@
-<figure><a href="{{ .Destination | relURL }}"><img src="{{ .Destination | relURL }}" alt="{{ .Text }}" loading="lazy"></a>{{ with .Title }}<figcaption class="diagram-caption">{{ . }}</figcaption>{{ end }}</figure>
+{{- $url := .Destination -}}
+{{- if and (hasPrefix $url "/") (not (hasPrefix $url "//")) -}}
+  {{- $url = strings.TrimPrefix "/" $url | relURL -}}
+{{- end -}}
+<figure><a href="{{ $url | safeURL }}"><img src="{{ $url | safeURL }}" alt="{{ .Text }}" loading="lazy"></a>{{ with .Title }}<figcaption class="diagram-caption">{{ . }}</figcaption>{{ end }}</figure>

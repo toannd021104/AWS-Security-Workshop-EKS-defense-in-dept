@@ -25,7 +25,9 @@ for f,h in parsed.items():
   if v.scheme in ['mailto','data','javascript','tel'] or (v.netloc and v.netloc!=u.netloc):continue
   path=urllib.parse.unquote(v.path)
   if path.startswith('/'):
-   if base_path!='/' and path.startswith(base_path):path=path[len(base_path):]
+   if base_path!='/':
+    if path.startswith(base_path):path=path[len(base_path):]
+    else:errors.append(f'{f.relative_to(site)} → URL missing repository prefix {link}')
    target=site/path.lstrip('/')
   else:target=f.parent/path if path else f
   if target.is_dir():target=target/'index.html'
