@@ -62,7 +62,7 @@ details[open]>summary .chevron{transform:rotate(90deg)}
 #body-inner li{margin:4px 0;padding-left:0}
 #body-inner li>p{margin:20px 0}
 #body-inner strong{font-weight:600}
-.table-container{width:fit-content;max-width:calc(100% - 40px);overflow-x:auto;border:1px solid var(--border);border-radius:2px;padding:6px 20px;margin:24px auto;background:transparent}
+.table-container{width:fit-content;max-width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:2px;padding:6px 20px;margin:24px 0;background:transparent}
 #body-inner table{border-collapse:collapse;font-size:14px;line-height:20px;min-width:290px;margin:0;max-width:100%}
 #body-inner td,#body-inner th{padding:10px 20px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;min-width:100px}
 #body-inner th{position:relative;font-weight:600;color:#4c4942;padding-top:8px;padding-bottom:8px}

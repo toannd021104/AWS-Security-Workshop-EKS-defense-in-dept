@@ -11,7 +11,19 @@ pre: "<b>2.1.</b> "
 
 ![Request path từ client đến PostgreSQL](/images/request-path.svg "ALB gửi đến frontend pod IP; frontend gọi API qua Service nội bộ.")
 
-Khi mở `https://notes.<domain>`, client phân giải DNS rồi mở TLS đến ALB. DNS không proxy HTTP. ALB kết thúc TLS, kiểm tra listener rule, chọn target healthy và mở kết nối HTTP riêng đến frontend pod `:8080`. Nginx nhận `/api/notes` và proxy đến `api.notes.svc.cluster.local:8080/notes`. API mở kết nối PostgreSQL TLS đến RDS `:5432`.
+Lấy ví dụ người dùng mở `https://notes.<domain>` để xem danh sách ghi chú. Trình duyệt cần tải giao diện trước, sau đó gọi API để lấy dữ liệu. Hai việc này đi qua các thành phần sau:
+
+1. **DNS giúp trình duyệt tìm địa chỉ ALB.** Trình duyệt tra tên miền `notes.<domain>` để biết địa chỉ cần kết nối. DNS chỉ giúp tìm địa chỉ; request của ứng dụng được gửi đến ALB.
+
+2. **ALB nhận kết nối HTTPS từ trình duyệt.** Người dùng truy cập bằng HTTPS trên cổng `443`. ALB xử lý phần mã hóa của kết nối này, sau đó chọn một frontend pod đang sẵn sàng và chuyển request đến pod đó bằng HTTP trên cổng `8080`.
+
+3. **Frontend trả giao diện, rồi chuyển tiếp các lời gọi API.** Nginx trong frontend pod trả HTML và JavaScript cho trình duyệt. JavaScript tiếp tục gửi `GET /api/notes` để lấy danh sách ghi chú. Request này cũng đi qua ALB đến frontend, nhưng Nginx chuyển nó đến API thay vì trả một file giao diện.
+
+4. **Kubernetes Service giúp frontend tìm API pod.** Nginx gọi Service `api` trong namespace `notes`, qua địa chỉ nội bộ `api.notes.svc.cluster.local:8080`. Khi chuyển tiếp, Nginx bỏ phần `/api/` ở đầu đường dẫn: `/api/notes` trở thành `/notes`, là endpoint mà API xử lý.
+
+5. **API đọc dữ liệu từ RDS và trả kết quả.** API kết nối đến RDS PostgreSQL trên cổng `5432`, sử dụng TLS để mã hóa kết nối database. Sau khi đọc các ghi chú, API trả dữ liệu JSON về qua frontend và ALB. Trình duyệt nhận JSON rồi hiển thị danh sách trên giao diện.
+
+Với thao tác lấy danh sách ghi chú, đường đi là **trình duyệt → ALB → frontend → API → RDS**. Frontend chuyển tiếp lời gọi đến API; API là thành phần truy vấn database.
 
 > **Phạm vi mã hóa và bảo vệ kết nối:** Lab sử dụng HTTPS để mã hóa lưu lượng từ Internet đến ALB. Từ ALB đến frontend pod và từ frontend đến API, ứng dụng sử dụng HTTP qua địa chỉ IP nội bộ trong VPC. Security Groups giới hạn kết nối ở lớp hạ tầng; Kubernetes NetworkPolicy được bổ sung trong chương 3 để giới hạn kết nối theo workload. Đây là lựa chọn của lab để tập trung thực hành bảo mật mạng và workload trên EKS.
 
