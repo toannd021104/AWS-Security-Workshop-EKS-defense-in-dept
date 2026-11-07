@@ -304,7 +304,7 @@ Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.
 
 8. Tag public subnets `kubernetes.io/role/elb=1`, application subnets `kubernetes.io/role/internal-elb=1`.
 
-![Vị trí subnet và NAT trong AWS architecture](/images/aws-architecture.svg)
+![Vị trí subnet và NAT trong AWS architecture](/images/aws-architecture.svg "ALB ở public subnets; EKS ở private subnets; RDS dùng database subnets riêng.")
 
 ### Cấu hình tương đương qua API (tùy chọn)
 
@@ -602,7 +602,7 @@ Frontend cần gọi API, nhưng một pod không thuộc ứng dụng không c�
 
 NetworkPolicy chọn pod bằng labels và khai báo các kết nối ingress hoặc egress được phép. Khi một pod đã được cô lập ở một chiều, lưu lượng thuộc chiều đó phải khớp ít nhất một allow rule. Các policies cộng dồn; một policy cho phép quá rộng có thể làm mất giới hạn mong muốn. Policy agent đã được bật ở [bước chuẩn bị EKS](/preparation/3-eks/). Nếu dùng cluster có sẵn, kiểm tra cấu hình theo [bài 3.3](/3-kubernetes-security/3-vpc-cni/) trước khi áp dụng policy.
 
-![Các kết nối được phép và bị chặn](/images/network-policy.svg)
+![Các kết nối được phép và bị chặn](/images/network-policy.svg "Default deny, sau đó chỉ mở các kết nối cần cho ứng dụng.")
 
 | Source | Destination | Port | Quyết định |
 |---|---|---|---|
@@ -943,7 +943,7 @@ Website cần public, nhưng endpoint quản trị Kubernetes chỉ cần phục
 
 ## Đường mạng đến Kubernetes API
 
-![Đường quản trị EKS](/images/human-access.svg)
+![Đường quản trị EKS](/images/human-access.svg "Luồng xác thực và phân quyền khi quản trị EKS bằng kubectl.")
 
 ALB public phục vụ website. EKS API endpoint phục vụ Kubernetes API. Một người có thể mở website nhưng không kết nối được endpoint quản trị; một người đến được endpoint vẫn phải qua authentication/authorization.
 
@@ -1120,7 +1120,7 @@ API cần gửi message vào SQS, còn worker cần nhận và xóa message. Hai
 
 AWS SDK sử dụng temporary credentials do cơ chế workload identity cấp. Pod Identity association liên kết cluster, namespace và ServiceAccount với một IAM role; IAM policy của role quy định thao tác AWS được phép. IRSA thực hiện liên kết bằng OIDC trust và ServiceAccount annotation.
 
-![Cấp temporary credentials theo workload](/images/workload-identity.svg)
+![Cấp temporary credentials theo workload](/images/workload-identity.svg "Pod nhận temporary credentials qua Pod Identity Agent để gọi SQS.")
 
 | | IRSA | EKS Pod Identity — app của lab |
 |---|---|---|
@@ -1312,7 +1312,7 @@ Tag và tên repository chưa chứng minh image được tạo bởi nguồn đ
 
 Ba thành phần phục vụ ba mục đích: SBOM liệt kê dependency; chữ ký gắn digest với public key tin cậy; admission policy kiểm tra image trước khi Kubernetes tạo workload. Image có chữ ký vẫn phải được quét lỗ hổng theo bài 5.1.
 
-![Chuỗi source, build, ký và admission](/images/supply-chain.svg)
+![Chuỗi source, build, ký và admission](/images/supply-chain.svg "Kiểm tra image từ lúc build đến trước khi workload được chạy.")
 
 SBOM giúp đối chiếu các thành phần của image với kết quả scanning. Chữ ký xác minh nguồn ký và tính toàn vẹn của digest, không bảo đảm các dependency đã hết lỗ hổng.
 
@@ -1419,7 +1419,7 @@ Dữ liệu của ứng dụng tồn tại trên nhiều dịch vụ, mỗi dị
 
 ## Mã hóa dữ liệu và quyền sử dụng key
 
-![Các ranh giới mã hóa](/images/encryption.svg)
+![Các ranh giới mã hóa](/images/encryption.svg "Các phạm vi bảo vệ dữ liệu độc lập trong workshop.")
 
 | Đoạn / nơi lưu | Cơ chế trong lab |
 |---|---|

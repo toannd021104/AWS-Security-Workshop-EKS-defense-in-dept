@@ -9,7 +9,7 @@ Dữ liệu của ứng dụng tồn tại trên nhiều dịch vụ, mỗi dị
 
 ## Mã hóa dữ liệu và quyền sử dụng key
 
-![Các ranh giới mã hóa](/images/encryption.svg)
+![Các ranh giới mã hóa](/images/encryption.svg "Các phạm vi bảo vệ dữ liệu độc lập trong workshop.")
 
 | Đoạn / nơi lưu | Cơ chế trong lab |
 |---|---|

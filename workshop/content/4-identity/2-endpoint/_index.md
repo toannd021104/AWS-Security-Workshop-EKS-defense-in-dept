@@ -9,7 +9,7 @@ Website cần public, nhưng endpoint quản trị Kubernetes chỉ cần phục
 
 ## Đường mạng đến Kubernetes API
 
-![Đường quản trị EKS](/images/human-access.svg)
+![Đường quản trị EKS](/images/human-access.svg "Luồng xác thực và phân quyền khi quản trị EKS bằng kubectl.")
 
 ALB public phục vụ website. EKS API endpoint phục vụ Kubernetes API. Một người có thể mở website nhưng không kết nối được endpoint quản trị; một người đến được endpoint vẫn phải qua authentication/authorization.
 

@@ -11,7 +11,7 @@ API cần gửi message vào SQS, còn worker cần nhận và xóa message. Hai
 
 AWS SDK sử dụng temporary credentials do cơ chế workload identity cấp. Pod Identity association liên kết cluster, namespace và ServiceAccount với một IAM role; IAM policy của role quy định thao tác AWS được phép. IRSA thực hiện liên kết bằng OIDC trust và ServiceAccount annotation.
 
-![Cấp temporary credentials theo workload](/images/workload-identity.svg)
+![Cấp temporary credentials theo workload](/images/workload-identity.svg "Pod nhận temporary credentials qua Pod Identity Agent để gọi SQS.")
 
 | | IRSA | EKS Pod Identity — app của lab |
 |---|---|---|

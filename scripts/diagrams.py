@@ -8,7 +8,7 @@ parser.add_argument("--only", nargs="+", help="Regenerate only the named diagram
 args=parser.parse_args()
 R=Path(__file__).resolve().parents[1]; OUT=R/'workshop/static/images'; OUT.mkdir(parents=True,exist_ok=True)
 ICONS=Path('/home/ubuntu/devops-blog2/src/assets/icons')
-MAP={'alb':'aws/elastic-load-balancing-application-load-balancer.svg','eks':'aws/amazon-elastic-kubernetes-service.svg','rds':'aws/amazon-rds.svg','sqs':'aws/amazon-simple-queue-service.svg','nat':'aws/amazon-vpc-nat-gateway.svg','igw':'aws/amazon-vpc-internet-gateway.svg','iam':'aws/aws-identity-and-access-management.svg','acm':'aws/aws-certificate-manager.svg','waf':'aws/aws-waf.svg','ecr':'aws/amazon-elastic-container-registry.svg','kms':'aws/aws-key-management-service.svg','pod':'kubernetes/pod.svg','svc':'kubernetes/svc.svg','ing':'kubernetes/ing.svg','sa':'kubernetes/sa.svg','netpol':'kubernetes/netpol.svg','user':'kubernetes/user.svg','role':'kubernetes/role.svg','node':'kubernetes/node.svg','secret':'kubernetes/secret.svg'}
+MAP={'source':'aws/source-code.svg','secretsmanager':'aws/aws-secrets-manager.svg','alb':'aws/elastic-load-balancing-application-load-balancer.svg','eks':'aws/amazon-elastic-kubernetes-service.svg','rds':'aws/amazon-rds.svg','sqs':'aws/amazon-simple-queue-service.svg','nat':'aws/amazon-vpc-nat-gateway.svg','igw':'aws/amazon-vpc-internet-gateway.svg','iam':'aws/aws-identity-and-access-management.svg','acm':'aws/aws-certificate-manager.svg','waf':'aws/aws-waf.svg','ecr':'aws/amazon-elastic-container-registry.svg','kms':'aws/aws-key-management-service.svg','pod':'kubernetes/pod.svg','svc':'kubernetes/svc.svg','ing':'kubernetes/ing.svg','sa':'kubernetes/sa.svg','netpol':'kubernetes/netpol.svg','user':'kubernetes/user.svg','role':'kubernetes/role.svg','node':'kubernetes/node.svg','secret':'kubernetes/secret.svg'}
 class Diagram:
  def __init__(self,title,width,height,transparent=False,cards=True):
   self.transparent=transparent;self.cards=cards
@@ -70,29 +70,93 @@ for a,b,points,label in [
  ('worker','db',[(1090,259),(1090,176)],'SQL / TLS'),
 ]:d.edge(a,b,points,label)
 d.save('high-level')
-d=Diagram('AWS architecture · ALB target type IP / private EKS / managed database',1440,1030)
-d.box('cloud',180,65,1220,925,'AWS Cloud · us-east-1','#323e4b','#fff')
-d.box('vpc',205,145,965,815,'VPC 10.20.0.0/16','#8355c4','#fcfaff')
-d.box('public',230,195,910,190,'Public subnets · AZ A: 10.20.0.0/20  |  AZ B: 10.20.16.0/20','#198d9c','#eefafb')
-d.box('private',230,410,910,310,'Private application subnets · AZ A: 10.20.32.0/20  |  AZ B: 10.20.48.0/20','#267bb3','#eff6fc')
-d.box('cluster',250,455,870,240,'EKS managed nodes · VPC CNI + NetworkPolicy','#327de2','#f9fcff')
-d.box('database',230,750,910,180,'Isolated database subnets · 10.20.64.0/24 + 10.20.65.0/24','#4f8c41','#f4fbf0')
-for id,x,y,label,icon in [('user',15,240,'Internet client','user'),('alb',290,245,'ALB :443\nIP target → pod :8080','alb'),('nat',900,245,'NAT Gateway\noutbound only','nat'),('front',290,520,'Frontend ×2\nNginx :8080','pod'),('api',550,520,'API ×2\nHTTP :8080','pod'),('worker',880,520,'Worker ×1\nno public listener','pod'),('rds',550,805,'RDS PostgreSQL :5432\nTLS + SQL roles','rds'),('sqs',1200,520,'SQS reports\nHTTPS :443','sqs'),('acm',1200,245,'ACM + WAF\nassociated with ALB','acm'),('control',1200,805,'EKS control plane\nAPI endpoint / IAM / RBAC','eks')]:d.node(id,x,y,label,icon,w=180)
-for a,b,p,l,da in [('user','alb',[(195,290),(290,290)],'HTTPS',False),('alb','front',[(380,345),(380,520)],'① target pod IP',False),('front','api',[(470,570),(550,570)],'② ClusterIP Service',False),('api','rds',[(640,620),(640,805)],'③ SQL / TLS',False),('api','sqs',[(730,550),(800,550),(800,435),(1290,435),(1290,520)],'④ SendMessage via NAT',True),('worker','sqs',[(1060,570),(1200,570)],'⑤ long poll via NAT',False),('worker','rds',[(970,620),(970,785),(730,785),(730,850)],'⑥ SQL / TLS',False),('acm','alb',[(1200,290),(1100,290),(1100,175),(380,175),(380,245)],'certificate / Web ACL association',True),('worker','nat',[(1060,540),(1110,540),(1110,390),(990,390),(990,345)],'outbound route',True)]:d.edge(a,b,p,l,da)
+# Detailed network layout: dashed containers represent network boundaries.
+d=Diagram('',1440,1120,transparent=True,cards=False)
+d.box('cloud',180,20,1235,1080,'AWS Cloud · us-east-1','#526575','none')
+d.box('vpc',205,70,950,1000,'VPC · 10.20.0.0/16','#8355c4','none')
+d.box('public',230,120,900,205,'Public subnets · 2 Availability Zones','#198d9c','none')
+d.box('private',230,365,900,405,'Private application subnets · 2 Availability Zones','#267bb3','none')
+d.box('cluster',250,410,860,335,'Amazon EKS · managed nodes / VPC CNI','#327de2','none')
+d.box('database',230,815,900,225,'Database subnets · RDS không có public access','#4f8c41','none')
+for id,x,y,label,icon in [
+ ('user',0,175,'Người dùng','user'),('alb',280,175,'ALB :443\nIP targets','alb'),
+ ('nat',920,175,'NAT Gateway\nChỉ outbound','nat'),
+ ('front',280,470,'Frontend ×2\nNginx :8080','pod'),('api',560,470,'API ×2\nHTTP :8080','pod'),
+ ('worker',920,470,'Worker ×1\nTạo báo cáo','pod'),('rds',560,880,'RDS PostgreSQL\nTLS :5432','rds'),
+ ('sqs',1205,470,'Amazon SQS\nHTTPS :443','sqs'),('waf',1205,175,'AWS WAF + ACM\nWeb ACL / certificate','waf')
+]:d.node(id,x,y,label,icon,h=115,icon_size=56,font_size=15)
+for a,b,points,label,dash in [
+ ('user','alb',[(118,212),(322,212)],'HTTPS',False),
+ ('waf','alb',[(1247,212),(1175,212),(1175,350),(435,350),(435,212),(398,212)],'Gắn Web ACL / certificate với ALB',True),
+ ('alb','front',[(360,296),(360,469)],'',False),
+ ('front','api',[(398,507),(602,507)],'Service :8080',False),
+ ('api','rds',[(640,590),(640,879)],'SQL / TLS',False),
+ ('worker','rds',[(1000,590),(1000,857),(760,857),(760,917),(678,917)],'SQL / TLS',False),
+ ('api','sqs',[(678,507),(780,507),(780,690),(1185,690),(1185,507),(1247,507)],'Gửi yêu cầu · HTTPS qua NAT',True),
+ ('worker','sqs',[(1038,507),(1247,507)],'Nhận qua NAT',False),
+ ('worker','nat',[(1000,469),(1000,296)],'Default route',True),
+]:d.edge(a,b,points,label,dash)
 d.save('aws-architecture')
 
-def chain(name,title,items,labels=None):
- w=max(1150,230*len(items)+80);d=Diagram(title,w,360)
- for i,(key,label,icon) in enumerate(items):d.node(key,40+i*230,110,label,icon,w=180,h=110)
- for i in range(len(items)-1):d.edge(items[i][0],items[i+1][0],[(220+i*230,165),(270+i*230,165)],labels[i] if labels else '')
+def chain(name,items,labels):
+ d=Diagram('',len(items)*250,225,transparent=True,cards=False)
+ for i,(key,label,icon) in enumerate(items):d.node(key,15+i*250,65,label,icon,h=115,icon_size=56,font_size=15)
+ for i in range(len(items)-1):d.edge(items[i][0],items[i+1][0],[(133+i*250,102),(307+i*250,102)],labels[i])
  d.save(name)
-chain('request-path','Request path · solid arrows = traffic, not configuration',[('client','Client / DNS lookup','user'),('alb','ALB HTTPS :443','alb'),('front','Frontend pod :8080','pod'),('api','API Service → pod :8080','svc'),('rds','RDS TLS :5432','rds')],['① TLS','② target IP','③ /api proxy','④ SQL'])
-chain('workload-identity','Workload identity · credential path, separate from application traffic',[('pod','API / Worker pod','pod'),('sa','ServiceAccount','sa'),('agent','Pod Identity Agent','eks'),('iam','Temporary IAM role','iam'),('sqs','One SQS queue','sqs')],['association','credential request','EKS Auth','scoped permission'])
-chain('human-access','Management access · this request does not pass through the application ALB',[('user','Operator / kubectl','user'),('iam','AWS IAM identity','iam'),('api','EKS API endpoint','eks'),('rbac','Access entry + RBAC','role'),('pod','Kubernetes resources','pod')],['token','network reachability','authorization','allowed verbs'])
-chain('supply-chain','Supply chain · verification must happen before release',[('source','Source + dependencies',None),('build','Build / SBOM / scan','ecr'),('sign','Sign immutable digest','iam'),('registry','ECR image + signature','ecr'),('admission','Verify / admission','pod')],['build','decision gate','publish','deploy'])
-d=Diagram('NetworkPolicy · default deny, then allow the exact application flows',1220,580)
-for id,x,y,label,icon in [('alb',35,120,'ALB subnets','alb'),('front',285,120,'Frontend\nno AWS IAM role','pod'),('api',535,120,'API :8080','pod'),('db',995,120,'RDS :5432','rds'),('other',285,350,'Untrusted pod','pod'),('dns',535,350,'CoreDNS :53\nTCP + UDP','svc'),('agent',995,350,'Identity Agent :80\n169.254.170.23','iam')]:d.node(id,x,y,label,icon,w=180)
-for a,b,p,l in [('alb','front',[(215,170),(285,170)],'ALLOW :8080'),('front','api',[(465,170),(535,170)],'ALLOW :8080'),('api','db',[(715,170),(995,170)],'ALLOW :5432 + SG + SQL'),('front','dns',[(375,220),(375,320),(625,320),(625,350)],'ALLOW DNS'),('api','agent',[(625,220),(625,280),(1085,280),(1085,350)],'ALLOW credentials')]:d.edge(a,b,p,l)
-d.box('deny',35,490,1140,55,'DENY: untrusted → API · frontend → RDS · frontend → Internet · API → unrelated private pods','#ba3f4f','#fff5f5');d.save('network-policy')
-chain('encryption','Data protection · separate keys and separate responsibilities',[('client','Client → ALB\nACM TLS','acm'),('pod','Pod → RDS\nverify-full TLS','pod'),('db','RDS storage\nAWS-managed key','rds'),('secret','Master password\nSecrets Manager','secret'),('cmk','Demo CMK\nexplicit KMS encrypt/decrypt','kms')])
+chain('request-path',[
+ ('client','Người dùng\nDNS → địa chỉ ALB','user'),('alb','ALB\nKết thúc TLS','alb'),
+ ('front','Frontend pod\nNginx :8080','pod'),('api','API Service → pod\nHTTP :8080','svc'),
+ ('rds','RDS PostgreSQL\nTLS :5432','rds')],['HTTPS :443','HTTP · IP target','Proxy /api','SQL / TLS'])
+
+# Workload credentials: ServiceAccount association is configuration, not traffic.
+d=Diagram('',1250,480,transparent=True,cards=False)
+for id,x,y,label,icon in [
+ ('pod',15,65,'API / Worker pod\nAWS SDK','pod'),('agent',385,65,'Pod Identity Agent\nCredentials endpoint','eks'),
+ ('auth',755,65,'EKS Auth\nTemporary credentials','eks'),('sqs',15,335,'Amazon SQS\nQueue của workload','sqs'),
+ ('sa',385,335,'ServiceAccount\nNamespace + tên SA','sa'),('role',755,335,'IAM role\nQuyền trên queue','iam')
+]:d.node(id,x,y,label,icon,h=115,icon_size=56,font_size=15)
+d.edge('pod','agent',[(133,102),(427,102)],'Yêu cầu credentials')
+d.edge('agent','auth',[(503,102),(797,102)],'EKS Auth API')
+d.edge('auth','pod',[(835,186),(835,235),(95,235),(95,186)],'Trả temporary credentials')
+d.edge('pod','sqs',[(57,186),(57,334)],'HTTPS ký SigV4')
+d.edge('sa','role',[(503,372),(797,372)],'Pod Identity association',True)
+d.edge('auth','role',[(873,102),(1095,102),(1095,334),(873,334)],'Assume role',True)
+d.save('workload-identity')
+chain('human-access',[
+ ('user','Người quản trị\nkubectl','user'),('iam','AWS IAM identity\nToken xác thực','iam'),
+ ('api','EKS API endpoint\nKiểm tra identity','eks'),('rbac','Access entry + RBAC\nKiểm tra quyền','role'),
+ ('pod','Kubernetes resources\nPod / Deployment','pod')],['aws eks get-token','Gửi request','Ánh xạ / cấp quyền','Cho phép thao tác'])
+chain('supply-chain',[
+ ('source','Source code\nDependencies','source'),('build','Build image\nSBOM + scan','ecr'),
+ ('sign','Ký image digest\nSau khi đạt gate','iam'),('registry','Amazon ECR\nImage + signature','ecr'),
+ ('admission','Admission policy\nKiểm tra trước chạy','pod')],['Build','Đánh giá kết quả','Push digest','Verify signature'])
+
+d=Diagram('',1250,525,transparent=True,cards=False)
+for id,x,y,label,icon in [
+ ('alb',15,65,'ALB','alb'),('front',285,65,'Frontend\nNginx :8080','pod'),
+ ('api',555,65,'API\nHTTP :8080','pod'),('db',1035,65,'RDS PostgreSQL\nTLS :5432','rds'),
+ ('other',555,335,'Pod không tin cậy\nKhông được gọi API','pod'),
+ ('dns',285,335,'CoreDNS\nTCP / UDP :53','svc'),
+ ('agent',1035,335,'Pod Identity Agent\n169.254.170.23 :80','iam')
+]:d.node(id,x,y,label,icon,h=115,icon_size=56,font_size=15)
+for a,b,points,label,dash in [
+ ('alb','front',[(133,102),(327,102)],'ALLOW :8080',False),
+ ('front','api',[(403,102),(597,102)],'ALLOW :8080',False),
+ ('api','db',[(673,102),(1077,102)],'ALLOW :5432 · SG + SQL roles',False),
+ ('front','dns',[(365,186),(365,334)],'ALLOW DNS',False),
+ ('api','agent',[(673,139),(860,139),(860,290),(1115,290),(1115,334)],'ALLOW credentials',False),
+ ('other','api',[(635,334),(635,186)],'DENY',True),
+]:d.edge(a,b,points,label,dash)
+d.save('network-policy')
+
+# Independent protection boundaries, deliberately not drawn as a request chain.
+d=Diagram('',1250,425,transparent=True,cards=False)
+for id,x,y,label,icon in [
+ ('client',15,50,'Client → ALB\nHTTPS · ACM certificate','acm'),
+ ('pod',435,50,'Pod → RDS\nTLS · verify-full','pod'),
+ ('db',855,50,'RDS storage\nEncryption at rest','rds'),
+ ('secret',225,270,'Master password\nAWS Secrets Manager','secretsmanager'),
+ ('cmk',645,270,'KMS customer managed key\nBài thực hành encrypt / decrypt','kms')
+]:d.node(id,x,y,label,icon,w=300,h=115,icon_size=56,font_size=15)
+d.save('encryption')
 print('Generated',len(list(OUT.glob('*.svg'))),'SVG diagrams and matching drawio files.')

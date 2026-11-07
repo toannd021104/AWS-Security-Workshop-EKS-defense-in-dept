@@ -11,7 +11,7 @@ Frontend cần gọi API, nhưng một pod không thuộc ứng dụng không c�
 
 NetworkPolicy chọn pod bằng labels và khai báo các kết nối ingress hoặc egress được phép. Khi một pod đã được cô lập ở một chiều, lưu lượng thuộc chiều đó phải khớp ít nhất một allow rule. Các policies cộng dồn; một policy cho phép quá rộng có thể làm mất giới hạn mong muốn. Policy agent đã được bật ở [bước chuẩn bị EKS](/preparation/3-eks/). Nếu dùng cluster có sẵn, kiểm tra cấu hình theo [bài 3.3](/3-kubernetes-security/3-vpc-cni/) trước khi áp dụng policy.
 
-![Các kết nối được phép và bị chặn](/images/network-policy.svg)
+![Các kết nối được phép và bị chặn](/images/network-policy.svg "Default deny, sau đó chỉ mở các kết nối cần cho ứng dụng.")
 
 | Source | Destination | Port | Quyết định |
 |---|---|---|---|

@@ -43,7 +43,7 @@ Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.
 
 8. Tag public subnets `kubernetes.io/role/elb=1`, application subnets `kubernetes.io/role/internal-elb=1`.
 
-![Vị trí subnet và NAT trong AWS architecture](/images/aws-architecture.svg)
+![Vị trí subnet và NAT trong AWS architecture](/images/aws-architecture.svg "ALB ở public subnets; EKS ở private subnets; RDS dùng database subnets riêng.")
 
 ### Cấu hình tương đương qua API (tùy chọn)
 

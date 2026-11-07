@@ -11,7 +11,7 @@ Tag và tên repository chưa chứng minh image được tạo bởi nguồn đ
 
 Ba thành phần phục vụ ba mục đích: SBOM liệt kê dependency; chữ ký gắn digest với public key tin cậy; admission policy kiểm tra image trước khi Kubernetes tạo workload. Image có chữ ký vẫn phải được quét lỗ hổng theo bài 5.1.
 
-![Chuỗi source, build, ký và admission](/images/supply-chain.svg)
+![Chuỗi source, build, ký và admission](/images/supply-chain.svg "Kiểm tra image từ lúc build đến trước khi workload được chạy.")
 
 SBOM giúp đối chiếu các thành phần của image với kết quả scanning. Chữ ký xác minh nguồn ký và tính toàn vẹn của digest, không bảo đảm các dependency đã hết lỗ hổng.
 
