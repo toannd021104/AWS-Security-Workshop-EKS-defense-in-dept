@@ -9,6 +9,12 @@ args=parser.parse_args()
 R=Path(__file__).resolve().parents[1]; OUT=R/'workshop/static/images'; OUT.mkdir(parents=True,exist_ok=True)
 ICONS=Path('/home/ubuntu/devops-blog2/src/assets/icons')
 MAP={'source':'aws/source-code.svg','secretsmanager':'aws/aws-secrets-manager.svg','alb':'aws/elastic-load-balancing-application-load-balancer.svg','eks':'aws/amazon-elastic-kubernetes-service.svg','rds':'aws/amazon-rds.svg','sqs':'aws/amazon-simple-queue-service.svg','nat':'aws/amazon-vpc-nat-gateway.svg','igw':'aws/amazon-vpc-internet-gateway.svg','iam':'aws/aws-identity-and-access-management.svg','acm':'aws/aws-certificate-manager.svg','waf':'aws/aws-waf.svg','ecr':'aws/amazon-elastic-container-registry.svg','kms':'aws/aws-key-management-service.svg','pod':'kubernetes/pod.svg','svc':'kubernetes/svc.svg','ing':'kubernetes/ing.svg','sa':'kubernetes/sa.svg','netpol':'kubernetes/netpol.svg','user':'kubernetes/user.svg','role':'kubernetes/role.svg','node':'kubernetes/node.svg','secret':'kubernetes/secret.svg'}
+# The local AWS collection now separates service tiles and resource symbols.
+for key, value in list(MAP.items()):
+ if value.startswith('aws/') and not (ICONS/value).exists():
+  matches=[p for folder in ('group','resource') if (p:=ICONS/'aws'/folder/Path(value).name).exists()]
+  if matches: MAP[key]=str(matches[0].relative_to(ICONS))
+
 class Diagram:
  def __init__(self,title,width,height,transparent=False,cards=True):
   self.transparent=transparent;self.cards=cards
@@ -70,33 +76,10 @@ for a,b,points,label in [
  ('worker','db',[(1090,259),(1090,176)],'SQL / TLS'),
 ]:d.edge(a,b,points,label)
 d.save('high-level')
-# Detailed network layout: dashed containers represent network boundaries.
-d=Diagram('',1440,1120,transparent=True,cards=False)
-d.box('cloud',180,20,1235,1080,'AWS Cloud · us-east-1','#526575','none')
-d.box('vpc',205,70,950,1000,'VPC · 10.20.0.0/16','#8355c4','none')
-d.box('public',230,120,900,205,'Public subnets · 2 Availability Zones','#198d9c','none')
-d.box('private',230,365,900,405,'Private application subnets · 2 Availability Zones','#267bb3','none')
-d.box('cluster',250,410,860,335,'Amazon EKS · managed nodes / VPC CNI','#327de2','none')
-d.box('database',230,815,900,225,'Database subnets · RDS không có public access','#4f8c41','none')
-for id,x,y,label,icon in [
- ('user',0,175,'Người dùng','user'),('alb',280,175,'ALB :443\nIP targets','alb'),
- ('nat',920,175,'NAT Gateway\nChỉ outbound','nat'),
- ('front',280,470,'Frontend ×2\nNginx :8080','pod'),('api',560,470,'API ×2\nHTTP :8080','pod'),
- ('worker',920,470,'Worker ×1\nTạo báo cáo','pod'),('rds',560,880,'RDS PostgreSQL\nTLS :5432','rds'),
- ('sqs',1205,470,'Amazon SQS\nHTTPS :443','sqs'),('waf',1205,175,'AWS WAF + ACM\nWeb ACL / certificate','waf')
-]:d.node(id,x,y,label,icon,h=115,icon_size=56,font_size=15)
-for a,b,points,label,dash in [
- ('user','alb',[(118,212),(322,212)],'HTTPS',False),
- ('waf','alb',[(1247,212),(1175,212),(1175,350),(435,350),(435,212),(398,212)],'Gắn Web ACL / certificate với ALB',True),
- ('alb','front',[(360,296),(360,469)],'',False),
- ('front','api',[(398,507),(602,507)],'Service :8080',False),
- ('api','rds',[(640,590),(640,879)],'SQL / TLS',False),
- ('worker','rds',[(1000,590),(1000,857),(760,857),(760,917),(678,917)],'SQL / TLS',False),
- ('api','sqs',[(678,507),(780,507),(780,690),(1185,690),(1185,507),(1247,507)],'Gửi yêu cầu · HTTPS qua NAT',True),
- ('worker','sqs',[(1038,507),(1247,507)],'Nhận qua NAT',False),
- ('worker','nat',[(1000,469),(1000,296)],'Default route',True),
-]:d.edge(a,b,points,label,dash)
-d.save('aws-architecture')
+# Keep the detailed network renderer independent from the approved overviews.
+if not args.only or 'aws-architecture' in args.only:
+ from network_diagram import generate
+ generate(OUT)
 
 def chain(name,items,labels):
  d=Diagram('',len(items)*250,225,transparent=True,cards=False)
