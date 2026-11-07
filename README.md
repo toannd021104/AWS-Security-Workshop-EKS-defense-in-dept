@@ -1,4 +1,4 @@
-# EKS Defense in Depth Workshop
+# A Layered Approach to Amazon EKS Security
 
 [Đọc workshop trên GitHub Pages](https://toannd021104.github.io/eks-defense-in-depth-workshop/).
 

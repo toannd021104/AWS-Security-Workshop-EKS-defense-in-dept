@@ -25,10 +25,12 @@ def page(m,n,slug,title,body):
   body=body[:pos]+figure+body[pos:] if pos>=0 else body+figure
  path=MODULES[m-1][0]+'/'+str(n)+'-'+slug
  write(Path(path),title,n,body,f'<b>{m}.{n}.</b> ');PAGES.append((m,n,path,title))
-write(Path('.'),'Defense in Depth for Amazon EKS',0,r'''
+write(Path('.'),'A Layered Approach to Amazon EKS Security',0,r'''
 <span class="lab-tag">HANDS-ON WORKSHOP · AWS + KUBERNETES</span>
 
-# Từ Internet đến pod: hiểu đường đi, xây từng lớp bảo vệ
+# A Layered Approach to Amazon EKS Security
+
+*Từ Internet đến Pod: xây dựng và kiểm chứng từng lớp bảo mật.*
 
 Một website chạy được chưa chứng minh rằng các thành phần chỉ truy cập được đúng nơi cần thiết. Workshop này giúp bạn dựng một ứng dụng EKS, theo dõi request từ ALB đến pod, rồi giới hạn network và quyền của từng chủ thể.
 

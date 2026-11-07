@@ -1,5 +1,5 @@
 ---
-title: "Defense in Depth for Amazon EKS"
+title: "A Layered Approach to Amazon EKS Security"
 weight: 0
 chapter: false
 pre: ""
@@ -7,7 +7,9 @@ pre: ""
 
 <span class="lab-tag">HANDS-ON WORKSHOP · AWS + KUBERNETES</span>
 
-# Từ Internet đến pod: hiểu đường đi, xây từng lớp bảo vệ
+# A Layered Approach to Amazon EKS Security
+
+*Từ Internet đến Pod: xây dựng và kiểm chứng từng lớp bảo mật.*
 
 Một website chạy được chưa chứng minh rằng các thành phần chỉ truy cập được đúng nơi cần thiết. Workshop này giúp bạn dựng một ứng dụng EKS, theo dõi request từ ALB đến pod, rồi giới hạn network và quyền của từng chủ thể.
 

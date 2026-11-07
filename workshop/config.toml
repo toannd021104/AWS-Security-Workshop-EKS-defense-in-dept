@@ -1,6 +1,6 @@
 baseURL = "http://localhost:1314/"
 theme = "hugo-theme-learn"
-title = "EKS Defense in Depth"
+title = "A Layered Approach to Amazon EKS Security"
 defaultContentLanguage = "vi"
 languageCode = "vi-VN"
 [outputs]
@@ -8,7 +8,7 @@ home = ["HTML", "RSS", "JSON"]
 [params]
 themeVariant = "workshop"
 description = "Triển khai và kiểm chứng các lớp bảo vệ Amazon EKS từ Internet đến Pod."
-author = "EKS Defense in Depth Workshop"
+author = "A Layered Approach to Amazon EKS Security"
 showVisitedLinks = true
 disableBreadcrumb = false
 disableNextPrev = false
