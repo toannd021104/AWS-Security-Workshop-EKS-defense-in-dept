@@ -29,7 +29,9 @@ class Diagram:
   self.svg.append(f'<path d="{path}" fill="none" stroke="#315675" stroke-width="1.7" marker-end="url(#arrow)"'+(' stroke-dasharray="6 4"' if dashed else '')+'/>')
   if label:
    halo="none" if self.transparent else "white"
-   start,end=max(zip(points,points[1:]),key=lambda v:abs(v[1][0]-v[0][0])+abs(v[1][1]-v[0][1]));x,y=(start[0]+end[0])/2,(start[1]+end[1])/2;self.svg.append(f'<text x="{x+6}" y="{y-8}" font-size="12" fill="#315675" paint-order="stroke" stroke="{halo}" stroke-width="4">{escape(label)}</text>')
+   start,end=max(zip(points,points[1:]),key=lambda v:abs(v[1][0]-v[0][0])+abs(v[1][1]-v[0][1]));x,y=(start[0]+end[0])/2,(start[1]+end[1])/2
+   anchor="middle" if start[1] == end[1] else "start"
+   self.svg.append(f'<text x="{x if start[1] == end[1] else x+12}" y="{y-12 if start[1] == end[1] else y}" text-anchor="{anchor}" font-size="15" fill="#315675" paint-order="stroke" stroke="{halo}" stroke-width="4">{escape(label)}</text>')
   self.edges.append((a,b,points,label,dashed))
  def save(self,name):
   if args.only and name not in args.only:return
@@ -38,14 +40,17 @@ class Diagram:
   # Containers first, then node cards, then icons, so icons remain visible.
   for id,label,x,y,w,h,style in sorted(self.shapes,key=lambda z:0 if 'dashed=1' in z[-1] else 2 if 'shape=image' in z[-1] else 1):
    c=ET.SubElement(rr,'mxCell',id=id,value=label,style=style,vertex='1',parent='1');ET.SubElement(c,'mxGeometry',x=str(x),y=str(y),width=str(w),height=str(h),attrib={'as':'geometry'})
+  bounds={id:(x,y,w,h) for id,label,x,y,w,h,style in self.shapes}
   for i,(a,b,pts,label,dash) in enumerate(self.edges):
-   c=ET.SubElement(rr,'mxCell',id=f'edge{i}',value=label,style='edgeStyle=orthogonalEdgeStyle;endArrow=open;strokeColor=#315675;'+('dashed=1;' if dash else ''),edge='1',parent='1',source=a,target=b);g=ET.SubElement(c,'mxGeometry',relative='1',attrib={'as':'geometry'});arr=ET.SubElement(g,'Array',attrib={'as':'points'})
+   sx,sy,sw,sh=bounds[a];tx,ty,tw,th=bounds[b]
+   anchors=f'exitX={(pts[0][0]-sx)/sw};exitY={(pts[0][1]-sy)/sh};exitPerimeter=0;entryX={(pts[-1][0]-tx)/tw};entryY={(pts[-1][1]-ty)/th};entryPerimeter=0;'
+   c=ET.SubElement(rr,'mxCell',id=f'edge{i}',value=label,style='edgeStyle=orthogonalEdgeStyle;endArrow=open;fontSize=15;strokeColor=#315675;'+anchors+('dashed=1;' if dash else ''),edge='1',parent='1',source=a,target=b);g=ET.SubElement(c,'mxGeometry',relative='1',attrib={'as':'geometry'});arr=ET.SubElement(g,'Array',attrib={'as':'points'})
    for x,y in pts[1:-1]:ET.SubElement(arr,'mxPoint',x=str(x),y=str(y))
   ET.ElementTree(root).write(OUT/(name+'.drawio'),encoding='utf-8',xml_declaration=True)
 
 d=Diagram('High-level architecture · ba luồng, ba loại quyền',1320,620,transparent=True,cards=False)
 for id,x,y,label,icon in [('client',35,110,'Người dùng','user'),('edge',255,110,'Điểm vào công khai\nHTTPS / WAF','alb'),('front',475,110,'Frontend\nNginx','pod'),('api',695,110,'Backend\nAPI','pod'),('db',1085,110,'Dữ liệu\nRDS PostgreSQL','rds'),('queue',695,340,'Hàng đợi\nSQS','sqs'),('worker',1085,340,'Xử lý nền\nWorker','pod'),('admin',35,340,'Quản trị cluster\nIAM → EKS access → RBAC','iam')]:d.node(id,x,y,label,icon,w=190 if id=='admin' else 160)
-for a,b,p,l in [('client','edge',[(195,160),(255,160)],'①'),('edge','front',[(415,160),(475,160)],'②'),('front','api',[(635,160),(695,160)],'③'),('api','db',[(855,160),(1085,160)],'④ SQL / TLS'),('api','queue',[(775,210),(775,340)],'⑤ SendMessage'),('worker','queue',[(1085,390),(855,390)],'⑥ ReceiveMessage'),('worker','db',[(1165,340),(1165,210)],'⑦ SQL / TLS')]:d.edge(a,b,p,l)
+for a,b,p,l in [('client','edge',[(147,141),(303,141)],'①'),('edge','front',[(367,141),(523,141)],'②'),('front','api',[(587,141),(743,141)],'③'),('api','db',[(807,141),(1133,141)],'④ SQL / TLS'),('api','queue',[(775,214),(775,339)],'⑤ SendMessage'),('worker','queue',[(1133,371),(807,371)],'⑥ ReceiveMessage'),('worker','db',[(1165,339),(1165,214)],'⑦ SQL / TLS')]:d.edge(a,b,p,l)
 d.box('legend',270,500,970,80,'Network: ai kết nối được?  |  RBAC: ai sửa Kubernetes?  |  IAM: pod gọi AWS API nào?',fill='none')
 d.save('high-level')
 d=Diagram('AWS architecture · ALB target type IP / private EKS / managed database',1440,1030)
