@@ -2,33 +2,39 @@
 """Generate matching SVG and editable diagrams.net diagrams using the supplied icons."""
 from pathlib import Path
 from html import escape
-import base64, urllib.parse, xml.etree.ElementTree as ET
+import argparse, base64, urllib.parse, xml.etree.ElementTree as ET
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--only", nargs="+", help="Regenerate only the named diagrams")
+args=parser.parse_args()
 R=Path(__file__).resolve().parents[1]; OUT=R/'workshop/static/images'; OUT.mkdir(parents=True,exist_ok=True)
 ICONS=Path('/home/ubuntu/devops-blog2/src/assets/icons')
 MAP={'alb':'aws/elastic-load-balancing-application-load-balancer.svg','eks':'aws/amazon-elastic-kubernetes-service.svg','rds':'aws/amazon-rds.svg','sqs':'aws/amazon-simple-queue-service.svg','nat':'aws/amazon-vpc-nat-gateway.svg','igw':'aws/amazon-vpc-internet-gateway.svg','iam':'aws/aws-identity-and-access-management.svg','acm':'aws/aws-certificate-manager.svg','waf':'aws/aws-waf.svg','ecr':'aws/amazon-elastic-container-registry.svg','kms':'aws/aws-key-management-service.svg','pod':'kubernetes/pod.svg','svc':'kubernetes/svc.svg','ing':'kubernetes/ing.svg','sa':'kubernetes/sa.svg','netpol':'kubernetes/netpol.svg','user':'kubernetes/user.svg','role':'kubernetes/role.svg','node':'kubernetes/node.svg','secret':'kubernetes/secret.svg'}
 class Diagram:
- def __init__(self,title,width,height):
-  self.w=width;self.h=height;self.shapes=[];self.edges=[];self.svg=[f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{width}" height="{height}" viewBox="0 0 {width} {height}"><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="none" stroke="#315675" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="white"/><g font-family="Arial, sans-serif">',f'<text x="32" y="39" font-size="23" font-weight="bold" fill="#173c60">{escape(title)}</text>']
+ def __init__(self,title,width,height,transparent=False,cards=True):
+  self.transparent=transparent;self.cards=cards
+  self.w=width;self.h=height;self.shapes=[];self.edges=[];self.svg=[f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{width}" height="{height}" viewBox="0 0 {width} {height}"><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="none" stroke="#315675" stroke-width="1.5"/></marker></defs>'+('' if transparent else '<rect width="100%" height="100%" fill="white"/>')+'<g font-family="Arial, sans-serif">',f'<text x="32" y="39" font-size="23" font-weight="bold" fill="#173c60">{escape(title)}</text>']
  def box(self,id,x,y,w,h,label,color='#148a98',fill='#f0f9fa'):
   self.svg.extend([f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="5" fill="{fill}" stroke="{color}" stroke-dasharray="7 5" stroke-width="1.5"/>',f'<text x="{x+14}" y="{y+24}" font-size="14" font-weight="bold" fill="{color}">{escape(label)}</text>']);self.shapes.append((id,label,x,y,w,h,f'rounded=0;dashed=1;fillColor={fill};strokeColor={color};verticalAlign=top;align=left;spacing=12;'))
  def node(self,id,x,y,label,icon=None,w=160,h=100):
-  self.svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="white" stroke="#d0dce6"/>')
+  if self.cards:self.svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="white" stroke="#d0dce6"/>')
   text_y=y+39
   if icon:
    p=ICONS/MAP[icon];data=p.read_bytes();b64=base64.b64encode(data).decode()
    self.svg.append(f'<image x="{x+(w-44)/2}" y="{y+9}" width="44" height="44" xlink:href="data:image/svg+xml;base64,{b64}"/>');text_y=y+73
    self.shapes.append((id+'-icon','',x+(w-44)/2,y+9,44,44,'shape=image;image=data:image/svg+xml,'+urllib.parse.quote(data.decode(),safe='')+';'))
   for i,line in enumerate(label.split('\n')):self.svg.append(f'<text x="{x+w/2}" y="{text_y+i*17}" text-anchor="middle" fill="#173c60" font-size="13">{escape(line)}</text>')
-  self.shapes.append((id,label,x,y,w,h,'rounded=1;fillColor=#ffffff;strokeColor=#d0dce6;verticalAlign=bottom;spacingBottom=8;'))
+  self.shapes.append((id,label,x,y,w,h,('rounded=1;fillColor=#ffffff;strokeColor=#d0dce6;' if self.cards else 'fillColor=none;strokeColor=none;')+'verticalAlign=bottom;spacingBottom=8;'))
  def edge(self,a,b,points,label='',dashed=False):
   path='M'+' L'.join(f'{x},{y}' for x,y in points)
   self.svg.append(f'<path d="{path}" fill="none" stroke="#315675" stroke-width="1.7" marker-end="url(#arrow)"'+(' stroke-dasharray="6 4"' if dashed else '')+'/>')
   if label:
-   a,b=max(zip(points,points[1:]),key=lambda v:abs(v[1][0]-v[0][0])+abs(v[1][1]-v[0][1]));x,y=(a[0]+b[0])/2,(a[1]+b[1])/2;self.svg.append(f'<text x="{x+6}" y="{y-8}" font-size="12" fill="#315675" paint-order="stroke" stroke="white" stroke-width="4">{escape(label)}</text>')
+   halo="none" if self.transparent else "white"
+   start,end=max(zip(points,points[1:]),key=lambda v:abs(v[1][0]-v[0][0])+abs(v[1][1]-v[0][1]));x,y=(start[0]+end[0])/2,(start[1]+end[1])/2;self.svg.append(f'<text x="{x+6}" y="{y-8}" font-size="12" fill="#315675" paint-order="stroke" stroke="{halo}" stroke-width="4">{escape(label)}</text>')
   self.edges.append((a,b,points,label,dashed))
  def save(self,name):
+  if args.only and name not in args.only:return
   self.svg.append('</g></svg>');(OUT/(name+'.svg')).write_text(''.join(self.svg))
-  root=ET.Element('mxfile',host='app.diagrams.net');dia=ET.SubElement(root,'diagram',name=name);model=ET.SubElement(dia,'mxGraphModel',pageWidth=str(self.w),pageHeight=str(self.h),grid='1',gridSize='10'); rr=ET.SubElement(model,'root');ET.SubElement(rr,'mxCell',id='0');ET.SubElement(rr,'mxCell',id='1',parent='0')
+  root=ET.Element('mxfile',host='app.diagrams.net');dia=ET.SubElement(root,'diagram',name=name);model=ET.SubElement(dia,'mxGraphModel',pageWidth=str(self.w),pageHeight=str(self.h),grid='1',gridSize='10',background='none' if self.transparent else '#ffffff'); rr=ET.SubElement(model,'root');ET.SubElement(rr,'mxCell',id='0');ET.SubElement(rr,'mxCell',id='1',parent='0')
   # Containers first, then node cards, then icons, so icons remain visible.
   for id,label,x,y,w,h,style in sorted(self.shapes,key=lambda z:0 if 'dashed=1' in z[-1] else 2 if 'shape=image' in z[-1] else 1):
    c=ET.SubElement(rr,'mxCell',id=id,value=label,style=style,vertex='1',parent='1');ET.SubElement(c,'mxGeometry',x=str(x),y=str(y),width=str(w),height=str(h),attrib={'as':'geometry'})
@@ -37,10 +43,10 @@ class Diagram:
    for x,y in pts[1:-1]:ET.SubElement(arr,'mxPoint',x=str(x),y=str(y))
   ET.ElementTree(root).write(OUT/(name+'.drawio'),encoding='utf-8',xml_declaration=True)
 
-d=Diagram('High-level architecture · ba luồng, ba loại quyền',1320,620)
+d=Diagram('High-level architecture · ba luồng, ba loại quyền',1320,620,transparent=True,cards=False)
 for id,x,y,label,icon in [('client',35,110,'Người dùng','user'),('edge',255,110,'Điểm vào công khai\nHTTPS / WAF','alb'),('front',475,110,'Frontend\nNginx','pod'),('api',695,110,'Backend\nAPI','pod'),('db',1085,110,'Dữ liệu\nRDS PostgreSQL','rds'),('queue',695,340,'Hàng đợi\nSQS','sqs'),('worker',1085,340,'Xử lý nền\nWorker','pod'),('admin',35,340,'Quản trị cluster\nIAM → EKS access → RBAC','iam')]:d.node(id,x,y,label,icon,w=190 if id=='admin' else 160)
 for a,b,p,l in [('client','edge',[(195,160),(255,160)],'①'),('edge','front',[(415,160),(475,160)],'②'),('front','api',[(635,160),(695,160)],'③'),('api','db',[(855,160),(1085,160)],'④ SQL / TLS'),('api','queue',[(775,210),(775,340)],'⑤ SendMessage'),('worker','queue',[(1085,390),(855,390)],'⑥ ReceiveMessage'),('worker','db',[(1165,340),(1165,210)],'⑦ SQL / TLS')]:d.edge(a,b,p,l)
-d.box('legend',270,500,970,80,'Network: ai kết nối được?  |  RBAC: ai sửa Kubernetes?  |  IAM: pod gọi AWS API nào?')
+d.box('legend',270,500,970,80,'Network: ai kết nối được?  |  RBAC: ai sửa Kubernetes?  |  IAM: pod gọi AWS API nào?',fill='none')
 d.save('high-level')
 d=Diagram('AWS architecture · ALB target type IP / private EKS / managed database',1440,1030)
 d.box('cloud',180,65,1220,925,'AWS Cloud · us-east-1','#323e4b','#fff')

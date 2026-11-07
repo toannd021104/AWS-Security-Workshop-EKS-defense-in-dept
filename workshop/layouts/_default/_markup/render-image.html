@@ -2,4 +2,8 @@
 {{- if and (hasPrefix $url "/") (not (hasPrefix $url "//")) -}}
   {{- $url = strings.TrimPrefix "/" $url | relURL -}}
 {{- end -}}
+{{- if and (hasPrefix .Destination "/images/") (hasSuffix .Destination ".svg") -}}
+  {{- $digest := readFile (printf "static%s" .Destination) | sha256 -}}
+  {{- $url = printf "%s?v=%s" $url (substr $digest 0 12) -}}
+{{- end -}}
 <figure><a href="{{ $url | safeURL }}"><img src="{{ $url | safeURL }}" alt="{{ .Text }}" loading="lazy"></a>{{ with .Title }}<figcaption class="diagram-caption">{{ . }}</figcaption>{{ end }}</figure>

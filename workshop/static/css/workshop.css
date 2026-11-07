@@ -82,7 +82,7 @@ details[open]>summary .chevron{transform:rotate(90deg)}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 #body-inner figure{margin:24px 0;max-width:100%}
 #body-inner figure a{display:block}
-#body-inner figure img{display:block;max-width:100%;height:auto;margin:0 auto;background:white}
+#body-inner figure img{display:block;max-width:100%;height:auto;margin:0 auto;background:transparent}
 #body-inner figcaption{color:var(--muted);font-size:13px;line-height:20px;margin:8px 0 20px;text-align:left}
 #body-inner blockquote,#body-inner .notices{margin:20px 0;padding:12px 16px;border-left:2px solid #0972d3;border-radius:2px;background:#eff7ff;font-size:14px;line-height:20px}
 #body-inner blockquote p,#body-inner .notices p{margin:0}
