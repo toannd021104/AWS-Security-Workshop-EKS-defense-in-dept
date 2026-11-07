@@ -8,3 +8,5 @@ __pycache__/
 workshop/public/
 workshop/resources/
 .hugo_build.lock
+
+.venv/

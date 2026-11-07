@@ -14,6 +14,12 @@ hugo server --source workshop --bind 0.0.0.0 --port 1314
 
 Mở http://localhost:1314/. Năm module gồm 26 bài, có preparation, validation và cleanup riêng. Hướng dẫn ưu tiên Console → AWS CLI/API → Terraform. Slide, threat detection và incident response ngoài phạm vi.
 
+## Chuẩn bị lab từ đầu
+
+[Chuẩn bị lab trên website](https://toannd021104.github.io/eks-defense-in-depth-workshop/preparation/) có 9 trang độc lập: công cụ/account → VPC → EKS/nodes → RDS/SQS/ECR → certificate/WAF → workload permissions → build/deploy → baseline; trang cuối là nhánh Terraform tùy chọn. Nhánh Console không cần đọc vòng sang chương 2 hoặc 4 để có ứng dụng chạy được.
+
+Sau bước baseline mới bắt đầu chương 2. Mỗi lệnh kiểm tra có output mẫu và ý nghĩa; `APP_HOST` được giải thích từ lúc thu thập cấu hình thay vì giả định đã có sẵn.
+
 ## Triển khai lab bằng Terraform
 
 AWS CLI profile `guru`, region `us-east-1`. Kiểm tra `aws sts get-caller-identity` trước. Cần domain public Route 53 có delegation hợp lệ cho HTTPS.
@@ -71,7 +77,7 @@ Mười sáu ảnh Console được dùng trong bài, có khoanh đỏ/đánh s�
 ## Chỉnh sửa nội dung và sơ đồ
 
 - Trang Markdown chuẩn nằm trong `workshop/content/`.
-- `scripts/write_workshop.py` là nguồn sinh bản nội dung đầu tiên; nếu sửa Markdown trực tiếp, không chạy lại generator vì nó ghi đè các trang đó. Các thay đổi bản gốc nên sửa trong generator rồi sinh lại để đồng bộ.
+- `scripts/preparation_content.py` chứa nội dung 9 trang chuẩn bị; `scripts/write_workshop.py` là nguồn sinh bản nội dung workshop; nếu sửa Markdown trực tiếp, không chạy lại generator vì nó ghi đè các trang đó. Các thay đổi bản gốc nên sửa trong generator rồi sinh lại để đồng bộ.
 - `scripts/diagrams.py` sinh SVG và draw.io từ icon AWS/Kubernetes ở `/home/ubuntu/devops-blog2/src/assets/icons/`. Artifacts đã có trong repo nên build Hugo không cần thư mục icon ngoài.
 - `k8s/application.yaml` và `network-policies.yaml` là manifests đã render. Người dùng account khác chạy `capture-config.py`, build-push và render lại, không áp dụng endpoint/ARN của account ví dụ.
 - Website chỉ mount allowlisted Terraform source, app/scripts và manifests; không mount `.local` hoặc state.

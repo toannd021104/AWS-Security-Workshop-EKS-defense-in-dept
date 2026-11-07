@@ -15,6 +15,8 @@ Ingress mô tả host/path/backend. AWS Load Balancer Controller theo dõi Ingre
 
 ## Thực hiện
 
+Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/7-deploy-application/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
+
 ### Cấp quyền cho controller
 
 IAM → Roles → `eks-did-controller`: trust principal `pods.eks.amazonaws.com`, actions `sts:AssumeRole` và `sts:TagSession`. EKS → Access → Pod Identity associations: namespace `kube-system`, ServiceAccount `aws-load-balancer-controller`, role trên. Policy lấy từ release controller, không dùng `AdministratorAccess`.

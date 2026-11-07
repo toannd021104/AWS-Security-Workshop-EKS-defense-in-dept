@@ -44,111 +44,8 @@ Phần đầu giới thiệu nguyên tắc bảo mật nhiều lớp và kiến 
 
 [Kết quả kiểm chứng trên sandbox](/validation/results/) và [kết quả image scan](/evidence/image-scan.json) được công bố riêng. Các phép thử chức năng đạt không thay thế điều kiện chấp nhận image trước khi phát hành.
 ''')
-write(Path('preparation'),'Chuẩn bị và cách dùng workshop',1,r'''
-## Môi trường thực hành
-
-Đọc chương 1 để nắm kiến trúc trước khi tạo tài nguyên. Các bài thực hành được tổ chức theo bốn phần: vấn đề, kiến thức cần dùng, thực hiện và kiểm chứng kết quả. Ảnh khoanh đỏ đánh dấu trường hoặc kết quả cần đối chiếu trên Console.
-
-Các bước dưới đây chuẩn bị ứng dụng nền. `deploy.sh` chưa áp dụng NetworkPolicy; phép thử trước/sau isolation được thực hiện ở bài 3.2. Một số quyền và cấu hình cần thiết để chạy ứng dụng được tạo trong phần chuẩn bị và sẽ được phân tích, kiểm tra chi tiết ở các chương sau.
-
-[Tải mã lab](/downloads/eks-defense-in-depth-lab.zip), giải nén và mở terminal tại thư mục chứa `app/`, `scripts/`, `infrastructure/`. ZIP không chứa credentials hoặc Terraform state.
-
-Ứng dụng ghi chú gồm Nginx frontend, Python API và Python worker. Frontend proxy `/api/` đến API; API lưu ghi chú trên RDS PostgreSQL và gửi yêu cầu báo cáo đến SQS. Worker chủ động đọc queue và ghi kết quả vào RDS. Worker không có public endpoint.
-
-### 1. Kiểm tra account và công cụ
-
-**Console:** đăng nhập sandbox, kiểm tra account ở góc phải, chọn **US East (N. Virginia), us-east-1**. Mở EKS, VPC, RDS, ECR, SQS, IAM và Route 53 để xác nhận quyền xem. Có quyền xem chưa chứng minh có quyền tạo.
-
-**CLI/API:** chạy từ thư mục dự án mới:
-
-```bash
-export AWS_PROFILE=guru AWS_REGION=us-east-1
-aws sts get-caller-identity
-aws eks list-clusters
-aws route53 list-hosted-zones --query 'HostedZones[].Name'
-aws --version
-kubectl version --client
-helm version --short
-docker version
-terraform version
-python3 -m pip install boto3 PyYAML
-source scripts/env.sh
-```
-
-Bạn cần AWS CLI v2, kubectl tương thích minor EKS, Helm 3, Docker, Python 3 và Hugo Extended. Terraform chỉ bắt buộc khi chọn đường IaC. Không đưa access key vào manifest hay website.
-
-### 2. Chọn một đường triển khai
-
-- **Console:** làm theo 2.2, 2.4 và hướng dẫn dựng cluster bên dưới; sau đó tạo RDS/SQS/ECR trong phần nền ứng dụng. Dùng `capture-config.py` để thu thập cấu hình, không cần Terraform state.
-- **CLI/API:** các bài đưa lệnh cho thao tác khó biểu diễn trên Console và đọc kết quả chính xác. Không chạy lệnh tạo nếu tài nguyên đã được tạo qua Console.
-- **Terraform:** mã đầy đủ ở `infrastructure/terraform/`, giúp dựng cùng lab để học các bài kiểm soát. Script này không bật GuardDuty.
-
-```bash
-cp infrastructure/terraform/terraform.tfvars.example infrastructure/terraform/terraform.tfvars
-# Sửa admin_cidr thành IP public /32 hiện tại và dns_zone_name thành hosted zone bạn quản lý.
-terraform -chdir=infrastructure/terraform init
-terraform -chdir=infrastructure/terraform fmt -check
-terraform -chdir=infrastructure/terraform validate
-terraform -chdir=infrastructure/terraform plan -out=lab.tfplan
-# Đọc account/Region, chỉ chấp nhận tài nguyên lab mới và không có xóa ngoài dự kiến.
-terraform -chdir=infrastructure/terraform apply lab.tfplan
-```
-
-State chứa metadata nhạy cảm. Không upload `.terraform`, `terraform.tfvars`, state, plan hoặc `.local` lên GitHub/Hugo. Với nhóm nhiều người, dùng remote backend và locking trước khi cộng tác.
-
-### 3. Dựng EKS qua Console nếu không dùng Terraform
-
-1. IAM → Roles → Create role → AWS service → **EKS – Cluster**. Đặt `eks-did-cluster-role`, gắn `AmazonEKSClusterPolicy`.
-
-2. Tạo role EC2 `eks-did-node-role`, gắn `AmazonEKSWorkerNodePolicy` và `AmazonEC2ContainerRegistryPullOnly`. Không gắn quyền ứng dụng lên node role. VPC CNI dùng role IRSA riêng theo bước 5.
-
-3. EKS → Add cluster → Create → tên `eks-did`, version `1.35`, chọn role cluster. **Không chọn Auto Mode**: lab dùng managed node group để quan sát CNI và IMDS.
-
-4. Networking → VPC lab, hai private application subnets. Endpoint **Public and private**, Public access CIDRs = IP workstation `/32`. Authentication mode chọn **EKS API**, giữ quyền bootstrap cho người tạo đến khi đã kiểm chứng danh tính quản trị khác.
-
-5. Chọn add-ons VPC CNI, CoreDNS, kube-proxy, Pod Identity Agent. Bật NetworkPolicy trong VPC CNI theo 3.3. Chọn bản add-on tương thích version cluster. Sau khi cluster Active, copy OIDC issuer trong EKS Overview → IAM → Identity providers → Add OpenID Connect provider, audience `sts.amazonaws.com`. Tạo web-identity role `eks-did-vpc-cni-role` cho provider này, gắn `AmazonEKS_CNI_Policy`; trust phải giới hạn `sub=system:serviceaccount:kube-system:aws-node` và `aud=sts.amazonaws.com`. Chọn role này ở VPC CNI add-on IAM role. [Terraform trust tương đương](/source/terraform/main.tf) có đủ điều kiện; không để trust cho mọi ServiceAccount.
-
-6. Tạo EC2 Launch Template cho node: không SSH key, IMDS **token required**, response hop limit **1**, EBS 20 GiB gp3 mã hóa. Dùng template này khi tạo managed node group `private-workers`, hai private subnets, `t3.medium`, min/desired/max đều 2 cho lab. Không chỉ định AMI tùy ý; để EKS chọn AL2023 phù hợp.
-
-7. Compute → Node group phải `ACTIVE`, hai node `Ready`. Nếu node không join, kiểm tra NAT route, CNI role và IAM policies trước khi đổi endpoint CIDR.
-
-```bash
-aws eks update-kubeconfig --name eks-did --alias eks-did --kubeconfig "$KUBECONFIG"
-kubectl get nodes -o wide
-```
-
-Kubeconfig của lab nằm trong `.local/`, không thay context mặc định của các cluster khác.
-
-### 4. Nền ứng dụng: RDS, SQS và ECR
-
-**RDS Console:** Create database → Standard create → PostgreSQL 17 (lab pin `17.11`), identifier `eks-did`, database `notes`, master username `labadmin`, **Manage master credentials in Secrets Manager**. Chọn `db.t3.micro`, storage gp3 20 GiB mã hóa, Single-AZ cho lab. DB subnet group chứa hai database subnets, Public access **No**. SG database chỉ nhận TCP 5432 từ cluster/node SG. Bật **Password and IAM database authentication**, backup một ngày. Single-AZ và xóa không snapshot chỉ là đánh đổi của sandbox.
-
-**SQS Console:** tạo Standard queue `eks-did-reports`, visibility 60 giây, retention 1 ngày, bật SSE-SQS. API chỉ gửi; worker nhận/xóa. Bài 4.6 cấu hình IAM trước khi chạy app.
-
-**ECR Console:** tạo private repository `eks-did/notes`, immutable tags, AES-256 encryption, basic scan on push. Module 5 bổ sung enhanced scanning nếu được phép.
-
-**ACM/Route 53:** làm 2.3 để có cert `ISSUED` trước khi dựng Ingress. Không có domain hợp lệ thì chưa hoàn thành bài HTTPS.
-
-### 5. Cấp identity và triển khai
-
-Terraform đã tạo các role/association của 4.5–4.6. Người chọn Console làm hai bài đó trước khi deploy. `db-init` chỉ đọc master secret để tạo SQL roles; API/worker dùng IAM database authentication, không dùng tài khoản master.
-
-```bash
-python3 scripts/capture-config.py
-source scripts/env.sh
-bash scripts/build-push.sh
-bash scripts/deploy.sh
-python3 scripts/publish-dns.py
-```
-
-Tên subnet phải chứa `-public-`, `-private-`, `-database-` để script xác định đúng vai trò. Nếu account có nhiều hosted zone, export `DNS_ZONE_NAME=example.com.` trước khi capture. Mã nguồn [render manifests](/source/scripts/render.py) và [ứng dụng](/source/app/main.py) có thể đọc trực tiếp.
-
-### Chi phí và giới hạn
-
-EKS control plane, hai EC2 nodes, NAT, public IPv4, ALB, RDS, WAF, KMS và Inspector có thể tính phí; giá phụ thuộc Region và thời gian chạy. Đây không phải lab miễn phí. Các quyền IAM/CreateRole/PassRole, EKS, EC2, ELB, RDS, SQS, ECR, ACM, Route 53 là điều kiện chính. WAF/Inspector/CMK có thể bị SCP chặn; ghi đúng dịch vụ/action bị từ chối, không tìm cách vượt SCP.
-
-Sau khi môi trường nền hoạt động, bắt đầu chương 2 để theo dõi request và kiểm tra cấu hình mạng. [Cleanup](/cleanup/) là bước bắt buộc khi ngừng sử dụng lab.
-''')
+from preparation_content import write_preparation
+write_preparation(write)
 page(1,1,'defense-in-depth','Defense in Depth là gì?',r'''
 Defense in Depth là cách phối hợp nhiều lớp bảo vệ để hạn chế khả năng truy cập trái phép và giảm phạm vi ảnh hưởng khi một lớp bị vượt qua. Mỗi lớp kiểm soát một ranh giới khác nhau: kết nối mạng, quyền thực thi, quyền truy cập hoặc dữ liệu.
 
@@ -205,7 +102,7 @@ page(1,4,'architecture','Tổng quan kiến trúc và các Security Layers',r'''
 
 Trình duyệt phân giải domain và kết nối ALB bằng HTTPS. ALB kết thúc TLS rồi chuyển request bằng HTTP đến frontend pod port 8080. Nginx phục vụ giao diện và chuyển các request `/api/` đến Kubernetes Service của API. API kết nối RDS bằng TLS và sử dụng IAM database authentication với user `notes_api`.
 
-> **Phạm vi mã hóa:** ALB → frontend và frontend → API dùng HTTP để đơn giản hóa cấu hình TLS nội bộ trong lab. Security Groups và NetworkPolicy giới hạn kết nối, nhưng không mã hóa lưu lượng. Việc nằm trong mạng AWS không đồng nghĩa kết nối đã được mã hóa.
+> **Phạm vi mã hóa và bảo vệ kết nối:** Lab sử dụng HTTPS để mã hóa lưu lượng từ Internet đến ALB. Từ ALB đến frontend pod và từ frontend đến API, ứng dụng sử dụng HTTP qua địa chỉ IP nội bộ trong VPC. Security Groups giới hạn kết nối ở lớp hạ tầng; Kubernetes NetworkPolicy được bổ sung trong chương 3 để giới hạn kết nối theo workload. Đây là lựa chọn của lab để tập trung thực hành bảo mật mạng và workload trên EKS.
 
 ### Luồng xử lý báo cáo
 
@@ -236,19 +133,22 @@ page(2,1,'request-flow','Request Flow: Internet → ALB → Pod',r'''
 
 Khi mở `https://notes.<domain>`, client phân giải DNS rồi mở TLS đến ALB. DNS không proxy HTTP. ALB kết thúc TLS, kiểm tra listener rule, chọn target healthy và mở kết nối HTTP riêng đến frontend pod `:8080`. Nginx nhận `/api/notes` và proxy đến `api.notes.svc.cluster.local:8080/notes`. API mở kết nối PostgreSQL TLS đến RDS `:5432`.
 
-> **Lưu ý về mã hóa:** HTTPS kết thúc tại ALB. Chặng ALB → frontend pod dùng HTTP port `8080`; frontend → API cũng dùng HTTP. Lab giữ lựa chọn này để đơn giản hóa cấu hình certificate và vận hành TLS nội bộ. Security Groups và NetworkPolicy giới hạn các kết nối được phép, nhưng không mã hóa lưu lượng. Việc nằm trong mạng AWS không đồng nghĩa kết nối đã được mã hóa.
+> **Phạm vi mã hóa và bảo vệ kết nối:** Lab sử dụng HTTPS để mã hóa lưu lượng từ Internet đến ALB. Từ ALB đến frontend pod và từ frontend đến API, ứng dụng sử dụng HTTP qua địa chỉ IP nội bộ trong VPC. Security Groups giới hạn kết nối ở lớp hạ tầng; Kubernetes NetworkPolicy được bổ sung trong chương 3 để giới hạn kết nối theo workload. Đây là lựa chọn của lab để tập trung thực hành bảo mật mạng và workload trên EKS.
 
 ## Thực hiện
 
+Bài này quan sát lab đã chạy, sử dụng tài nguyên được tạo ở phần chuẩn bị. Hoàn thành [bước 0.8 — Kiểm tra baseline](/preparation/8-baseline/) trước khi chạy các lệnh bên dưới.
+
 ### Đối chiếu đường đi trên AWS Console
 
-1. Route 53 → Hosted zones → zone lab → record `notes`: điểm đến phải là ALB của lab.
+Các bước sau chỉ đọc cấu hình, không tự tạo hoặc đăng ký thêm target. Mục đích là nối domain, listener, target group và pod thành một đường truy cập có thể kiểm tra.
 
-2. EC2 → Load Balancers → `eks-did-notes` → Listeners: HTTP 80 redirect sang HTTPS 443; HTTPS forward đến target group frontend.
+1. Mở **Route 53 → Hosted zones → public zone của lab**, chọn record `notes`. Đọc phần value/alias target và đối chiếu với DNS name của ALB `eks-did-notes`.
+2. Mở **EC2 → Load Balancers → eks-did-notes → Listeners and rules**. Listener HTTP:80 cần redirect đến HTTPS:443; listener HTTPS:443 cần forward đến target group frontend. Ghi lại target group đang được dùng.
+3. Mở target group đó → tab **Targets**. Xem Target type **IP**, protocol/port **HTTP:8080** và các targets **Healthy**. Đây là danh sách do controller đăng ký, không yêu cầu bạn thêm IP bằng tay.
+4. Mở **EKS → cluster → Resources → Workloads → Pods**, lọc namespace `notes`, chọn frontend pod và đọc **Pod IP**. So IP này với các targets Healthy. Resource browser yêu cầu danh tính có quyền đọc Kubernetes; có thể dùng `kubectl get pods` ở phần dưới để lấy cùng thông tin.
 
-3. Target Groups → Targets: chọn IP target, xem port 8080 và health status.
-
-4. EKS → Resources → Pods: so IP frontend với các target IP.
+Ví dụ, pod IP `10.20.44.78` xuất hiện trong target group với port `8080` giúp xác nhận ALB sử dụng frontend pod đó làm backend. IP thật thay đổi theo lượt triển khai.
 
 ![Đối chiếu ALB IP targets với frontend pods](/images/console-targets.png "① Target type IP. ② Backend HTTP:8080. ③ Hai targets healthy. ④ Địa chỉ IP và port của pods.")
 
@@ -258,15 +158,73 @@ Khi mở `https://notes.<domain>`, client phân giải DNS rồi mở TLS đến
 
 ### Gửi request và đọc kết quả
 
+Nạp hostname và kubeconfig của lab:
+
 ```bash
 source scripts/env.sh
-curl -sS -o /dev/null -w '%{http_code}\n' "https://$APP_HOST/"
-curl -fsS "https://$APP_HOST/api/healthz"
-kubectl get pods -n notes -l app=frontend -o wide
-kubectl logs -n notes -l app=frontend --tail=10
+printf 'Hostname: %s\n' "$APP_HOST"
 ```
 
-Mong đợi HTTP 200 và `workload: api` ở API health endpoint. Frontend access log có request tương ứng. Đó là hai phép kiểm tra khác nhau: trang chủ thành công chưa chứng minh API hay DB hoạt động.
+`source` thường không in gì. Dòng `printf` phải in hostname đã được tạo ở bước chuẩn bị; nếu trống, hoàn thành [thu thập cấu hình ở bước 0.7](/preparation/7-deploy-application/) trước khi gửi request.
+
+Kiểm tra frontend:
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' "https://$APP_HOST/"
+```
+
+Kết quả cần thấy:
+
+```text
+200
+```
+
+`-o /dev/null` bỏ HTML, `-w` chỉ in HTTP status. Trang chủ trả 200 xác nhận frontend phản hồi qua domain HTTPS.
+
+Tiếp tục gọi API thông qua frontend:
+
+```bash
+curl -fsS "https://$APP_HOST/api/healthz"
+printf '\n'
+```
+
+Kết quả:
+
+```json
+{"status": "ok", "workload": "api"}
+```
+
+Phản hồi này đến từ API sau khi request qua ALB và Nginx frontend. Health endpoint chưa chứng minh thao tác database hoạt động.
+
+Đọc pod IPs để so với AWS target group:
+
+```bash
+kubectl get pods -n notes -l app=frontend -o wide
+```
+
+Ví dụ, tên và IP trong môi trường của bạn sẽ khác:
+
+```text
+NAME                        READY   STATUS    RESTARTS   AGE   IP
+frontend-7c8d9f6b5d-abc12    1/1     Running   0          10m   10.20.44.78
+frontend-7c8d9f6b5d-def34    1/1     Running   0          10m   10.20.54.165
+```
+
+Cột IP là địa chỉ dùng để đối chiếu targets; READY 1/1 cho biết container trong pod đã sẵn sàng. Đọc access log:
+
+```bash
+kubectl logs -n notes -l app=frontend --tail=10 --prefix=true
+```
+
+Log có thể chứa dòng tương tự:
+
+```text
+[pod/frontend-…/frontend] … "GET /api/healthz HTTP/1.1" 200 …
+```
+
+Tên pod/container trong prefix cho biết backend nhận request. ALB health checks cũng xuất hiện trong log, và mười dòng cuối có thể không còn chứa request vừa gửi.
+
+### Kiểm tra đường API đến database
 
 ```bash
 curl -fsS "https://$APP_HOST/api/notes" \
@@ -300,6 +258,8 @@ Một subnet có route đến Internet Gateway không làm mọi EC2 trong đó 
 | Database | 10.20.64.0/24 | 10.20.65.0/24 | Không có; chỉ local VPC |
 
 ## Thực hiện
+
+Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/2-vpc/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
 ### Tạo VPC, subnets và route tables
 
@@ -366,6 +326,8 @@ ALB định tuyến HTTP, ACM cung cấp certificate cho TLS và WAF kiểm tra 
 
 ## Thực hiện
 
+Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/5-https-waf/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
+
 ### Cấu hình certificate và WAF rule
 
 1. Route 53 → chọn public hosted zone bạn quản lý. Dùng hostname `notes.<zone>`; không tạo hosted zone mới rồi bỏ qua delegation.
@@ -420,7 +382,7 @@ Client → ALB dùng HTTPS với certificate ACM. TLS kết thúc tại ALB; ALB
 
 Protocol của target group mô tả chặng ALB → frontend, khác với HTTPS listener phục vụ client. Đây là vị trí cần đối chiếu khi kiểm tra phạm vi TLS.
 
-> **Lựa chọn của lab:** Giữ HTTP ở hai chặng nội bộ để đơn giản hóa cấu hình certificate, gia hạn và vận hành TLS. Các kết nối được giới hạn bằng Security Groups và NetworkPolicy. Những cơ chế này kiểm soát truy cập, **không mã hóa dữ liệu**; việc nằm trong mạng AWS không đồng nghĩa kết nối đã được mã hóa.
+> **Phạm vi mã hóa và bảo vệ kết nối:** Lab sử dụng HTTPS để mã hóa lưu lượng từ Internet đến ALB. Từ ALB đến frontend pod và từ frontend đến API, ứng dụng sử dụng HTTP qua địa chỉ IP nội bộ trong VPC. Security Groups giới hạn kết nối ở lớp hạ tầng; Kubernetes NetworkPolicy được bổ sung trong chương 3 để giới hạn kết nối theo workload. Đây là lựa chọn của lab để tập trung thực hành bảo mật mạng và workload trên EKS.
 
 Thiết kế này **không mã hóa toàn bộ request path**. Nếu chính sách bảo mật hoặc yêu cầu tuân thủ đòi hỏi mã hóa các chặng nội bộ, cần cấu hình HTTPS từ ALB đến frontend và TLS cho frontend → API. ALB không xác thực certificate của HTTPS target; yêu cầu xác minh danh tính workload cần được thiết kế riêng.
 
@@ -487,6 +449,8 @@ Một Ingress mô tả đường truy cập Kubernetes chưa tự tạo ra ALB t
 Ingress mô tả host/path/backend. AWS Load Balancer Controller theo dõi Ingress, Service và EndpointSlice rồi gọi ELB/EC2 APIs tạo ALB, listener, target group và rule SG. Controller không proxy từng HTTP request của ứng dụng.
 
 ## Thực hiện
+
+Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/7-deploy-application/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
 ### Cấp quyền cho controller
 
@@ -1205,6 +1169,8 @@ AWS SDK sử dụng temporary credentials do cơ chế workload identity cấp. 
 Lab dùng Pod Identity cho API, worker, db-init và controller. VPC CNI dùng IRSA riêng để bootstrap mạng không phụ thuộc node IMDS. Không gán đồng thời hai cơ chế cho cùng một workload rồi đoán SDK dùng cái nào.
 
 ## Thực hiện
+
+Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/6-workload-permissions/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
 ### Tạo trust policy và Pod Identity associations
 

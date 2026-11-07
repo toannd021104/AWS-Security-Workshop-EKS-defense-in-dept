@@ -26,6 +26,8 @@ Lab dùng Pod Identity cho API, worker, db-init và controller. VPC CNI dùng IR
 
 ## Thực hiện
 
+Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/6-workload-permissions/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
+
 ### Tạo trust policy và Pod Identity associations
 
 1. EKS → Add-ons: Pod Identity Agent `ACTIVE` trên managed nodes.

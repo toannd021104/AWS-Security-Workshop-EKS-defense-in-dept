@@ -23,6 +23,8 @@ Một subnet có route đến Internet Gateway không làm mọi EC2 trong đó 
 
 ## Thực hiện
 
+Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/2-vpc/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
+
 ### Tạo VPC, subnets và route tables
 
 1. VPC → Your VPCs → Create VPC → **VPC only**, Name `eks-did`, IPv4 `10.20.0.0/16`. Bật DNS resolution và DNS hostnames trong VPC settings.
