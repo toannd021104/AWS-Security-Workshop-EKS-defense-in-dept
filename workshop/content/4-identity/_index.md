@@ -5,7 +5,13 @@ chapter: false
 pre: "<b>4.</b> "
 ---
 
-## Nội dung
+Một pod kết nối được đến AWS endpoint chưa có nghĩa nó được phép thực hiện mọi API. Tương tự, người dùng có thể xác thực với AWS nhưng chưa có quyền sửa tài nguyên Kubernetes.
+
+Phần này theo hai đường truy cập: người quản trị đến EKS API và workload đến dịch vụ AWS. Giới hạn endpoint, gắn danh tính qua Access Entries, cấp quyền đọc bằng RBAC, rồi đối chiếu Pod Identity và IAM policies của API/worker.
+
+Các role cần để Notes hoạt động đã có từ phần chuẩn bị. Dùng danh tính observer để thử quyền thực tế và so sánh thao tác SQS hợp lệ với thao tác vượt quyền. Cuối phần, cần chỉ ra được principal nào bị từ chối và lớp nào đưa ra quyết định.
+
+## Các bài trong phần này
 
 4.1. [Authentication vs Authorization](/4-identity/1-authentication-authorization/)
 

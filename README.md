@@ -61,7 +61,7 @@ Kết quả public nằm trong `evidence/verification.json` và trang validation
 
 ## Cách tổ chức bài học
 
-Trang chủ giới thiệu phạm vi và kiến trúc; trang chương chỉ liệt kê các bài trực tiếp. Bốn bài chương 1 giải thích liền mạch. Các bài thực hành chương 2–5 theo cấu trúc **Vấn đề → Kiến thức cần dùng → Thực hiện → Kiểm chứng kết quả**, ưu tiên Console, dùng CLI/API khi cần và liên kết Terraform tương ứng.
+Trang chủ đặt bối cảnh Notes, mục tiêu và lộ trình. Trang chương nêu trạng thái đầu vào, công việc và bằng chứng cần có. Các bài thực hành giải thích khái niệm tại bước cần dùng, dùng tiêu đề hành động cụ thể và đối chiếu kết quả sau thao tác; ưu tiên Console, dùng CLI/API khi cần và liên kết Terraform tương ứng. Trang Tổng kết đối chiếu các lớp bảo vệ và giới hạn của lab. Cách dẫn bài và bố cục tham khảo AWS Workshop Studio; website vẫn là Hugo trên GitHub Pages, không phải workshop chính thức của AWS.
 
 Bài NetworkPolicy có phép thử độc lập, không áp dụng hoặc xóa policy trong lúc kiểm chứng:
 

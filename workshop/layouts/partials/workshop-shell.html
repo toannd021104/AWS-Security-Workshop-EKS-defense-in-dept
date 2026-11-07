@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="{{ .Description | default .Site.Params.description }}">
+  <title>{{ if not .IsHome }}{{ .Title }} · {{ end }}{{ .Site.Title }}</title>
+  <link rel="stylesheet" href="{{ "css/workshop.css" | relURL }}">
+  <script defer src="{{ "js/workshop.js" | relURL }}"></script>
+</head>
+<body data-search-index="{{ "index.json" | relURL }}">
+  <a class="skip-link" href="#body-inner">Đến nội dung</a>
+  <header class="workshop-header"><button class="menu-toggle" aria-expanded="false" aria-controls="sidebar" aria-label="Mở menu bài học">☰</button><a href="{{ .Site.Home.RelPermalink }}">EKS Security Workshop</a><a class="header-source" href="https://github.com/toannd021104/eks-defense-in-depth-workshop">GitHub ↗</a></header>
+  <aside id="sidebar">{{ partial "workshop-nav.html" . }}</aside>
+  <main id="body">
+    <nav class="breadcrumbs" aria-label="Đường dẫn"><a href="{{ .Site.Home.RelPermalink }}">Workshop</a>{{ range .Ancestors.Reverse }}{{ if not .IsHome }}<span aria-hidden="true">›</span><a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}{{ end }}<span aria-hidden="true">›</span><span aria-current="page">{{ if .IsHome }}Tổng quan{{ else }}{{ .Title }}{{ end }}</span></nav>
+    <article id="body-inner">
+      <h1>{{ .Title }}</h1>
+      {{ .Content }}
+    </article>
+    {{ $order := slice .Site.Home }}
+    {{ range .Site.Home.Sections.ByWeight }}
+      {{ $order = $order | append . }}
+      {{ range .Sections.ByWeight }}{{ if not .Params.sequenceskip }}{{ $order = $order | append . }}{{ end }}{{ end }}
+    {{ end }}
+    {{ $current := . }}
+    <nav class="page-navigation" aria-label="Điều hướng bài học">
+      {{ range $index, $page := $order }}
+        {{ if eq $page.RelPermalink $current.RelPermalink }}
+          {{ if gt $index 0 }}{{ with index $order (sub $index 1) }}<a class="previous" href="{{ .RelPermalink }}"><span>← Trước</span><small>{{ .Title }}</small></a>{{ end }}{{ end }}
+          {{ if lt $index (sub (len $order) 1) }}{{ with index $order (add $index 1) }}<a class="next" href="{{ .RelPermalink }}"><span>Tiếp →</span><small>{{ .Title }}</small></a>{{ end }}{{ end }}
+        {{ end }}
+      {{ end }}
+      {{ if .Params.sequenceskip }}
+        {{ with .Site.GetPage .Params.previouslesson }}<a class="previous" href="{{ .RelPermalink }}"><span>← Trước</span><small>{{ .Title }}</small></a>{{ end }}
+        {{ with .Site.GetPage .Params.nextlesson }}<a class="next" href="{{ .RelPermalink }}"><span>Tiếp →</span><small>{{ .Title }}</small></a>{{ end }}
+      {{ end }}
+    </nav>
+    <footer class="workshop-footer">A Layered Approach to Amazon EKS Security · Workshop thực hành độc lập</footer>
+  </main>
+</body>
+</html>

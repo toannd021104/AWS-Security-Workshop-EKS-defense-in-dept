@@ -1,0 +1,28 @@
+{{ $current := . }}
+<a class="workshop-title" href="{{ .Site.Home.RelPermalink }}">{{ .Site.Title }}</a>
+<label class="nav-search" for="lesson-search">Tìm bài học</label>
+<input id="lesson-search" type="search" placeholder="Tên bài hoặc từ khóa…" autocomplete="off">
+<p id="search-status" role="status" class="search-status" hidden></p>
+<ul id="search-results" class="search-results" hidden></ul>
+<nav aria-label="Nội dung workshop" id="lesson-navigation">
+  <ul class="chapters">
+    {{ range .Site.Home.Sections.ByWeight }}
+      {{ $active := eq .RelPermalink $current.RelPermalink }}
+      <li>
+        {{ if .Sections }}
+        <details {{ if or $active (.IsAncestor $current) }}open{{ end }}>
+          <summary><a href="{{ .RelPermalink }}" {{ if $active }}aria-current="page"{{ end }}>{{ .Title }}</a><span aria-hidden="true" class="chevron">›</span></summary>
+          <ul>
+            {{ range .Sections.ByWeight }}
+            <li><a href="{{ .RelPermalink }}" {{ if eq .RelPermalink $current.RelPermalink }}aria-current="page"{{ end }}>{{ .Params.pre | plainify }}{{ .Title }}</a></li>
+            {{ end }}
+          </ul>
+        </details>
+        {{ else }}
+        <a href="{{ .RelPermalink }}" {{ if $active }}aria-current="page"{{ end }}>{{ .Title }}</a>
+        {{ end }}
+      </li>
+    {{ end }}
+  </ul>
+</nav>
+<div class="nav-resources"><a href="{{ "downloads/eks-defense-in-depth-lab.zip" | relURL }}">Tải mã nguồn lab ↓</a><a href="https://github.com/toannd021104/eks-defense-in-depth-workshop">GitHub ↗</a></div>

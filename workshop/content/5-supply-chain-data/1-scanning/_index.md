@@ -5,17 +5,13 @@ chapter: false
 pre: "<b>5.1.</b> "
 ---
 
-## Vấn đề
-
 Image đã build và chạy được vẫn có thể chứa dependency có lỗ hổng đã biết. Bài này bật scanning, đọc kết quả của đúng image digest và thực hiện kiểm tra điều kiện phát hành trước khi chấp nhận image.
 
-## Kiến thức cần dùng
+## Scan đúng image đang chạy
 
 Image scanning tìm các package/dependency có vulnerability đã biết. Kết quả cần được đánh giá theo mức độ, khả năng khai thác, bản sửa và exception có thời hạn. Scan không tự ngăn Kubernetes chạy image.
 
-## Thực hiện
-
-### Cấu hình scanning cho ECR
+## Bước 1: cấu hình scanning cho ECR
 
 1. ECR → Private registry → Features & Settings → Scanning: xem loại scanning đang dùng. Basic scan tập trung OS packages; enhanced scanning tích hợp Inspector, có thể theo dõi cả language packages theo khả năng hỗ trợ.
 
@@ -29,7 +25,7 @@ Chọn đúng digest đang triển khai trước khi mở findings. Các artifac
 
 4. Mở một finding, xem affected package, installed/fixed version và severity. Không đưa finding vào bài như bằng chứng exploit đã xảy ra.
 
-## Kiểm chứng kết quả
+## Đọc findings và quyết định của release gate
 
 ### Đọc kết quả theo image digest
 

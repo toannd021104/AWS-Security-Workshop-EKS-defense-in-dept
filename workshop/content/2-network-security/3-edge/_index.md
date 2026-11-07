@@ -5,19 +5,15 @@ chapter: false
 pre: "<b>2.3.</b> "
 ---
 
-## Vấn đề
-
 Điểm vào public cần bảo vệ dữ liệu truyền từ trình duyệt và có khả năng chặn request theo rule đã định. Bài này cấu hình domain, certificate và HTTPS trên ALB, sau đó gắn WAF và gửi request để kiểm tra hành vi cho phép hoặc từ chối.
 
-## Kiến thức cần dùng
+## ALB, ACM và WAF bảo vệ phần nào?
 
 ALB định tuyến HTTP, ACM cung cấp certificate cho TLS và WAF kiểm tra request HTTP. WAF gắn vào ALB, không phải một máy proxy đặt trước ALB.
 
-## Thực hiện
-
 Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/5-https-waf/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
-### Cấu hình certificate và WAF rule
+## Bước 1: cấu hình certificate và WAF rule
 
 1. Route 53 → chọn public hosted zone bạn quản lý. Dùng hostname `notes.<zone>`; không tạo hosted zone mới rồi bỏ qua delegation.
 
@@ -39,7 +35,7 @@ Rule này chỉ kiểm chứng đường xử lý WAF bằng header cố định
 
 Managed rules và rate limiting cần được lựa chọn, kiểm thử và điều chỉnh false positives riêng.
 
-### Cấu hình certificate qua API
+### Cấu hình certificate qua API (tùy chọn)
 
 Nếu dùng CLI thay Console để yêu cầu cert:
 
@@ -49,7 +45,7 @@ aws acm request-certificate --domain-name "$APP_HOST" --validation-method DNS
 
 Sau đó đọc `describe-certificate`, tạo record validation và đợi `ISSUED`. Không yêu cầu lại cert nếu đã dùng Terraform. [Terraform WAF/ACM](/source/terraform/data-services.tf) chứa cấu hình đầy đủ.
 
-## Kiểm chứng kết quả
+## So sánh request được phép và bị WAF chặn
 
 ### Gửi request đến HTTP, HTTPS và WAF
 

@@ -5,17 +5,13 @@ chapter: false
 pre: "<b>5.3.</b> "
 ---
 
-## Vấn đề
-
 Database cần tài khoản có quyền cao để khởi tạo schema, nhưng API và worker không cần giữ master password trong quá trình chạy. Bài này tách quyền bootstrap khỏi quyền ứng dụng và kiểm tra việc truy cập secret.
 
-## Kiến thức cần dùng
+## Secret nào được ứng dụng sử dụng?
 
 Kubernetes Secret thường biểu diễn dữ liệu bằng Base64 khi xuất YAML. Base64 không phải encryption. Ai có quyền đọc Secret hoặc exec vào workload có secret có thể tiếp cận dữ liệu đó.
 
-## Thực hiện
-
-### Xem metadata của RDS master secret
+## Bước 1: xem metadata của RDS master secret
 
 RDS → database → Configuration → Master credentials ARN → mở Secrets Manager. Kiểm tra encryption key và access policy. Không bấm hiển thị password để chụp ảnh đưa lên workshop.
 
@@ -25,7 +21,7 @@ Lab chỉ cấp `GetSecretValue` trên ARN này cho role `eks-did-db-init`. Job 
 
 Chỉ quan sát trạng thái và ARN của secret. Ảnh không hiển thị giá trị mật khẩu database.
 
-## Kiểm chứng kết quả
+## Kiểm tra metadata và quyền đọc secret
 
 ### Kiểm tra secret metadata và bootstrap job
 

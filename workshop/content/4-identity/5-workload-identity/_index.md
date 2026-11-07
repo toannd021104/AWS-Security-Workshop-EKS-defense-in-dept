@@ -5,11 +5,9 @@ chapter: false
 pre: "<b>4.5.</b> "
 ---
 
-## Vấn đề
-
 API cần gửi message vào SQS, còn worker cần nhận và xóa message. Hai workload cần danh tính AWS riêng mà không lưu access key trong container. Bài này so sánh IRSA với EKS Pod Identity và cấu hình association theo từng ServiceAccount.
 
-## Kiến thức cần dùng
+## Pod nhận AWS credentials như thế nào?
 
 AWS SDK sử dụng temporary credentials do cơ chế workload identity cấp. Pod Identity association liên kết cluster, namespace và ServiceAccount với một IAM role; IAM policy của role quy định thao tác AWS được phép. IRSA thực hiện liên kết bằng OIDC trust và ServiceAccount annotation.
 
@@ -24,11 +22,9 @@ AWS SDK sử dụng temporary credentials do cơ chế workload identity cấp. 
 
 Lab dùng Pod Identity cho API, worker, db-init và controller. VPC CNI dùng IRSA riêng để bootstrap mạng không phụ thuộc node IMDS. Không gán đồng thời hai cơ chế cho cùng một workload rồi đoán SDK dùng cái nào.
 
-## Thực hiện
-
 Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/6-workload-permissions/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
-### Tạo trust policy và Pod Identity associations
+## Bước 1: tạo trust policy và Pod Identity associations
 
 1. EKS → Add-ons: Pod Identity Agent `ACTIVE` trên managed nodes.
 
@@ -48,7 +44,7 @@ Phần Condition phía dưới giới hạn namespace `notes` và ServiceAccount
 
 5. Gắn identity policies theo 4.6. Association có thể tạo trước ServiceAccount nhưng workload chỉ chạy đúng khi cả hai có mặt.
 
-### Đọc association qua EKS API
+### Đọc association qua EKS API (tùy chọn)
 
 ```bash
 aws eks list-pod-identity-associations --cluster-name eks-did
@@ -64,7 +60,7 @@ aws eks create-pod-identity-association --cluster-name eks-did \
 
 Terraform tự quản lý `aws_eks_pod_identity_association.workload`. Sau khi đổi association, rollout pod để credentials injection/caches phản ánh đúng cấu hình.
 
-## Kiểm chứng kết quả
+## Kiểm tra AWS role thực tế trong pod
 
 ### Xác nhận IAM role bên trong pod
 

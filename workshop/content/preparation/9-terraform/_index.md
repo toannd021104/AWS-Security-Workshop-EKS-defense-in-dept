@@ -3,6 +3,9 @@ title: "Tùy chọn: dựng cùng lab bằng Terraform"
 weight: 9
 chapter: false
 pre: "<b>0.9.</b> "
+sequenceSkip: true
+previousLesson: "/preparation/1-workstation/"
+nextLesson: "/preparation/7-deploy-application/"
 ---
 
 ## Chọn nhánh triển khai

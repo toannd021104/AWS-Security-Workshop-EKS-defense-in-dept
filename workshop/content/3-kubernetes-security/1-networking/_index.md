@@ -5,21 +5,17 @@ chapter: false
 pre: "<b>3.1.</b> "
 ---
 
-## Vấn đề
-
 Frontend cần gọi API ổn định dù pod API có thể được thay thế sau mỗi lần triển khai. Bài này xác định quan hệ giữa Pod, Service và EndpointSlice, đồng thời xem namespace tạo ra những ranh giới nào trong cluster.
 
-## Kiến thức cần dùng
+## Pod IP, Service và namespace trong Notes
 
 Pod là đơn vị chạy container, thường có IP riêng. Deployment có thể thay pod khi rollout, nên không hardcode pod IP trong Nginx. Service chọn pods bằng label; EndpointSlice thể hiện danh sách endpoints. Namespace nhóm resources và là phạm vi của nhiều policy, nhưng không tự tạo network isolation.
 
-## Thực hiện
-
-### Xem workloads và Services
+## Bước 1: xem workloads và Services
 
 EKS → cluster → Resources → Workloads → Deployments: frontend và API có hai replicas, worker có một. Trong Service and networking, hai Service `frontend`/`api` đều là ClusterIP. Worker không cần Service vì chỉ chủ động long-poll SQS.
 
-## Kiểm chứng kết quả
+## Kiểm tra Service tìm đúng pod
 
 ### Đối chiếu Service selectors với endpoints
 

@@ -3,6 +3,7 @@ theme = "hugo-theme-learn"
 title = "A Layered Approach to Amazon EKS Security"
 defaultContentLanguage = "vi"
 languageCode = "vi-VN"
+disableKinds = ["taxonomy", "term"]
 [outputs]
 home = ["HTML", "RSS", "JSON"]
 [params]
@@ -35,3 +36,6 @@ includeFiles = ["*.py", "*.sh"]
 source = "../infrastructure/terraform"
 target = "static/source/terraform"
 includeFiles = ["*.tf", "*.json", "*.example", ".terraform.lock.hcl"]
+
+[markup.highlight]
+style = "github"

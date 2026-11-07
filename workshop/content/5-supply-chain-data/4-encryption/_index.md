@@ -5,11 +5,9 @@ chapter: false
 pre: "<b>5.4.</b> "
 ---
 
-## Vấn đề
-
 Dữ liệu của ứng dụng tồn tại trên nhiều dịch vụ, mỗi dịch vụ có cấu hình mã hóa riêng. Bài này xác định từng ranh giới mã hóa và thực hành KMS để kiểm tra quan hệ giữa ciphertext, quyền sử dụng key và encryption context.
 
-## Kiến thức cần dùng
+## Mã hóa dữ liệu và quyền sử dụng key
 
 ![Các ranh giới mã hóa](/images/encryption.svg)
 
@@ -24,9 +22,7 @@ Dữ liệu của ứng dụng tồn tại trên nhiều dịch vụ, mỗi dị
 | ECR | AES-256 repository encryption |
 | KMS lab key | CMK riêng cho bài Encrypt/Decrypt, không tự bảo vệ toàn bộ tài nguyên |
 
-## Thực hiện
-
-### Tạo KMS key và đối chiếu cấu hình dịch vụ
+## Bước 1: tạo KMS key và đối chiếu cấu hình dịch vụ
 
 KMS → Customer managed keys → Create symmetric Encrypt/Decrypt key → alias `eks-did`. Giới hạn key administrators/users vào identity lab cần thiết, bật rotation. Terraform tạo `aws_kms_key.lab` và alias, tùy chọn tắt nếu SCP không cho.
 
@@ -40,7 +36,7 @@ Key `aws/rds` bảo vệ storage của RDS. IAM database authentication là cơ 
 
 Queue dùng SSE-SQS, độc lập với customer managed KMS key sẽ thực hành bên dưới.
 
-### Mã hóa và giải mã dữ liệu thử nghiệm
+## Bước 2: mã hóa và giải mã dữ liệu thử nghiệm
 
 ```bash
 mkdir -p .local
@@ -57,7 +53,7 @@ cmp .local/plaintext.txt .local/decrypted.txt
 
 `cmp` trả exit code 0 khi dữ liệu giải mã trùng plaintext. Encryption context là additional authenticated data (AAD), được ràng buộc với ciphertext nhưng không phải dữ liệu bí mật. Phần kiểm chứng tiếp theo thay context để quan sát kết quả từ chối.
 
-## Kiểm chứng kết quả
+## Thử giải mã với đúng và sai encryption context
 
 ### Kiểm tra encryption context và vòng đời key
 

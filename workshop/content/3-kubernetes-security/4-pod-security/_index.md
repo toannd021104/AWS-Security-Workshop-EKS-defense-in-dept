@@ -5,21 +5,17 @@ chapter: false
 pre: "<b>3.4.</b> "
 ---
 
-## Vấn đề
-
 Một manifest có thể yêu cầu chạy container bằng root hoặc cấp quyền Linux không cần thiết. Bài này đặt chuẩn Restricted cho namespace ứng dụng để từ chối cấu hình không phù hợp ngay khi tạo pod.
 
-## Kiến thức cần dùng
+## Restricted kiểm tra cấu hình gì?
 
 Pod Security Standards có ba mức Privileged, Baseline và Restricted. Pod Security Admission (PSA) thực thi theo namespace labels. Nó không scan lỗ hổng trong image hoặc kiểm tra HTTP request.
 
-## Thực hiện
-
-### Quan sát cấu hình hiện tại
+## Bước 1: quan sát cấu hình hiện tại
 
 EKS → Resources → Namespaces → `notes`: quan sát labels. AWS Console có thể không hỗ trợ chỉnh tất cả labels; dùng Kubernetes API cho thay đổi sau.
 
-### Áp dụng Restricted cho namespace
+## Bước 2: áp dụng Restricted cho namespace
 
 ```bash
 kubectl label namespace notes \
@@ -31,7 +27,7 @@ kubectl label namespace notes \
 
 Pin version giúp việc upgrade chuẩn Restricted được review thay vì đổi ngầm. Không áp dụng Restricted lên `kube-system` tùy tiện: CNI và một số add-on cần quyền hệ thống.
 
-## Kiểm chứng kết quả
+## Thử pod bị từ chối và workload hợp lệ
 
 ### Thử manifest không đáp ứng Restricted
 

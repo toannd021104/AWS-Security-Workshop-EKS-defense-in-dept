@@ -5,11 +5,9 @@ chapter: false
 pre: "<b>2.1.</b> "
 ---
 
-## Vấn đề
-
 Ứng dụng được truy cập qua một domain public, trong khi các pod nằm trong private subnets. Trước khi cấu hình các lớp bảo vệ, cần xác định request đi qua những thành phần nào và cách kiểm tra từng chặng. Bài này đối chiếu đường đi của request với cấu hình ALB, pod IP và kết quả đọc/ghi dữ liệu.
 
-## Kiến thức cần dùng
+## Request đi qua những đâu?
 
 ![Request path từ client đến PostgreSQL](/images/request-path.svg "ALB gửi đến frontend pod IP; frontend gọi API qua Service nội bộ.")
 
@@ -17,11 +15,9 @@ Khi mở `https://notes.<domain>`, client phân giải DNS rồi mở TLS đến
 
 > **Phạm vi mã hóa và bảo vệ kết nối:** Lab sử dụng HTTPS để mã hóa lưu lượng từ Internet đến ALB. Từ ALB đến frontend pod và từ frontend đến API, ứng dụng sử dụng HTTP qua địa chỉ IP nội bộ trong VPC. Security Groups giới hạn kết nối ở lớp hạ tầng; Kubernetes NetworkPolicy được bổ sung trong chương 3 để giới hạn kết nối theo workload. Đây là lựa chọn của lab để tập trung thực hành bảo mật mạng và workload trên EKS.
 
-## Thực hiện
-
 Bài này quan sát lab đã chạy, sử dụng tài nguyên được tạo ở phần chuẩn bị. Hoàn thành [bước 0.8 — Kiểm tra baseline](/preparation/8-baseline/) trước khi chạy các lệnh bên dưới.
 
-### Đối chiếu đường đi trên AWS Console
+## Bước 1: đối chiếu đường đi trên AWS Console
 
 Các bước sau chỉ đọc cấu hình, không tự tạo hoặc đăng ký thêm target. Mục đích là nối domain, listener, target group và pod thành một đường truy cập có thể kiểm tra.
 
@@ -36,7 +32,7 @@ Ví dụ, pod IP `10.20.44.78` xuất hiện trong target group với port `8080
 
 Ảnh được chụp trong một lượt rollout nên có một target cũ ở trạng thái Draining. Khi đối chiếu với pod hiện tại, tập trung vào các targets Healthy.
 
-## Kiểm chứng kết quả
+## Kiểm tra request thực sự đến ứng dụng
 
 ### Gửi request và đọc kết quả
 

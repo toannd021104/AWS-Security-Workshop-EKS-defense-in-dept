@@ -5,17 +5,13 @@ chapter: false
 pre: "<b>4.3.</b> "
 ---
 
-## Vấn đề
-
 Một người cần xem trạng thái ứng dụng mà không có quyền quản trị cluster. Bài này tạo IAM role observer và đưa danh tính đó vào EKS qua Access Entry; quyền Kubernetes cụ thể sẽ được cấu hình ở bài RBAC.
 
-## Kiến thức cần dùng
+## Từ IAM principal đến danh tính Kubernetes
 
 Lab dùng role `eks-did-observer`, access entry map vào group `notes-observers`. Group được bind vào Role chỉ đọc của namespace `notes`. Không associate thêm policy admin cho role này.
 
-## Thực hiện
-
-### Tạo IAM role và Access Entry
+## Bước 1: tạo IAM role và Access Entry
 
 1. IAM → Roles → Create role → Custom trust policy. Cho phép **IAM principal quản trị lab của bạn** `sts:AssumeRole`; không dùng wildcard principal hoặc hardcode principal của account ví dụ.
 
@@ -29,7 +25,7 @@ Lab dùng role `eks-did-observer`, access entry map vào group `notes-observers`
 
 Dòng observer sử dụng Kubernetes group và không có EKS access policy admin. Những entries khác trong ảnh thuộc node, add-on hoặc danh tính quản trị của lab.
 
-### Tạo Access Entry qua API
+### Tạo Access Entry qua API (tùy chọn)
 
 Nếu tạo bằng API thay Console, sau khi role tồn tại:
 
@@ -40,7 +36,7 @@ aws eks create-access-entry --cluster-name eks-did \
 
 Không tạo trùng entry đã có. Terraform chứa `aws_iam_role.observer`, `aws_eks_access_entry.observer` tại [data-services.tf](/source/terraform/data-services.tf).
 
-## Kiểm chứng kết quả
+## Kiểm tra Access Entry và các nguồn cấp quyền
 
 ### Đối chiếu Access Entry và access policies
 

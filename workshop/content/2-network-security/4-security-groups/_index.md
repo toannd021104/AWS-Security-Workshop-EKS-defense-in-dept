@@ -5,17 +5,13 @@ chapter: false
 pre: "<b>2.4.</b> "
 ---
 
-## Vấn đề
-
 Ứng dụng cần nhận request trên 443 và kết nối database trên 5432, nhưng hai cổng này không có cùng phạm vi truy cập. Bài này cấu hình các rule theo nguồn và đích thực tế, rồi xác định giới hạn của Security Groups khi nhiều pod dùng chung node.
 
-## Kiến thức cần dùng
+## Security Groups và NACLs khác nhau ở đâu?
 
 Security Group gắn với network interface (ENI), tổng hợp các allow rules và theo dõi trạng thái kết nối. NACL gắn subnet, có allow/deny theo thứ tự và phải cho cả chiều trả về. Chúng không thay thế NetworkPolicy chọn pod theo label.
 
-## Thực hiện
-
-### Cấu hình Security Groups và xem NACLs
+## Bước 1: cấu hình Security Groups và xem NACLs
 
 1. VPC → Security groups → Create `eks-did-database` trong VPC lab. Inbound TCP 5432, **source là cluster/node SG thực tế**, không phải `0.0.0.0/0`. Gắn SG này vào RDS.
 
@@ -25,7 +21,7 @@ Security Group gắn với network interface (ENI), tổng hợp các allow rule
 
 4. VPC → Network ACLs → xem association và rule numbers. Lab giữ default NACL để tập trung SG/NetworkPolicy; không tự siết ephemeral ports khi chưa có traffic matrix.
 
-### Cấu hình Security Group qua API
+### Cấu hình Security Group qua API (tùy chọn)
 
 Nếu tạo database SG bằng API, `AuthorizeSecurityGroupIngress` dùng referenced group:
 
@@ -36,7 +32,7 @@ aws ec2 authorize-security-group-ingress --group-id "$DB_SG_ID" \
 
 Không thêm lại rule đã tồn tại. Terraform dùng `aws_vpc_security_group_ingress_rule.database`.
 
-## Kiểm chứng kết quả
+## Đối chiếu rule với đường kết nối ứng dụng
 
 ### Đọc các rule đang có hiệu lực
 

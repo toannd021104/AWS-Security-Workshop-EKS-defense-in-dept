@@ -5,44 +5,61 @@ C=ROOT/'workshop/content'
 MODULES=[('1-introduction','Introduction to Defense in Depth'),('2-network-security','Network Security – Securing the Request Path'),('3-kubernetes-security','Kubernetes Security – Securing Workloads'),('4-identity','Identity & Access Management – Securing Permissions'),('5-supply-chain-data','Supply Chain & Data Security')]
 PAGES=[]
 
-def write(path,title,weight,body,pre=''):
+def write(path,title,weight,body,pre='',**params):
  p=C/path/'_index.md';p.parent.mkdir(parents=True,exist_ok=True)
- p.write_text('---\ntitle: '+json.dumps(title,ensure_ascii=False)+'\nweight: '+str(weight)+'\nchapter: false\npre: '+json.dumps(pre)+'\n---\n\n'+body.strip()+'\n')
+ p.write_text('---\ntitle: '+json.dumps(title,ensure_ascii=False)+'\nweight: '+str(weight)+'\nchapter: false\npre: '+json.dumps(pre)+'\n'+''.join(k+': '+json.dumps(v,ensure_ascii=False)+'\n' for k,v in params.items())+'---\n\n'+body.strip()+'\n')
 def page(m,n,slug,title,body):
  path=MODULES[m-1][0]+'/'+str(n)+'-'+slug
  write(Path(path),title,n,body,f'<b>{m}.{n}.</b> ');PAGES.append((m,n,path,title))
 write(Path('.'),'A Layered Approach to Amazon EKS Security',0,r'''
-<span class="lab-tag">AWS · KUBERNETES · HANDS-ON WORKSHOP</span>
+## Bảo vệ một ứng dụng, từng lớp một
 
-# A Layered Approach to Amazon EKS Security
+Một ứng dụng chạy được trên Amazon EKS chưa trả lời hết các câu hỏi về bảo mật. Request từ Internet đi vào pod nào? Frontend có thể kết nối thẳng đến database không? API có cần quyền nhận message mà worker đang xử lý không?
 
-*Từ Internet đến Pod: xây dựng và kiểm chứng từng lớp bảo mật.*
+Workshop này sử dụng **Notes**, một ứng dụng lưu ghi chú và tạo báo cáo, để trả lời từng câu hỏi bằng cấu hình và phép thử thực tế. Bắt đầu với ứng dụng hoạt động qua HTTPS, các bài tiếp theo lần lượt kiểm tra đường mạng, giới hạn kết nối giữa workload, thu hẹp quyền truy cập và kiểm chứng cách bảo vệ image, secrets, dữ liệu.
 
-## Tổng quan
+Sau mỗi thay đổi, chạy lại luồng lưu ghi chú và tạo báo cáo. Kết quả cần đạt gồm hai phần: thao tác hợp lệ vẫn hoạt động, còn kết nối hoặc quyền không cần thiết bị từ chối.
 
-Workshop này trình bày cách bảo vệ một ứng dụng trên Amazon EKS theo từng lớp, bắt đầu từ đường truy cập qua ALB, tiếp tục đến kết nối giữa các pod và quyền truy cập dịch vụ AWS. Các bài thực hành kết hợp cấu hình AWS với cơ chế bảo mật của Kubernetes trên cùng một hệ thống.
+## Bạn sẽ thực hiện những gì?
 
-Ứng dụng mẫu gồm frontend, API và worker. Ghi chú được lưu trên RDS PostgreSQL; yêu cầu tạo báo cáo được gửi qua SQS để worker xử lý. Kiến trúc này được sử dụng xuyên suốt workshop để giải thích các quyết định về network, workload và permissions.
+- Lần theo request từ Internet qua ALB đến frontend và API trên EKS; đối chiếu listener, target group và pod IP.
+- Giới hạn đường kết nối bằng Security Groups và NetworkPolicy, rồi so sánh trước và sau khi áp dụng policy.
+- Kiểm tra pod hardening, quyền quản trị qua IAM/RBAC và AWS role riêng cho API, worker.
+- Scan và ký image, thử admission policy, kiểm tra quyền truy cập secrets và mã hóa dữ liệu.
 
-![High-level architecture của ứng dụng](/images/high-level.svg "Frontend nhận request; API xử lý nghiệp vụ; worker xử lý báo cáo qua SQS. Database sử dụng RDS bên ngoài cluster.")
+## Ứng dụng xuyên suốt workshop
 
-Phần đầu giới thiệu nguyên tắc bảo mật nhiều lớp và kiến trúc EKS. Các phần tiếp theo triển khai những kiểm soát cụ thể: HTTPS/WAF, Security Groups, NetworkPolicy, pod hardening, IAM/RBAC và bảo vệ image, secrets, dữ liệu. Mỗi bài thực hành nêu vấn đề, giải thích kiến thức cần dùng, thực hiện cấu hình và kiểm chứng kết quả.
+Frontend phục vụ giao diện và chuyển lời gọi đến API. API lưu ghi chú trong RDS PostgreSQL; khi có yêu cầu tạo báo cáo, API gửi message đến SQS. Worker nhận message, xử lý và lưu kết quả vào database. Ba workload chạy trên EKS; database nằm ngoài cluster, sử dụng RDS.
 
-Đọc [Chuẩn bị thực hành](/preparation/) trước khi tạo tài nguyên. Workshop sử dụng tài nguyên AWS có tính phí; thực hiện [Cleanup](/cleanup/) khi kết thúc. Mã thực hành có trong [gói lab ZIP](/downloads/eks-defense-in-depth-lab.zip).
+![Kiến trúc tổng quan của Notes](/images/high-level.svg "Frontend, API và worker có nhiệm vụ riêng. Các bài thực hành lần lượt giới hạn kết nối và quyền theo những nhiệm vụ đó.")
 
-## Nội dung
+Không cần xây một ứng dụng mới ở mỗi chương. Cùng một request và cùng một luồng nghiệp vụ được dùng để kiểm tra tác động của các lớp bảo vệ.
 
-1. [Introduction to Defense in Depth](/1-introduction/)
+## Workshop dành cho ai?
 
-2. [Network Security — Securing the Request Path](/2-network-security/)
+Người đã làm quen với AWS và Kubernetes, muốn thực hành bảo mật một ứng dụng EKS theo đường truy cập thực tế. Nên biết cách dùng terminal và đọc YAML cơ bản; khái niệm Pod, Service, IAM, Security Groups được nhắc lại tại bước cần sử dụng.
 
-3. [Kubernetes Security — Securing Workloads](/3-kubernetes-security/)
+Cần một **tài khoản AWS**, quyền tạo các tài nguyên của lab và domain public có thể cấu hình DNS. Phần chuẩn bị hướng dẫn từ công cụ, VPC và cluster đến triển khai ứng dụng; không giả định bạn đã có lab chạy sẵn.
 
-4. [Identity & Access Management — Securing Permissions](/4-identity/)
+## Lộ trình thực hành
 
-5. [Supply Chain & Data Security](/5-supply-chain-data/)
+| Phần | Công việc chính | Thời gian dự kiến |
+|---|---|---|
+| [1. Introduction](/1-introduction/) | Hiểu bối cảnh, kiến trúc và các ranh giới bảo vệ | 20–30 phút |
+| [Chuẩn bị lab](/preparation/) | Tạo hạ tầng, triển khai Notes và kiểm tra baseline | 90–150 phút |
+| [2. Network Security](/2-network-security/) | Theo request và kiểm tra lớp mạng AWS | 60–90 phút |
+| [3. Kubernetes Security](/3-kubernetes-security/) | Giới hạn kết nối và quyền thực thi workload | 75–105 phút |
+| [4. Identity & Access Management](/4-identity/) | Kiểm chứng quyền của người dùng và ứng dụng | 60–90 phút |
+| [5. Supply Chain & Data Security](/5-supply-chain-data/) | Kiểm tra image, admission, secrets và encryption | 60–90 phút |
+| [Tổng kết](/summary/) và [Cleanup](/cleanup/) | Đối chiếu bằng chứng và gỡ tài nguyên | 15–30 phút |
 
-[Kết quả kiểm chứng trên AWS](/validation/results/) và [kết quả image scan](/evidence/image-scan.json) được công bố riêng. Các phép thử chức năng đạt không thay thế điều kiện chấp nhận image trước khi phát hành.
+Dự trù khoảng **6–10 giờ**, có thể chia thành nhiều buổi. Đây là ước lượng để lên kế hoạch; thời gian tạo tài nguyên và kinh nghiệm thao tác sẽ ảnh hưởng thời lượng thực tế.
+
+Mỗi phần sử dụng kết quả của phần trước. Bắt đầu với **Introduction**, tiếp tục **Chuẩn bị lab**, rồi thực hành chương 2–5. Dùng nút **Trước / Tiếp** ở cuối trang hoặc menu bên trái để di chuyển. Các bước AWS ưu tiên Console; CLI/API hỗ trợ thao tác Kubernetes và kiểm tra kết quả, Terraform là nhánh triển khai thay thế.
+
+> **Chi phí:** Các tài nguyên AWS do bạn tạo được tính phí theo tài khoản đang sử dụng. Đóng trình duyệt không dừng tài nguyên; thực hiện [Cleanup](/cleanup/) khi kết thúc hoặc khi không tiếp tục lab.
+
+Mã nguồn có trong [gói lab ZIP](/downloads/eks-defense-in-depth-lab.zip). [Báo cáo kiểm chứng](/validation/results/) ghi kết quả đã quan sát trên lab tham chiếu; [image scan](/evidence/image-scan.json) có gate riêng và có thể chặn release dù ứng dụng chạy được.
 ''')
 from preparation_content import write_preparation
 write_preparation(write)
@@ -123,11 +140,9 @@ Lab sử dụng một NAT Gateway và RDS Single-AZ để giảm chi phí. Đây
 Có thể tải [sơ đồ AWS dạng draw.io](/images/aws-architecture.drawio) và [sơ đồ high-level dạng draw.io](/images/high-level.drawio) để xem hoặc chỉnh sửa. Chương 2 bắt đầu bằng việc theo dõi một request qua kiến trúc này.
 ''')
 page(2,1,'request-flow','Request Flow: Internet → ALB → Pod',r'''
-## Vấn đề
-
 Ứng dụng được truy cập qua một domain public, trong khi các pod nằm trong private subnets. Trước khi cấu hình các lớp bảo vệ, cần xác định request đi qua những thành phần nào và cách kiểm tra từng chặng. Bài này đối chiếu đường đi của request với cấu hình ALB, pod IP và kết quả đọc/ghi dữ liệu.
 
-## Kiến thức cần dùng
+## Request đi qua những đâu?
 
 ![Request path từ client đến PostgreSQL](/images/request-path.svg "ALB gửi đến frontend pod IP; frontend gọi API qua Service nội bộ.")
 
@@ -135,11 +150,9 @@ Khi mở `https://notes.<domain>`, client phân giải DNS rồi mở TLS đến
 
 > **Phạm vi mã hóa và bảo vệ kết nối:** Lab sử dụng HTTPS để mã hóa lưu lượng từ Internet đến ALB. Từ ALB đến frontend pod và từ frontend đến API, ứng dụng sử dụng HTTP qua địa chỉ IP nội bộ trong VPC. Security Groups giới hạn kết nối ở lớp hạ tầng; Kubernetes NetworkPolicy được bổ sung trong chương 3 để giới hạn kết nối theo workload. Đây là lựa chọn của lab để tập trung thực hành bảo mật mạng và workload trên EKS.
 
-## Thực hiện
-
 Bài này quan sát lab đã chạy, sử dụng tài nguyên được tạo ở phần chuẩn bị. Hoàn thành [bước 0.8 — Kiểm tra baseline](/preparation/8-baseline/) trước khi chạy các lệnh bên dưới.
 
-### Đối chiếu đường đi trên AWS Console
+## Bước 1: đối chiếu đường đi trên AWS Console
 
 Các bước sau chỉ đọc cấu hình, không tự tạo hoặc đăng ký thêm target. Mục đích là nối domain, listener, target group và pod thành một đường truy cập có thể kiểm tra.
 
@@ -154,7 +167,7 @@ Ví dụ, pod IP `10.20.44.78` xuất hiện trong target group với port `8080
 
 Ảnh được chụp trong một lượt rollout nên có một target cũ ở trạng thái Draining. Khi đối chiếu với pod hiện tại, tập trung vào các targets Healthy.
 
-## Kiểm chứng kết quả
+## Kiểm tra request thực sự đến ứng dụng
 
 ### Gửi request và đọc kết quả
 
@@ -241,11 +254,9 @@ POST phải trả ID, GET phải có ghi chú. Không ghi chú thật hoặc d�
 Kết quả cần đối chiếu gồm target IP trùng frontend pod IP, HTTP status 200 ở trang chủ/API health và ghi chú vừa POST xuất hiện trong GET. Ba bằng chứng này lần lượt xác nhận backend registration, đường HTTP và thao tác database.
 ''')
 page(2,2,'vpc','VPC Architecture: Public & Private Subnets, Routing, NAT Gateway',r'''
-## Vấn đề
-
 ALB cần tiếp nhận request từ Internet; worker nodes cần truy cập các dịch vụ AWS mà không có public IP; database chỉ cần phục vụ kết nối nội bộ. Bài này bố trí ba nhóm subnet và cấu hình route table phù hợp với từng nhu cầu.
 
-## Kiến thức cần dùng
+## Vì sao tách ba nhóm subnet?
 
 Route table được liên kết với subnet để xác định đường đi theo địa chỉ đích. Route `local` phục vụ kết nối trong VPC. Public subnet có route đến Internet Gateway; application subnet dùng NAT Gateway cho kết nối outbound. NAT Gateway không cung cấp đường cho Internet chủ động kết nối vào private workload.
 
@@ -257,11 +268,9 @@ Một subnet có route đến Internet Gateway không làm mọi EC2 trong đó 
 | Application | 10.20.32.0/20 | 10.20.48.0/20 | Một NAT Gateway ở AZ A |
 | Database | 10.20.64.0/24 | 10.20.65.0/24 | Không có; chỉ local VPC |
 
-## Thực hiện
-
 Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/2-vpc/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
-### Tạo VPC, subnets và route tables
+## Bước 1: tạo VPC, subnets và route tables
 
 1. VPC → Your VPCs → Create VPC → **VPC only**, Name `eks-did`, IPv4 `10.20.0.0/16`. Bật DNS resolution và DNS hostnames trong VPC settings.
 
@@ -285,7 +294,7 @@ Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.
 
 ![Vị trí subnet và NAT trong AWS architecture](/images/aws-architecture.svg)
 
-### Cấu hình tương đương qua API
+### Cấu hình tương đương qua API (tùy chọn)
 
 Khi tạo thủ công, AWS API tương ứng là `CreateVpc`, `CreateSubnet`, `CreateRouteTable`, `CreateRoute` và `AssociateRouteTable`. Ví dụ tạo public route sau khi export hai ID thực:
 
@@ -296,7 +305,7 @@ aws ec2 create-route --route-table-id "$PUBLIC_ROUTE_TABLE_ID" \
 
 Chỉ chạy khi route chưa tồn tại. Terraform tương ứng nằm trong [main.tf](/source/terraform/main.tf) và [data-services.tf](/source/terraform/data-services.tf).
 
-## Kiểm chứng kết quả
+## Kiểm tra đường định tuyến của từng subnet
 
 ### Kiểm tra routes và subnet associations
 
@@ -316,19 +325,15 @@ Một NAT tiết kiệm chi phí nhưng tạo phụ thuộc AZ và có thể ph�
 Kết quả đúng có ba loại route: public có `0.0.0.0/0` đến `igw-…`; application có default route đến `nat-…`; database chỉ có route local. Kiểm tra `Associations[].SubnetId` để xác nhận từng route table gắn đúng nhóm subnet. Tên subnet hoặc tên route table chưa đủ làm bằng chứng.
 ''')
 page(2,3,'edge','Edge Security: AWS WAF, ALB và HTTPS',r'''
-## Vấn đề
-
 Điểm vào public cần bảo vệ dữ liệu truyền từ trình duyệt và có khả năng chặn request theo rule đã định. Bài này cấu hình domain, certificate và HTTPS trên ALB, sau đó gắn WAF và gửi request để kiểm tra hành vi cho phép hoặc từ chối.
 
-## Kiến thức cần dùng
+## ALB, ACM và WAF bảo vệ phần nào?
 
 ALB định tuyến HTTP, ACM cung cấp certificate cho TLS và WAF kiểm tra request HTTP. WAF gắn vào ALB, không phải một máy proxy đặt trước ALB.
 
-## Thực hiện
-
 Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/5-https-waf/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
-### Cấu hình certificate và WAF rule
+## Bước 1: cấu hình certificate và WAF rule
 
 1. Route 53 → chọn public hosted zone bạn quản lý. Dùng hostname `notes.<zone>`; không tạo hosted zone mới rồi bỏ qua delegation.
 
@@ -350,7 +355,7 @@ Rule này chỉ kiểm chứng đường xử lý WAF bằng header cố định
 
 Managed rules và rate limiting cần được lựa chọn, kiểm thử và điều chỉnh false positives riêng.
 
-### Cấu hình certificate qua API
+### Cấu hình certificate qua API (tùy chọn)
 
 Nếu dùng CLI thay Console để yêu cầu cert:
 
@@ -360,7 +365,7 @@ aws acm request-certificate --domain-name "$APP_HOST" --validation-method DNS
 
 Sau đó đọc `describe-certificate`, tạo record validation và đợi `ISSUED`. Không yêu cầu lại cert nếu đã dùng Terraform. [Terraform WAF/ACM](/source/terraform/data-services.tf) chứa cấu hình đầy đủ.
 
-## Kiểm chứng kết quả
+## So sánh request được phép và bị WAF chặn
 
 ### Gửi request đến HTTP, HTTPS và WAF
 
@@ -389,17 +394,13 @@ Thiết kế này **không mã hóa toàn bộ request path**. Nếu chính sác
 Đối chiếu ba request: HTTP trả redirect sang HTTPS; HTTPS thông thường trả 200; HTTPS có header thử nghiệm trả 403. Một kết nối HTTPS thành công xác nhận certificate/hostname hợp lệ, còn 403 của request thử xác nhận WAF rule tham gia xử lý.
 ''')
 page(2,4,'security-groups','Network Access Control: Security Groups & NACLs',r'''
-## Vấn đề
-
 Ứng dụng cần nhận request trên 443 và kết nối database trên 5432, nhưng hai cổng này không có cùng phạm vi truy cập. Bài này cấu hình các rule theo nguồn và đích thực tế, rồi xác định giới hạn của Security Groups khi nhiều pod dùng chung node.
 
-## Kiến thức cần dùng
+## Security Groups và NACLs khác nhau ở đâu?
 
 Security Group gắn với network interface (ENI), tổng hợp các allow rules và theo dõi trạng thái kết nối. NACL gắn subnet, có allow/deny theo thứ tự và phải cho cả chiều trả về. Chúng không thay thế NetworkPolicy chọn pod theo label.
 
-## Thực hiện
-
-### Cấu hình Security Groups và xem NACLs
+## Bước 1: cấu hình Security Groups và xem NACLs
 
 1. VPC → Security groups → Create `eks-did-database` trong VPC lab. Inbound TCP 5432, **source là cluster/node SG thực tế**, không phải `0.0.0.0/0`. Gắn SG này vào RDS.
 
@@ -409,7 +410,7 @@ Security Group gắn với network interface (ENI), tổng hợp các allow rule
 
 4. VPC → Network ACLs → xem association và rule numbers. Lab giữ default NACL để tập trung SG/NetworkPolicy; không tự siết ephemeral ports khi chưa có traffic matrix.
 
-### Cấu hình Security Group qua API
+### Cấu hình Security Group qua API (tùy chọn)
 
 Nếu tạo database SG bằng API, `AuthorizeSecurityGroupIngress` dùng referenced group:
 
@@ -420,7 +421,7 @@ aws ec2 authorize-security-group-ingress --group-id "$DB_SG_ID" \
 
 Không thêm lại rule đã tồn tại. Terraform dùng `aws_vpc_security_group_ingress_rule.database`.
 
-## Kiểm chứng kết quả
+## Đối chiếu rule với đường kết nối ứng dụng
 
 ### Đọc các rule đang có hiệu lực
 
@@ -440,25 +441,21 @@ Tất cả pod dùng node SG có thể đi qua lớp SG đến RDS nếu không 
 Đối chiếu inbound của database: TCP 5432 phải tham chiếu Security Group của node, không mở Internet. Luồng ghi chú ở bài 2.1 vẫn phải hoạt động. Ở bài 3.2, thử thêm frontend → RDS để kiểm chứng giới hạn theo pod; Security Group dùng chung của node chưa chứng minh được sự cách ly đó.
 ''')
 page(2,5,'controller-ingress','AWS Load Balancer Controller và Kubernetes Ingress',r'''
-## Vấn đề
-
 Một Ingress mô tả đường truy cập Kubernetes chưa tự tạo ra ALB trên AWS. Bài này thiết lập controller và quyền cần thiết để chuyển cấu hình Ingress thành load balancer, sau đó kiểm tra các tài nguyên được tạo.
 
-## Kiến thức cần dùng
+## Ai tạo ALB từ Kubernetes Ingress?
 
 Ingress mô tả host/path/backend. AWS Load Balancer Controller theo dõi Ingress, Service và EndpointSlice rồi gọi ELB/EC2 APIs tạo ALB, listener, target group và rule SG. Controller không proxy từng HTTP request của ứng dụng.
 
-## Thực hiện
-
 Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/7-deploy-application/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
-### Cấp quyền cho controller
+## Bước 1: cấp quyền cho controller
 
 IAM → Roles → `eks-did-controller`: trust principal `pods.eks.amazonaws.com`, actions `sts:AssumeRole` và `sts:TagSession`. EKS → Access → Pod Identity associations: namespace `kube-system`, ServiceAccount `aws-load-balancer-controller`, role trên. Policy lấy từ release controller, không dùng `AdministratorAccess`.
 
 AWS Console không cung cấp trình soạn đầy đủ mọi Kubernetes resource. Vì vậy cài Helm chart và tạo Ingress bằng CLI là bước cần thiết.
 
-### Cài controller và tạo Ingress
+## Bước 2: cài controller và tạo Ingress
 
 Script [deploy.sh](/source/scripts/deploy.sh) pin chart `3.6.2`, truyền region và VPC ID để controller không cần lấy thông tin qua IMDS:
 
@@ -489,7 +486,7 @@ kubectl get ingress -n notes --watch
 python3 scripts/publish-dns.py
 ```
 
-## Kiểm chứng kết quả
+## Kiểm tra tài nguyên controller đã tạo
 
 ### Đối chiếu Ingress với tài nguyên AWS
 
@@ -500,11 +497,9 @@ Quyền sửa Ingress cũng có thể thay đổi tài nguyên AWS. Lab không d
 Đối chiếu hostname trong `kubectl get ingress -n notes` với DNS name của ALB trên Console. ALB phải Active, targets healthy và domain ứng dụng trả HTTP 200. Ba trạng thái này phân biệt việc controller đã tạo hạ tầng với việc backend thực sự phục vụ request.
 ''')
 page(2,6,'target-types','ALB Target Types: Instance vs IP',r'''
-## Vấn đề
-
 Target group của ALB có thể đăng ký EC2 instance hoặc địa chỉ IP. Lựa chọn này thay đổi đường đi của request và cách cấu hình backend. Bài này so sánh hai cơ chế, sử dụng IP targets và kiểm tra việc cập nhật targets khi frontend được rollout.
 
-## Kiến thức cần dùng
+## Hai cách ALB chọn backend
 
 | | Instance target | IP target — đường chính của lab |
 |---|---|---|
@@ -516,15 +511,13 @@ Target group của ALB có thể đăng ký EC2 instance hoặc địa chỉ IP.
 
 Lab chọn `ip` vì private pod IP của VPC CNI đã routable trong VPC, tránh bước NodePort không cần thiết. Đây là lựa chọn phù hợp kiến trúc hiện tại, không phải khẳng định instance mode luôn sai.
 
-## Thực hiện
-
-### Xem target group trên AWS Console
+## Bước 1: xem target group trên AWS Console
 
 EC2 → Target Groups → chọn target group của `eks-did-notes`. Target type phải `IP`, port 8080. EKS → Pods → frontend phải có các IP trùng với targets. Trong rollout có thể thấy IP cũ đang draining và IP mới đang đăng ký.
 
 ![IP targets và trạng thái health](/images/console-targets.png "① IP target type. ② HTTP:8080. ③ Healthy targets. ④ Registered pod IPs.")
 
-## Kiểm chứng kết quả
+## Kiểm tra pod IP và hành vi khi rollout
 
 ### Đối chiếu targets với pod IPs
 
@@ -550,21 +543,17 @@ curl -fsS "https://$APP_HOST/" -o /dev/null
 Controller phải cập nhật targets theo pods mới. Không dùng một lần curl thành công làm bằng chứng “zero downtime”: kiểm chứng availability khi rollout cần liên tục đo traffic, readiness và target registration. Module kế tiếp đi vào các kết nối bên trong cluster.
 ''')
 page(3,1,'networking','Kubernetes Networking: Pod, Service và Namespace',r'''
-## Vấn đề
-
 Frontend cần gọi API ổn định dù pod API có thể được thay thế sau mỗi lần triển khai. Bài này xác định quan hệ giữa Pod, Service và EndpointSlice, đồng thời xem namespace tạo ra những ranh giới nào trong cluster.
 
-## Kiến thức cần dùng
+## Pod IP, Service và namespace trong Notes
 
 Pod là đơn vị chạy container, thường có IP riêng. Deployment có thể thay pod khi rollout, nên không hardcode pod IP trong Nginx. Service chọn pods bằng label; EndpointSlice thể hiện danh sách endpoints. Namespace nhóm resources và là phạm vi của nhiều policy, nhưng không tự tạo network isolation.
 
-## Thực hiện
-
-### Xem workloads và Services
+## Bước 1: xem workloads và Services
 
 EKS → cluster → Resources → Workloads → Deployments: frontend và API có hai replicas, worker có một. Trong Service and networking, hai Service `frontend`/`api` đều là ClusterIP. Worker không cần Service vì chỉ chủ động long-poll SQS.
 
-## Kiểm chứng kết quả
+## Kiểm tra Service tìm đúng pod
 
 ### Đối chiếu Service selectors với endpoints
 
@@ -595,13 +584,11 @@ Manifest đầy đủ được tạo bởi [render.py](/source/scripts/render.py
 Đối chiếu selector `app: api`, labels của API pods và addresses trong EndpointSlice. Lệnh gọi health từ frontend trả JSON `workload: api` xác nhận DNS nội bộ và đường Service → pod cùng hoạt động.
 ''')
 page(3,2,'networkpolicy','Network Segmentation với Kubernetes NetworkPolicy',r'''
-## Vấn đề
-
 Frontend cần gọi API, nhưng một pod không thuộc ứng dụng không cần kết nối đó. Khi chưa có NetworkPolicy, hai pod có thể đều truy cập API. Bài này kiểm tra trạng thái ban đầu rồi giới hạn kết nối, đồng thời giữ nguyên chức năng lưu ghi chú và tạo báo cáo.
 
-## Kiến thức cần dùng
+## NetworkPolicy cho phép những kết nối nào?
 
-NetworkPolicy chọn pod bằng labels và khai báo các kết nối ingress hoặc egress được phép. Khi một pod đã được cô lập ở một chiều, lưu lượng thuộc chiều đó phải khớp ít nhất một allow rule. Các policies cộng dồn; một policy cho phép quá rộng có thể làm mất giới hạn mong muốn. Trước khi thực hành, bật policy enforcement theo [bài 3.3](/3-kubernetes-security/3-vpc-cni/).
+NetworkPolicy chọn pod bằng labels và khai báo các kết nối ingress hoặc egress được phép. Khi một pod đã được cô lập ở một chiều, lưu lượng thuộc chiều đó phải khớp ít nhất một allow rule. Các policies cộng dồn; một policy cho phép quá rộng có thể làm mất giới hạn mong muốn. Policy agent đã được bật ở [bước chuẩn bị EKS](/preparation/3-eks/). Nếu dùng cluster có sẵn, kiểm tra cấu hình theo [bài 3.3](/3-kubernetes-security/3-vpc-cni/) trước khi áp dụng policy.
 
 ![Các kết nối được phép và bị chặn](/images/network-policy.svg)
 
@@ -616,9 +603,7 @@ NetworkPolicy chọn pod bằng labels và khai báo các kết nối ingress ho
 | Frontend | Database/Internet | — | Deny |
 | Pod không liên quan | API | — | Deny |
 
-## Thực hiện
-
-### Ghi nhận kết nối trước khi áp dụng policy
+## Bước 1: ghi nhận kết nối trước khi áp dụng policy
 
 Mở EKS Resources để xem labels của frontend và API. Trong terminal, xác nhận ứng dụng đã hoạt động và namespace chưa có NetworkPolicy từ một lượt thực hành trước:
 
@@ -632,9 +617,9 @@ Script tạo hai pod thử nghiệm tuân thủ Restricted, dùng cùng image đ
 
 Nếu policy đã tồn tại, script dừng để tránh ghi nhận sai baseline. Khi thực hành lại trên lab đã harden, dùng phần kiểm chứng sau policy; không cần xóa policy đang bảo vệ ứng dụng.
 
-### Áp dụng NetworkPolicy
+## Bước 2: áp dụng NetworkPolicy
 
-Làm 3.3 trước khi bật default deny. Khi baseline ứng dụng đã hoạt động:
+Khi baseline ứng dụng đã hoạt động và policy agent đã được bật:
 
 ```bash
 kubectl get networkpolicy -n notes
@@ -657,7 +642,7 @@ ports:
 
 Đây là một phần rule, không phải manifest hoàn chỉnh. [render.py](/source/scripts/render.py) sinh toàn bộ policy từ CIDR thực, không pin IP RDS có thể thay khi failover.
 
-## Kiểm chứng kết quả
+## So sánh kết nối trước và sau policy
 
 ### So sánh với baseline
 
@@ -684,17 +669,13 @@ Egress HTTPS public hiện cho phép nhiều endpoint hơn SQS. Standard Network
 Các dòng baseline thể hiện kết quả cần quan sát khi chưa có policy. Script `--stage before` kiểm tra hai kết nối đến API và luồng nghiệp vụ; script `--stage after` kiểm tra thêm frontend → RDS. Một timeout chỉ có ý nghĩa khi phép thử kết nối hợp lệ và luồng ứng dụng cùng thành công.
 ''')
 page(3,3,'vpc-cni','NetworkPolicy Enforcement với Amazon VPC CNI',r'''
-## Vấn đề
-
 Kubernetes có thể chấp nhận một NetworkPolicy dù chưa có thành phần thực thi rule. Bài này bật tính năng NetworkPolicy của Amazon VPC CNI và xác nhận agent hoạt động trên worker nodes trước khi kiểm tra kết nối.
 
-## Kiến thức cần dùng
+## Thành phần nào thực thi NetworkPolicy?
 
 NetworkPolicy lưu các rule qua Kubernetes API. Amazon VPC CNI sử dụng network policy agent trên từng Linux worker node để thực thi bằng eBPF. Lab bật agent trên EC2 managed nodes; cần kiểm tra điều kiện hỗ trợ trước khi chọn compute platform khác.
 
-## Thực hiện
-
-### Bật NetworkPolicy trên VPC CNI
+## Bước 1: bật NetworkPolicy trên VPC CNI
 
 1. EKS → cluster → Add-ons → Amazon VPC CNI → Edit.
 
@@ -712,7 +693,7 @@ NetworkPolicy lưu các rule qua Kubernetes API. Amazon VPC CNI sử dụng netw
 
 Ảnh xác nhận add-ons và role CNI được cài đặt. Cấu hình `enableNetworkPolicy` và container policy agent tiếp tục được xác minh bằng các lệnh bên dưới.
 
-### Cấu hình tương đương qua EKS API
+### Cấu hình tương đương qua EKS API (tùy chọn)
 
 Nếu chưa bật, API tương ứng:
 
@@ -723,7 +704,7 @@ aws eks update-addon --cluster-name eks-did --addon-name vpc-cni \
 
 `configuration-values` cần giữ các custom settings hiện có; đọc cấu hình trước khi update. Terraform dùng `aws_eks_addon.vpc_cni` trong [main.tf](/source/terraform/main.tf).
 
-## Kiểm chứng kết quả
+## Kiểm tra agent trên từng worker node
 
 ### Xác nhận cấu hình và policy agent
 
@@ -748,21 +729,17 @@ Tham khảo [EKS NetworkPolicy](https://docs.aws.amazon.com/eks/latest/userguide
 Add-on `ACTIVE` và agent trên mỗi node là điều kiện thực thi. Bằng chứng kết nối được kiểm tra ở bài 3.2: frontend gọi API thành công trong khi pod không liên quan bị chặn. Chỉ nhìn thấy NetworkPolicy trong `kubectl get` chưa xác nhận được enforcement.
 ''')
 page(3,4,'pod-security','Pod Security Standards & Pod Security Admission',r'''
-## Vấn đề
-
 Một manifest có thể yêu cầu chạy container bằng root hoặc cấp quyền Linux không cần thiết. Bài này đặt chuẩn Restricted cho namespace ứng dụng để từ chối cấu hình không phù hợp ngay khi tạo pod.
 
-## Kiến thức cần dùng
+## Restricted kiểm tra cấu hình gì?
 
 Pod Security Standards có ba mức Privileged, Baseline và Restricted. Pod Security Admission (PSA) thực thi theo namespace labels. Nó không scan lỗ hổng trong image hoặc kiểm tra HTTP request.
 
-## Thực hiện
-
-### Quan sát cấu hình hiện tại
+## Bước 1: quan sát cấu hình hiện tại
 
 EKS → Resources → Namespaces → `notes`: quan sát labels. AWS Console có thể không hỗ trợ chỉnh tất cả labels; dùng Kubernetes API cho thay đổi sau.
 
-### Áp dụng Restricted cho namespace
+## Bước 2: áp dụng Restricted cho namespace
 
 ```bash
 kubectl label namespace notes \
@@ -774,7 +751,7 @@ kubectl label namespace notes \
 
 Pin version giúp việc upgrade chuẩn Restricted được review thay vì đổi ngầm. Không áp dụng Restricted lên `kube-system` tùy tiện: CNI và một số add-on cần quyền hệ thống.
 
-## Kiểm chứng kết quả
+## Thử pod bị từ chối và workload hợp lệ
 
 ### Thử manifest không đáp ứng Restricted
 
@@ -797,19 +774,15 @@ Workloads hợp lệ vẫn Running/Ready sau rollout. Label PSA không đuổi m
 Trong manifest lab, `securityContext` do `render.py` tạo, tách pod-level và container-level settings. Bài tiếp theo giải thích ý nghĩa của từng trường thay vì chỉ copy YAML.
 ''')
 page(3,5,'securitycontext','Container Hardening với SecurityContext',r'''
-## Vấn đề
-
 Các workload cần đáp ứng chuẩn Restricted và vẫn phục vụ ứng dụng bình thường. Bài này cấu hình quyền thực thi tối thiểu cho container, xác định nơi được ghi file và kiểm tra các giới hạn ngay trong runtime.
 
-## Kiến thức cần dùng
+## Giảm quyền thực thi của container
 
 Nếu ứng dụng bị thực thi code ngoài ý muốn, container không nên tự có quyền root hoặc ghi tùy ý vào root filesystem. Các trường cấu hình dưới đây được áp dụng ở pod hoặc container theo phạm vi tương ứng.
 
 `runAsNonRoot` yêu cầu UID không phải root. `allowPrivilegeEscalation: false` hạn chế tăng quyền qua cơ chế như setuid; không phải sandbox tuyệt đối. `RuntimeDefault` áp dụng seccomp runtime. Bỏ capabilities giảm quyền Linux không cần thiết.
 
-## Thực hiện
-
-### Cấu hình pod và container
+## Bước 1: cấu hình pod và container
 
 Trong `k8s/application.yaml`, đối chiếu `spec.template.spec.securityContext` và `containers[].securityContext` của API với các trường sau:
 
@@ -837,7 +810,7 @@ kubectl apply -f k8s/application.yaml
 kubectl rollout status deployment/api -n notes
 ```
 
-### Ứng dụng cần ghi file ở đâu?
+## Bước 2: ứng dụng cần ghi file ở đâu?
 
 Nginx cần PID/temp directories. Lab dùng image unprivileged, listen 8080 và mount `emptyDir` có giới hạn tại `/tmp`; cấu hình đưa PID/cache paths đến đó. Không mở writable toàn root filesystem chỉ để hết lỗi.
 
@@ -845,7 +818,7 @@ Python tắt bytecode writes và đọc CA bundle đã có trong image. Resource
 
 Nguồn: [Dockerfile](/source/app/Dockerfile), [render.py](/source/scripts/render.py). Non-root/Restricted không thay thế cập nhật dependencies hoặc application authorization.
 
-## Kiểm chứng kết quả
+## Kiểm tra quyền bên trong container
 
 ### Kiểm tra quyền thực thi trong container
 
@@ -866,19 +839,15 @@ curl -fsS "https://$APP_HOST/api/healthz"
 
 ''')
 page(3,6,'node-imds','Worker Node Security và IMDSv2',r'''
-## Vấn đề
-
 Worker node có IAM role để vận hành EKS. Nếu application pod lấy được credentials của node qua IMDS, nó có thể sử dụng quyền ngoài role được cấp riêng. Bài này cấu hình metadata options và kiểm tra truy cập IMDS từ pod thông thường.
 
-## Kiến thức cần dùng
+## Vì sao cần giới hạn IMDS?
 
 EC2 Instance Metadata Service (IMDS) cung cấp thông tin instance và credentials tạm thời của instance role qua địa chỉ `169.254.169.254`. IMDSv2 yêu cầu lấy session token trước khi truy cập metadata. Cấu hình response hop limit giới hạn số network hops của phản hồi lấy token.
 
 Node role cần pull image và thực hiện chức năng EKS. Quyền SQS/RDS của ứng dụng không nên gắn lên role này. Nếu pod lấy được node credentials qua EC2 IMDS, việc cấp role riêng theo workload có thể bị suy yếu.
 
-## Thực hiện
-
-### Cấu hình metadata options trong launch template
+## Bước 1: cấu hình metadata options trong launch template
 
 1. EC2 → Launch templates → template node lab → Advanced details → Metadata options.
 
@@ -888,7 +857,7 @@ Node role cần pull image và thực hiện chức năng EKS. Quyền SQS/RDS c
 
 4. EKS node group dùng đúng template version. Sửa launch template không tự cập nhật mọi node cũ; rollout node group có kiểm soát.
 
-## Kiểm chứng kết quả
+## Kiểm tra metadata options và truy cập từ pod
 
 ### Đọc cấu hình của EC2 instances đang chạy
 
@@ -918,11 +887,9 @@ Sau default-deny, NetworkPolicy cũng có thể chặn đường này. Kiểm tr
 IMDSv2 required một mình không chặn pod yêu cầu token; hop limit và network restrictions mới là phần bổ sung. `hostNetwork` có đặc điểm khác và bị baseline ứng dụng loại trừ. Xem module 4 để pod vẫn có temporary credentials đúng role qua Pod Identity Agent.
 ''')
 page(4,1,'authentication-authorization','Authentication vs Authorization',r'''
-## Vấn đề
-
 Người vận hành dùng kubectl, trong khi API và worker gọi AWS services. Các hoạt động này đi qua những hệ thống xác thực và phân quyền khác nhau. Bài này phân biệt các bước đó để xác định đúng lớp kiểm soát khi một request được cho phép hoặc bị từ chối.
 
-## Kiến thức cần dùng
+## Hai quyết định trong một lần truy cập
 
 Authentication xác định chủ thể; authorization quyết định chủ thể được phép làm hành động nào với resource nào. Hai câu hỏi xuất hiện ở cả Kubernetes, AWS API và database, nhưng do các hệ thống khác nhau trả lời.
 
@@ -933,13 +900,11 @@ Authentication xác định chủ thể; authorization quyết định chủ th�
 | API ghi vào RDS | IAM DB token | `rds-db:connect` và PostgreSQL grants |
 | Người dùng đọc ghi chú | Chưa có trong app demo | Chưa có; không dùng app cho dữ liệu nhạy cảm |
 
-## Thực hiện
-
-### Đối chiếu các danh tính
+## Bước 1: đối chiếu các danh tính
 
 Mở IAM role của API trong IAM Console và Access Entry của observer trong EKS Console. Sau đó thực hiện các lệnh ở phần kiểm chứng để phân biệt danh tính terminal với quyền Kubernetes.
 
-## Kiểm chứng kết quả
+## Kiểm tra danh tính và quyền tương ứng
 
 ### Quan sát danh tính và quyền truy cập
 
@@ -962,19 +927,15 @@ Terraform tạo role và access entry; YAML Role/RoleBinding quy định Kuberne
 Lệnh `get-caller-identity` xác định AWS principal của terminal. `kubectl auth can-i` trả lời quyền Kubernetes của danh tính đang dùng. Giữ kết quả của admin để đối chiếu với role observer ở bài 4.4; không dùng quyền admin làm bằng chứng cho quyền của observer.
 ''')
 page(4,2,'endpoint','EKS API Endpoint Security',r'''
-## Vấn đề
-
 Website cần public, nhưng endpoint quản trị Kubernetes chỉ cần phục vụ các nguồn được phép. Bài này giới hạn public access CIDRs của EKS API và giữ private access cho các thành phần trong VPC.
 
-## Kiến thức cần dùng
+## Đường mạng đến Kubernetes API
 
 ![Đường quản trị EKS](/images/human-access.svg)
 
 ALB public phục vụ website. EKS API endpoint phục vụ Kubernetes API. Một người có thể mở website nhưng không kết nối được endpoint quản trị; một người đến được endpoint vẫn phải qua authentication/authorization.
 
-## Thực hiện
-
-### Giới hạn nguồn truy cập EKS API
+### Giới hạn nguồn truy cập EKS API (tùy chọn)
 
 EKS → cluster → Configuration → Networking → Manage → endpoint access (giao diện cũ: Networking → Manage endpoint access). Lab chọn Public and private, public CIDRs = IP workstation `/32`. Nodes/controller dùng private endpoint trong VPC. Không mở `0.0.0.0/0` để xử lý lỗi từ workstation.
 
@@ -984,7 +945,7 @@ Thiết kế production có VPN/private connectivity có thể dùng private-onl
 
 Lab bật public và private access, đồng thời giới hạn public endpoint bằng CIDR quản trị. Dùng IP workstation của bạn thay cho IP trong ảnh.
 
-### Cập nhật IP quản trị khi cần
+## Bước 1: cập nhật IP quản trị khi cần
 
 Nếu IP workstation đổi, cập nhật **đúng IP mới**:
 
@@ -996,7 +957,7 @@ aws eks update-cluster-config --name eks-did \
 
 Chỉ dùng API nếu đó là đường quản lý bạn chọn. Với Terraform, sửa `admin_cidr`, plan rồi apply để tránh drift. Giữ kết nối quản trị đang hoạt động và đợi update hoàn tất trước khi thử context mới.
 
-## Kiểm chứng kết quả
+## Kiểm tra endpoint access và CIDR
 
 ### Đọc endpoint configuration và cập nhật CIDR
 
@@ -1010,17 +971,13 @@ curl -fsS https://checkip.amazonaws.com
 `kubectl get nodes` từ workstation được cho phép phải thành công. Đọc public CIDR từ API để xác nhận không có mạng rộng ngoài dự kiến. Workshop không dùng một timeout từ mạng chưa biết để tuyên bố đã kiểm chứng private-only; giới hạn test được ghi trong validation.
 ''')
 page(4,3,'human-access','Human Access: AWS IAM & EKS Access Entries',r'''
-## Vấn đề
-
 Một người cần xem trạng thái ứng dụng mà không có quyền quản trị cluster. Bài này tạo IAM role observer và đưa danh tính đó vào EKS qua Access Entry; quyền Kubernetes cụ thể sẽ được cấu hình ở bài RBAC.
 
-## Kiến thức cần dùng
+## Từ IAM principal đến danh tính Kubernetes
 
 Lab dùng role `eks-did-observer`, access entry map vào group `notes-observers`. Group được bind vào Role chỉ đọc của namespace `notes`. Không associate thêm policy admin cho role này.
 
-## Thực hiện
-
-### Tạo IAM role và Access Entry
+## Bước 1: tạo IAM role và Access Entry
 
 1. IAM → Roles → Create role → Custom trust policy. Cho phép **IAM principal quản trị lab của bạn** `sts:AssumeRole`; không dùng wildcard principal hoặc hardcode principal của account ví dụ.
 
@@ -1034,7 +991,7 @@ Lab dùng role `eks-did-observer`, access entry map vào group `notes-observers`
 
 Dòng observer sử dụng Kubernetes group và không có EKS access policy admin. Những entries khác trong ảnh thuộc node, add-on hoặc danh tính quản trị của lab.
 
-### Tạo Access Entry qua API
+### Tạo Access Entry qua API (tùy chọn)
 
 Nếu tạo bằng API thay Console, sau khi role tồn tại:
 
@@ -1045,7 +1002,7 @@ aws eks create-access-entry --cluster-name eks-did \
 
 Không tạo trùng entry đã có. Terraform chứa `aws_iam_role.observer`, `aws_eks_access_entry.observer` tại [data-services.tf](/source/terraform/data-services.tf).
 
-## Kiểm chứng kết quả
+## Kiểm tra Access Entry và các nguồn cấp quyền
 
 ### Đối chiếu Access Entry và access policies
 
@@ -1065,17 +1022,13 @@ EKS access policies và RBAC có thể cùng cấp quyền. RoleBinding read-onl
 Access Entry phải chứa đúng observer role và group `notes-observers`. Danh sách associated access policies của observer phải rỗng trong thiết kế lab. Bài 4.4 tiếp tục tạo RoleBinding và dùng chính role này để kiểm tra quyền đọc và quyền bị từ chối.
 ''')
 page(4,4,'rbac','Kubernetes RBAC: Role, ClusterRole và Bindings',r'''
-## Vấn đề
-
 Role observer đã được EKS nhận diện, nhưng vẫn cần quy định những tài nguyên và thao tác được phép. Bài này cấp quyền đọc workload trong namespace notes và kiểm tra bằng credentials thật của observer.
 
-## Kiến thức cần dùng
+## Quyền đọc trong một namespace
 
 Role có phạm vi namespace. ClusterRole có thể dùng cho cluster-scoped resources hoặc tái sử dụng qua RoleBinding. RoleBinding cấp quyền trong namespace; ClusterRoleBinding có phạm vi toàn cluster. Các quyền được cộng dồn, không có deny Role để hủy allow khác.
 
-## Thực hiện
-
-### Tạo Role và RoleBinding
+## Bước 1: tạo Role và RoleBinding
 
 EKS → Access xác nhận observer group và không có admin policy. Kubernetes Resources có thể hiển thị roles/bindings tùy quyền của người xem. Tạo Role bằng manifest:
 
@@ -1121,7 +1074,7 @@ kubectl apply -f .local/observer-rbac.yaml
 
 Các tài nguyên này cũng có trong [manifest do render.py tạo](/source/scripts/render.py). Không gắn thêm ClusterRoleBinding cho observer.
 
-## Kiểm chứng kết quả
+## Dùng observer thử quyền được phép và bị từ chối
 
 ### Đăng nhập bằng observer và thử quyền
 
@@ -1149,11 +1102,9 @@ Phải bị từ chối. `--as` là impersonation test, không thay thế việc
 `pods/exec`, đọc Secret, tạo pod với ServiceAccount khác, sửa Ingress hoặc RoleBinding có thể mang lại quyền gián tiếp đáng kể. Lab observer không có các quyền đó. Không cấp wildcard verbs/resources vì tiện demo.
 ''')
 page(4,5,'workload-identity','Workload Identity: IRSA vs EKS Pod Identity',r'''
-## Vấn đề
-
 API cần gửi message vào SQS, còn worker cần nhận và xóa message. Hai workload cần danh tính AWS riêng mà không lưu access key trong container. Bài này so sánh IRSA với EKS Pod Identity và cấu hình association theo từng ServiceAccount.
 
-## Kiến thức cần dùng
+## Pod nhận AWS credentials như thế nào?
 
 AWS SDK sử dụng temporary credentials do cơ chế workload identity cấp. Pod Identity association liên kết cluster, namespace và ServiceAccount với một IAM role; IAM policy của role quy định thao tác AWS được phép. IRSA thực hiện liên kết bằng OIDC trust và ServiceAccount annotation.
 
@@ -1168,11 +1119,9 @@ AWS SDK sử dụng temporary credentials do cơ chế workload identity cấp. 
 
 Lab dùng Pod Identity cho API, worker, db-init và controller. VPC CNI dùng IRSA riêng để bootstrap mạng không phụ thuộc node IMDS. Không gán đồng thời hai cơ chế cho cùng một workload rồi đoán SDK dùng cái nào.
 
-## Thực hiện
-
 Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/6-workload-permissions/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
-### Tạo trust policy và Pod Identity associations
+## Bước 1: tạo trust policy và Pod Identity associations
 
 1. EKS → Add-ons: Pod Identity Agent `ACTIVE` trên managed nodes.
 
@@ -1192,7 +1141,7 @@ Phần Condition phía dưới giới hạn namespace `notes` và ServiceAccount
 
 5. Gắn identity policies theo 4.6. Association có thể tạo trước ServiceAccount nhưng workload chỉ chạy đúng khi cả hai có mặt.
 
-### Đọc association qua EKS API
+### Đọc association qua EKS API (tùy chọn)
 
 ```bash
 aws eks list-pod-identity-associations --cluster-name eks-did
@@ -1208,7 +1157,7 @@ aws eks create-pod-identity-association --cluster-name eks-did \
 
 Terraform tự quản lý `aws_eks_pod_identity_association.workload`. Sau khi đổi association, rollout pod để credentials injection/caches phản ánh đúng cấu hình.
 
-## Kiểm chứng kết quả
+## Kiểm tra AWS role thực tế trong pod
 
 ### Xác nhận IAM role bên trong pod
 
@@ -1222,11 +1171,9 @@ ARN phải là assumed role `eks-did-api`, không phải node role. Egress phả
 ARN trả về phải chứa `assumed-role/eks-did-api/`, không phải node role. Association trên Console và ARN quan sát bên trong pod cung cấp hai bằng chứng: cấu hình liên kết đúng và ứng dụng thực sự nhận đúng danh tính.
 ''')
 page(4,6,'least-privilege','Least Privilege và IAM Policies',r'''
-## Vấn đề
-
 Có IAM role riêng chưa bảo đảm workload chỉ thực hiện đúng công việc được giao. Bài này giới hạn action và resource của từng role, kết hợp quyền IAM database authentication với SQL grants trong PostgreSQL.
 
-## Kiến thức cần dùng
+## Quyền được tách theo nhiệm vụ
 
 | Identity | Quyền AWS | Quyền SQL |
 |---|---|---|
@@ -1236,9 +1183,7 @@ Có IAM role riêng chưa bảo đảm workload chỉ thực hiện đúng công
 | db-init | GetSecretValue đúng RDS master secret | Bootstrap schema/users; job kết thúc sau khởi tạo |
 | Controller | Policy ELB controller release đã pin | Không có |
 
-## Thực hiện
-
-### Giới hạn IAM actions và resources
+## Bước 1: giới hạn IAM actions và resources
 
 IAM → role API → Add permissions → Inline policy → JSON. Ví dụ queue policy cho role API:
 
@@ -1260,7 +1205,7 @@ aws rds describe-db-instances --db-instance-identifier eks-did \
   --query 'DBInstances[0].{resourceID:DbiResourceId,secret:MasterUserSecret.SecretArn}'
 ```
 
-## Kiểm chứng kết quả
+## So sánh thao tác nghiệp vụ với thao tác vượt quyền
 
 ### Thử luồng nghiệp vụ và thao tác vượt quyền
 
@@ -1287,17 +1232,13 @@ except ClientError as e:
 Phải bị AccessDenied. Kiểm tra SQL riêng: API không được insert `notes.reports`; IAM connect không tự cấp quyền SQL. Db-init dùng master secret chỉ cho bootstrap; sau khi hoàn tất, pod job có thể xóa, và không cấp quyền đọc secret cho API/worker.
 ''')
 page(5,1,'scanning','Container Image Scanning với ECR & Inspector',r'''
-## Vấn đề
-
 Image đã build và chạy được vẫn có thể chứa dependency có lỗ hổng đã biết. Bài này bật scanning, đọc kết quả của đúng image digest và thực hiện kiểm tra điều kiện phát hành trước khi chấp nhận image.
 
-## Kiến thức cần dùng
+## Scan đúng image đang chạy
 
 Image scanning tìm các package/dependency có vulnerability đã biết. Kết quả cần được đánh giá theo mức độ, khả năng khai thác, bản sửa và exception có thời hạn. Scan không tự ngăn Kubernetes chạy image.
 
-## Thực hiện
-
-### Cấu hình scanning cho ECR
+## Bước 1: cấu hình scanning cho ECR
 
 1. ECR → Private registry → Features & Settings → Scanning: xem loại scanning đang dùng. Basic scan tập trung OS packages; enhanced scanning tích hợp Inspector, có thể theo dõi cả language packages theo khả năng hỗ trợ.
 
@@ -1311,7 +1252,7 @@ Chọn đúng digest đang triển khai trước khi mở findings. Các artifac
 
 4. Mở một finding, xem affected package, installed/fixed version và severity. Không đưa finding vào bài như bằng chứng exploit đã xảy ra.
 
-## Kiểm chứng kết quả
+## Đọc findings và quyết định của release gate
 
 ### Đọc kết quả theo image digest
 
@@ -1353,11 +1294,9 @@ Workshop ghi kết quả scan thực tế; không hứa “zero CVE”. Script g
 Điều kiện đạt của bài là xác định đúng deployed digest, chờ coverage hoàn tất và đọc đúng quyết định của gate. Gate `BLOCK` khi còn HIGH/CRITICAL là kết quả thực thi đúng policy; đó không phải kết luận image đã đủ điều kiện phát hành.
 ''')
 page(5,2,'sbom-signing','SBOM, Image Signing & Admission Policies',r'''
-## Vấn đề
-
 Tag và tên repository chưa chứng minh image được tạo bởi nguồn đã tin cậy. Bài này tạo SBOM, ký image theo digest và áp dụng admission policy để kiểm tra chữ ký trước khi workload được tạo.
 
-## Kiến thức cần dùng
+## Scan, SBOM và chữ ký giải quyết việc gì?
 
 Ba thành phần phục vụ ba mục đích: SBOM liệt kê dependency; chữ ký gắn digest với public key tin cậy; admission policy kiểm tra image trước khi Kubernetes tạo workload. Image có chữ ký vẫn phải được quét lỗ hổng theo bài 5.1.
 
@@ -1365,13 +1304,11 @@ Ba thành phần phục vụ ba mục đích: SBOM liệt kê dependency; chữ 
 
 SBOM giúp đối chiếu các thành phần của image với kết quả scanning. Chữ ký xác minh nguồn ký và tính toàn vẹn của digest, không bảo đảm các dependency đã hết lỗ hổng.
 
-## Thực hiện
-
-### Quan sát cấu hình hiện tại
+## Bước 1: quan sát cấu hình hiện tại
 
 ECR → repository → Images: ghi lại image digest thay vì chỉ tag. IAM/ECR permissions xác định ai có quyền push. Cấu hình signature verification là Kubernetes admission, nên phần tiếp theo cần CLI.
 
-### Tạo SBOM và ký image
+## Bước 2: tạo SBOM và ký image
 
 ```bash
 source scripts/env.sh
@@ -1387,7 +1324,7 @@ IMAGE=$(cat .local/image.txt)
 cosign verify --insecure-ignore-tlog --key k8s/cosign.pub "$IMAGE"
 ```
 
-### Áp dụng admission policy
+## Bước 3: áp dụng admission policy
 
 ```bash
 bash scripts/admission.sh
@@ -1399,7 +1336,7 @@ Policy giới hạn namespace `notes` và repository app lab, yêu cầu signatu
 
 **Positive test:** server-side dry-run pod Restricted dùng digest đã ký phải được chấp nhận. **Negative test:** cùng repo nhưng digest mới chưa ký phải bị webhook từ chối. `verify.py --supply-chain` thực hiện hai test sau bước `prepare-unsigned.sh`. Script build cùng source với một image label khác để có digest mới, push nhưng không ký hoặc deploy nó.
 
-## Kiểm chứng kết quả
+## Thử image có chữ ký và image chưa ký
 
 ### Kiểm tra phạm vi và kết quả admission
 
@@ -1414,17 +1351,13 @@ python3 scripts/verify.py --supply-chain
 Hai phép thử admission phải cho kết quả khác nhau: digest đã ký được chấp nhận; digest chưa ký bị từ chối với thông báo liên quan đến signature verification. Các phép thử dùng server-side dry-run nên không triển khai image chưa ký vào ứng dụng.
 ''')
 page(5,3,'secrets','Kubernetes Secrets & AWS Secrets Manager',r'''
-## Vấn đề
-
 Database cần tài khoản có quyền cao để khởi tạo schema, nhưng API và worker không cần giữ master password trong quá trình chạy. Bài này tách quyền bootstrap khỏi quyền ứng dụng và kiểm tra việc truy cập secret.
 
-## Kiến thức cần dùng
+## Secret nào được ứng dụng sử dụng?
 
 Kubernetes Secret thường biểu diễn dữ liệu bằng Base64 khi xuất YAML. Base64 không phải encryption. Ai có quyền đọc Secret hoặc exec vào workload có secret có thể tiếp cận dữ liệu đó.
 
-## Thực hiện
-
-### Xem metadata của RDS master secret
+## Bước 1: xem metadata của RDS master secret
 
 RDS → database → Configuration → Master credentials ARN → mở Secrets Manager. Kiểm tra encryption key và access policy. Không bấm hiển thị password để chụp ảnh đưa lên workshop.
 
@@ -1434,7 +1367,7 @@ Lab chỉ cấp `GetSecretValue` trên ARN này cho role `eks-did-db-init`. Job 
 
 Chỉ quan sát trạng thái và ARN của secret. Ảnh không hiển thị giá trị mật khẩu database.
 
-## Kiểm chứng kết quả
+## Kiểm tra metadata và quyền đọc secret
 
 ### Kiểm tra secret metadata và bootstrap job
 
@@ -1470,11 +1403,9 @@ except ClientError as e:
 Job không print secret; mã bootstrap nằm trong [main.py](/source/app/main.py). Sau khi hoàn tất, xóa pod job nếu không cần giữ để quan sát. Thu hồi association/bootstrap role khi đã chốt schema là bước hardening tiếp theo; role này không dành cho app chạy thường xuyên.
 ''')
 page(5,4,'encryption','Data Encryption với AWS KMS',r'''
-## Vấn đề
-
 Dữ liệu của ứng dụng tồn tại trên nhiều dịch vụ, mỗi dịch vụ có cấu hình mã hóa riêng. Bài này xác định từng ranh giới mã hóa và thực hành KMS để kiểm tra quan hệ giữa ciphertext, quyền sử dụng key và encryption context.
 
-## Kiến thức cần dùng
+## Mã hóa dữ liệu và quyền sử dụng key
 
 ![Các ranh giới mã hóa](/images/encryption.svg)
 
@@ -1489,9 +1420,7 @@ Dữ liệu của ứng dụng tồn tại trên nhiều dịch vụ, mỗi dị
 | ECR | AES-256 repository encryption |
 | KMS lab key | CMK riêng cho bài Encrypt/Decrypt, không tự bảo vệ toàn bộ tài nguyên |
 
-## Thực hiện
-
-### Tạo KMS key và đối chiếu cấu hình dịch vụ
+## Bước 1: tạo KMS key và đối chiếu cấu hình dịch vụ
 
 KMS → Customer managed keys → Create symmetric Encrypt/Decrypt key → alias `eks-did`. Giới hạn key administrators/users vào identity lab cần thiết, bật rotation. Terraform tạo `aws_kms_key.lab` và alias, tùy chọn tắt nếu SCP không cho.
 
@@ -1505,7 +1434,7 @@ Key `aws/rds` bảo vệ storage của RDS. IAM database authentication là cơ 
 
 Queue dùng SSE-SQS, độc lập với customer managed KMS key sẽ thực hành bên dưới.
 
-### Mã hóa và giải mã dữ liệu thử nghiệm
+## Bước 2: mã hóa và giải mã dữ liệu thử nghiệm
 
 ```bash
 mkdir -p .local
@@ -1522,7 +1451,7 @@ cmp .local/plaintext.txt .local/decrypted.txt
 
 `cmp` trả exit code 0 khi dữ liệu giải mã trùng plaintext. Encryption context là additional authenticated data (AAD), được ràng buộc với ciphertext nhưng không phải dữ liệu bí mật. Phần kiểm chứng tiếp theo thay context để quan sát kết quả từ chối.
 
-## Kiểm chứng kết quả
+## Thử giải mã với đúng và sai encryption context
 
 ### Kiểm tra encryption context và vòng đời key
 
@@ -1604,9 +1533,76 @@ Image scanning và release gate có [báo cáo riêng](/evidence/image-scan.json
 
 Xem [báo cáo thực nghiệm](/validation/results/) để biết test đã chạy và giới hạn. Script lưu log chi tiết trong `.local/` được gitignore; bản public chỉ lưu kết quả đã lọc.
 ''')
+write(Path('summary'),'Tổng kết: các lớp bảo vệ đã kiểm chứng',70,r'''
+Notes bắt đầu từ một đường truy cập HTTPS hoạt động. Sau các bài thực hành, đường truy cập đó được kiểm tra ở nhiều ranh giới: ALB và VPC, kết nối giữa pod, quyền thực thi container, danh tính người dùng/workload và dữ liệu mà ứng dụng sử dụng.
+
+## Đối chiếu bằng chứng của bạn
+
+| Câu hỏi | Phép thử cần đối chiếu | Bằng chứng cần có |
+|---|---|---|
+| Request có đến đúng frontend không? | Bài 2.1 và 2.6 | ALB target IP trùng pod IP; HTTPS trả 200 |
+| WAF có tham gia xử lý request không? | Bài 2.3 | Request thường trả 200; header thử trả 403 |
+| Pod không liên quan có gọi API được không? | Bài 3.2 | Kết nối bị chặn sau policy; frontend vẫn gọi API |
+| Container có được chạy tùy ý không? | Bài 3.4–3.5 | Pod không đạt Restricted bị từ chối; ứng dụng chạy non-root |
+| Application pod có lấy được quyền node không? | Bài 3.6 | IMDSv2 required/hop limit 1; kiểm tra truy cập IMDS từ pod bị chặn trong cấu hình lab |
+| Observer có sửa được workload không? | Bài 4.4 | Đọc được namespace notes; thao tác sửa và truy cập ngoài phạm vi bị từ chối |
+| API/worker có đúng AWS role không? | Bài 4.5–4.6 | Đúng role; luồng SQS cần thiết hoạt động và thao tác vượt quyền bị từ chối |
+| Image có đủ điều kiện phát hành không? | Bài 5.1 | Đọc findings theo đúng digest và quyết định riêng của scan gate |
+| Admission có chặn image chưa ký không? | Bài 5.2 | Image hợp lệ được chấp nhận; image thử chưa ký bị từ chối trong phạm vi policy |
+| Secret và KMS có được kiểm soát không? | Bài 5.3–5.4 | Role không cần master secret bị từ chối; sai encryption context không giải mã được |
+
+Các ô trên là điều kiện cần kiểm tra, không phải kết quả tự động đạt. [Báo cáo lab tham chiếu](/validation/results/) và [kết quả NetworkPolicy](/evidence/network-proof-after.json) ghi riêng những phép thử đã chạy. So sánh với output của môi trường bạn thực hành.
+
+## Ứng dụng cần tiếp tục hoạt động
+
+Sau khi giới hạn network và permissions, chạy lại hai thao tác từ [baseline](/preparation/8-baseline/): tạo/đọc ghi chú và gửi/nhận báo cáo. Chỉ nhìn thấy timeout hoặc AccessDenied chưa đủ: thao tác đúng quyền và kết nối hợp lệ cũng cần thành công.
+
+Bộ kiểm tra tổng hợp được mô tả ở [Kiểm chứng](/validation/). Chỉ dùng lựa chọn `--supply-chain` sau khi hoàn thành các bước signing/admission tương ứng.
+
+## Những giới hạn cần mang theo
+
+HTTPS kết thúc tại ALB; frontend và API sử dụng HTTP nội bộ trong cấu hình lab. Security Groups và NetworkPolicy kiểm soát kết nối, không thay thế TLS khi có yêu cầu mã hóa các chặng này.
+
+Một NAT Gateway, RDS Single-AZ và một replica controller/admission là các lựa chọn giảm chi phí thực hành; cần đánh giá lại availability khi thiết kế hệ thống sử dụng thực tế. Policy ký image chỉ bao phủ các image/repository được nêu trong bài.
+
+[Kết quả scan tham chiếu](/evidence/image-scan.json) ghi nhận 4 HIGH chưa có bản sửa và gate **BLOCK**. Việc các kiểm tra chức năng và phân quyền đạt không phê duyệt image đó để phát hành.
+
+## Kết thúc thực hành
+
+Lưu lại output cần đối chiếu, sau đó thực hiện [Cleanup](/cleanup/) để gỡ tài nguyên. Không đưa credentials, Terraform state, kubeconfig hoặc private signing key vào báo cáo hay repository.
+''')
+
+CHAPTER_INTROS = {
+1: """Notes có ba workload nhưng chỉ frontend nhận request từ Internet. API cần database và queue; worker cần xử lý message và ghi kết quả. Những khác biệt này là điểm bắt đầu để xác định lớp bảo vệ cần đặt ở đâu.
+
+Phần này giới thiệu Defense in Depth, trách nhiệm của AWS/người triển khai và hai góc nhìn kiến trúc: luồng nghiệp vụ tổng quan, sau đó là các thành phần AWS/Kubernetes thực hiện luồng đó. Chưa cần chạy lệnh.
+
+Sau khi đọc kiến trúc, chuyển sang [Chuẩn bị lab](/preparation/) để tạo ứng dụng trước khi lần theo request ở chương 2.""",
+2: """Notes đã hoạt động qua domain HTTPS ở bước baseline. Bây giờ cần giải thích được vì sao request từ Internet đến được frontend trong private subnet, và những kết nối nào được lớp mạng AWS cho phép.
+
+Bắt đầu từ một request thật, đối chiếu ALB target với pod IP rồi đọc ngược về subnets, routes và Security Groups. Tiếp tục kiểm tra HTTPS, WAF và cách controller quản lý backend. Các tài nguyên nền đã được tạo ở phần chuẩn bị; các bài chỉ rõ khi nào cần quan sát và khi nào cần thay đổi cấu hình.
+
+Hoàn thành [baseline](/preparation/8-baseline/) trước bài 2.1. Cuối phần này, cần đối chiếu được cả request HTTPS trả 200 và request thử WAF trả 403. Giới hạn kết nối giữa pod được tiếp tục ở chương 3.""",
+3: """Security Groups đã giới hạn kết nối ở lớp AWS, nhưng frontend và API vẫn cùng chạy trên EKS. Namespace giúp tổ chức workload; nó chưa tự ngăn một pod không liên quan gọi API.
+
+Phần này kiểm tra kết nối trước khi áp dụng NetworkPolicy, thêm các allow rules cần thiết và chạy lại cùng phép thử. Sau đó kiểm tra cấu hình thực thi của policy, chuẩn Restricted, quyền container và đường truy cập metadata của node.
+
+CNI policy agent đã được bật ở [bước tạo EKS](/preparation/3-eks/); bài 3.3 giải thích và đối chiếu điều kiện này. Kết quả cần đạt: frontend vẫn gọi API, Notes vẫn lưu ghi chú/tạo báo cáo, còn pod không liên quan bị chặn. Các kiểm tra PSA và SecurityContext xác nhận thêm giới hạn thực thi workload.""",
+4: """Một pod kết nối được đến AWS endpoint chưa có nghĩa nó được phép thực hiện mọi API. Tương tự, người dùng có thể xác thực với AWS nhưng chưa có quyền sửa tài nguyên Kubernetes.
+
+Phần này theo hai đường truy cập: người quản trị đến EKS API và workload đến dịch vụ AWS. Giới hạn endpoint, gắn danh tính qua Access Entries, cấp quyền đọc bằng RBAC, rồi đối chiếu Pod Identity và IAM policies của API/worker.
+
+Các role cần để Notes hoạt động đã có từ phần chuẩn bị. Dùng danh tính observer để thử quyền thực tế và so sánh thao tác SQS hợp lệ với thao tác vượt quyền. Cuối phần, cần chỉ ra được principal nào bị từ chối và lớp nào đưa ra quyết định.""",
+5: """Network và IAM đã thu hẹp đường truy cập, nhưng không trả lời image có lỗ hổng hay ai được phép lấy secret. Phần cuối chuyển từ kết nối và permissions sang đầu vào triển khai và dữ liệu mà ứng dụng sử dụng.
+
+Scan đúng digest đang chạy, đọc release gate, tạo SBOM và chữ ký rồi thử admission bằng một image chưa ký. Tiếp theo kiểm tra master secret của RDS, quyền bootstrap và encryption context của KMS.
+
+Kết quả scan phải được đánh giá riêng với chức năng ứng dụng: lab tham chiếu hiện có HIGH findings chưa có bản sửa và release gate trả BLOCK. Hoàn thành phần này rồi dùng [Tổng kết](/summary/) để đối chiếu toàn bộ bằng chứng trước khi cleanup.""",
+}
+
 for i,(slug,title) in enumerate(MODULES,1):
  rows=[f'{m}.{n}. [{t}]({"/"+p+"/"})' for m,n,p,t in PAGES if m==i]
- write(Path(slug),title,i+1,'## Nội dung\n\n'+'\n\n'.join(rows), f'<b>{i}.</b> ')
+ write(Path(slug),title,1 if i == 1 else i+1,CHAPTER_INTROS[i]+'\n\n## Các bài trong phần này\n\n'+'\n\n'.join(rows), f'<b>{i}.</b> ')
 # Emit a navigation map for validation and future edits.
 (ROOT/'evidence/content-map.json').write_text(json.dumps(PAGES,ensure_ascii=False,indent=2))
 print('Generated',len(PAGES),'lessons across',len(MODULES),'modules.')

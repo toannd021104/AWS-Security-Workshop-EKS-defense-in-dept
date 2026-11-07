@@ -830,6 +830,6 @@ Sau bước 0.8, lab có domain HTTPS, ba workload chạy được, đọc/ghi R
 
 Ảnh được chụp từ lab tham chiếu; các output mẫu có chú thích và giá trị minh họa. Thay account ID, domain, resource IDs và IP bằng giá trị của môi trường đang sử dụng. [Cleanup](/cleanup/) hướng dẫn dừng tài nguyên có tính phí khi kết thúc.
 '''
-    write(Path('preparation'), 'Chuẩn bị lab', 1, body)
+    write(Path('preparation'), 'Chuẩn bị lab', 2, body)
     for i, (slug, title, content) in enumerate(SETUP, 1):
-        write(Path('preparation')/slug, title, i, content, f'<b>0.{i}.</b> ')
+        write(Path('preparation')/slug, title, i, content, f'<b>0.{i}.</b> ', **({'sequenceSkip': True, 'previousLesson': '/preparation/1-workstation/', 'nextLesson': '/preparation/7-deploy-application/'} if i == 9 else {}))

@@ -5,11 +5,9 @@ chapter: false
 pre: "<b>4.6.</b> "
 ---
 
-## Vấn đề
-
 Có IAM role riêng chưa bảo đảm workload chỉ thực hiện đúng công việc được giao. Bài này giới hạn action và resource của từng role, kết hợp quyền IAM database authentication với SQL grants trong PostgreSQL.
 
-## Kiến thức cần dùng
+## Quyền được tách theo nhiệm vụ
 
 | Identity | Quyền AWS | Quyền SQL |
 |---|---|---|
@@ -19,9 +17,7 @@ Có IAM role riêng chưa bảo đảm workload chỉ thực hiện đúng công
 | db-init | GetSecretValue đúng RDS master secret | Bootstrap schema/users; job kết thúc sau khởi tạo |
 | Controller | Policy ELB controller release đã pin | Không có |
 
-## Thực hiện
-
-### Giới hạn IAM actions và resources
+## Bước 1: giới hạn IAM actions và resources
 
 IAM → role API → Add permissions → Inline policy → JSON. Ví dụ queue policy cho role API:
 
@@ -43,7 +39,7 @@ aws rds describe-db-instances --db-instance-identifier eks-did \
   --query 'DBInstances[0].{resourceID:DbiResourceId,secret:MasterUserSecret.SecretArn}'
 ```
 
-## Kiểm chứng kết quả
+## So sánh thao tác nghiệp vụ với thao tác vượt quyền
 
 ### Thử luồng nghiệp vụ và thao tác vượt quyền
 

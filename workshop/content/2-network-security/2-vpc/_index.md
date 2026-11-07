@@ -5,11 +5,9 @@ chapter: false
 pre: "<b>2.2.</b> "
 ---
 
-## Vấn đề
-
 ALB cần tiếp nhận request từ Internet; worker nodes cần truy cập các dịch vụ AWS mà không có public IP; database chỉ cần phục vụ kết nối nội bộ. Bài này bố trí ba nhóm subnet và cấu hình route table phù hợp với từng nhu cầu.
 
-## Kiến thức cần dùng
+## Vì sao tách ba nhóm subnet?
 
 Route table được liên kết với subnet để xác định đường đi theo địa chỉ đích. Route `local` phục vụ kết nối trong VPC. Public subnet có route đến Internet Gateway; application subnet dùng NAT Gateway cho kết nối outbound. NAT Gateway không cung cấp đường cho Internet chủ động kết nối vào private workload.
 
@@ -21,11 +19,9 @@ Một subnet có route đến Internet Gateway không làm mọi EC2 trong đó 
 | Application | 10.20.32.0/20 | 10.20.48.0/20 | Một NAT Gateway ở AZ A |
 | Database | 10.20.64.0/24 | 10.20.65.0/24 | Không có; chỉ local VPC |
 
-## Thực hiện
-
 Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/2-vpc/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
-### Tạo VPC, subnets và route tables
+## Bước 1: tạo VPC, subnets và route tables
 
 1. VPC → Your VPCs → Create VPC → **VPC only**, Name `eks-did`, IPv4 `10.20.0.0/16`. Bật DNS resolution và DNS hostnames trong VPC settings.
 
@@ -49,7 +45,7 @@ Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.
 
 ![Vị trí subnet và NAT trong AWS architecture](/images/aws-architecture.svg)
 
-### Cấu hình tương đương qua API
+### Cấu hình tương đương qua API (tùy chọn)
 
 Khi tạo thủ công, AWS API tương ứng là `CreateVpc`, `CreateSubnet`, `CreateRouteTable`, `CreateRoute` và `AssociateRouteTable`. Ví dụ tạo public route sau khi export hai ID thực:
 
@@ -60,7 +56,7 @@ aws ec2 create-route --route-table-id "$PUBLIC_ROUTE_TABLE_ID" \
 
 Chỉ chạy khi route chưa tồn tại. Terraform tương ứng nằm trong [main.tf](/source/terraform/main.tf) và [data-services.tf](/source/terraform/data-services.tf).
 
-## Kiểm chứng kết quả
+## Kiểm tra đường định tuyến của từng subnet
 
 ### Kiểm tra routes và subnet associations
 

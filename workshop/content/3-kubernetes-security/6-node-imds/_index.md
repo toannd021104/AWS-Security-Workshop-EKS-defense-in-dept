@@ -5,19 +5,15 @@ chapter: false
 pre: "<b>3.6.</b> "
 ---
 
-## Vấn đề
-
 Worker node có IAM role để vận hành EKS. Nếu application pod lấy được credentials của node qua IMDS, nó có thể sử dụng quyền ngoài role được cấp riêng. Bài này cấu hình metadata options và kiểm tra truy cập IMDS từ pod thông thường.
 
-## Kiến thức cần dùng
+## Vì sao cần giới hạn IMDS?
 
 EC2 Instance Metadata Service (IMDS) cung cấp thông tin instance và credentials tạm thời của instance role qua địa chỉ `169.254.169.254`. IMDSv2 yêu cầu lấy session token trước khi truy cập metadata. Cấu hình response hop limit giới hạn số network hops của phản hồi lấy token.
 
 Node role cần pull image và thực hiện chức năng EKS. Quyền SQS/RDS của ứng dụng không nên gắn lên role này. Nếu pod lấy được node credentials qua EC2 IMDS, việc cấp role riêng theo workload có thể bị suy yếu.
 
-## Thực hiện
-
-### Cấu hình metadata options trong launch template
+## Bước 1: cấu hình metadata options trong launch template
 
 1. EC2 → Launch templates → template node lab → Advanced details → Metadata options.
 
@@ -27,7 +23,7 @@ Node role cần pull image và thực hiện chức năng EKS. Quyền SQS/RDS c
 
 4. EKS node group dùng đúng template version. Sửa launch template không tự cập nhật mọi node cũ; rollout node group có kiểm soát.
 
-## Kiểm chứng kết quả
+## Kiểm tra metadata options và truy cập từ pod
 
 ### Đọc cấu hình của EC2 instances đang chạy
 

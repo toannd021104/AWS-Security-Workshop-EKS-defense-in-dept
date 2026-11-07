@@ -5,13 +5,11 @@ chapter: false
 pre: "<b>3.2.</b> "
 ---
 
-## Vấn đề
-
 Frontend cần gọi API, nhưng một pod không thuộc ứng dụng không cần kết nối đó. Khi chưa có NetworkPolicy, hai pod có thể đều truy cập API. Bài này kiểm tra trạng thái ban đầu rồi giới hạn kết nối, đồng thời giữ nguyên chức năng lưu ghi chú và tạo báo cáo.
 
-## Kiến thức cần dùng
+## NetworkPolicy cho phép những kết nối nào?
 
-NetworkPolicy chọn pod bằng labels và khai báo các kết nối ingress hoặc egress được phép. Khi một pod đã được cô lập ở một chiều, lưu lượng thuộc chiều đó phải khớp ít nhất một allow rule. Các policies cộng dồn; một policy cho phép quá rộng có thể làm mất giới hạn mong muốn. Trước khi thực hành, bật policy enforcement theo [bài 3.3](/3-kubernetes-security/3-vpc-cni/).
+NetworkPolicy chọn pod bằng labels và khai báo các kết nối ingress hoặc egress được phép. Khi một pod đã được cô lập ở một chiều, lưu lượng thuộc chiều đó phải khớp ít nhất một allow rule. Các policies cộng dồn; một policy cho phép quá rộng có thể làm mất giới hạn mong muốn. Policy agent đã được bật ở [bước chuẩn bị EKS](/preparation/3-eks/). Nếu dùng cluster có sẵn, kiểm tra cấu hình theo [bài 3.3](/3-kubernetes-security/3-vpc-cni/) trước khi áp dụng policy.
 
 ![Các kết nối được phép và bị chặn](/images/network-policy.svg)
 
@@ -26,9 +24,7 @@ NetworkPolicy chọn pod bằng labels và khai báo các kết nối ingress ho
 | Frontend | Database/Internet | — | Deny |
 | Pod không liên quan | API | — | Deny |
 
-## Thực hiện
-
-### Ghi nhận kết nối trước khi áp dụng policy
+## Bước 1: ghi nhận kết nối trước khi áp dụng policy
 
 Mở EKS Resources để xem labels của frontend và API. Trong terminal, xác nhận ứng dụng đã hoạt động và namespace chưa có NetworkPolicy từ một lượt thực hành trước:
 
@@ -42,9 +38,9 @@ Script tạo hai pod thử nghiệm tuân thủ Restricted, dùng cùng image đ
 
 Nếu policy đã tồn tại, script dừng để tránh ghi nhận sai baseline. Khi thực hành lại trên lab đã harden, dùng phần kiểm chứng sau policy; không cần xóa policy đang bảo vệ ứng dụng.
 
-### Áp dụng NetworkPolicy
+## Bước 2: áp dụng NetworkPolicy
 
-Làm 3.3 trước khi bật default deny. Khi baseline ứng dụng đã hoạt động:
+Khi baseline ứng dụng đã hoạt động và policy agent đã được bật:
 
 ```bash
 kubectl get networkpolicy -n notes
@@ -67,7 +63,7 @@ ports:
 
 Đây là một phần rule, không phải manifest hoàn chỉnh. [render.py](/source/scripts/render.py) sinh toàn bộ policy từ CIDR thực, không pin IP RDS có thể thay khi failover.
 
-## Kiểm chứng kết quả
+## So sánh kết nối trước và sau policy
 
 ### So sánh với baseline
 

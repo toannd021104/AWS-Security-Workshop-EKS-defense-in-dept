@@ -5,19 +5,15 @@ chapter: false
 pre: "<b>4.2.</b> "
 ---
 
-## Vấn đề
-
 Website cần public, nhưng endpoint quản trị Kubernetes chỉ cần phục vụ các nguồn được phép. Bài này giới hạn public access CIDRs của EKS API và giữ private access cho các thành phần trong VPC.
 
-## Kiến thức cần dùng
+## Đường mạng đến Kubernetes API
 
 ![Đường quản trị EKS](/images/human-access.svg)
 
 ALB public phục vụ website. EKS API endpoint phục vụ Kubernetes API. Một người có thể mở website nhưng không kết nối được endpoint quản trị; một người đến được endpoint vẫn phải qua authentication/authorization.
 
-## Thực hiện
-
-### Giới hạn nguồn truy cập EKS API
+### Giới hạn nguồn truy cập EKS API (tùy chọn)
 
 EKS → cluster → Configuration → Networking → Manage → endpoint access (giao diện cũ: Networking → Manage endpoint access). Lab chọn Public and private, public CIDRs = IP workstation `/32`. Nodes/controller dùng private endpoint trong VPC. Không mở `0.0.0.0/0` để xử lý lỗi từ workstation.
 
@@ -27,7 +23,7 @@ Thiết kế production có VPN/private connectivity có thể dùng private-onl
 
 Lab bật public và private access, đồng thời giới hạn public endpoint bằng CIDR quản trị. Dùng IP workstation của bạn thay cho IP trong ảnh.
 
-### Cập nhật IP quản trị khi cần
+## Bước 1: cập nhật IP quản trị khi cần
 
 Nếu IP workstation đổi, cập nhật **đúng IP mới**:
 
@@ -39,7 +35,7 @@ aws eks update-cluster-config --name eks-did \
 
 Chỉ dùng API nếu đó là đường quản lý bạn chọn. Với Terraform, sửa `admin_cidr`, plan rồi apply để tránh drift. Giữ kết nối quản trị đang hoạt động và đợi update hoàn tất trước khi thử context mới.
 
-## Kiểm chứng kết quả
+## Kiểm tra endpoint access và CIDR
 
 ### Đọc endpoint configuration và cập nhật CIDR
 

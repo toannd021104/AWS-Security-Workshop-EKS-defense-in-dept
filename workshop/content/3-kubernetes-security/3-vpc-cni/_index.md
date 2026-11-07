@@ -5,17 +5,13 @@ chapter: false
 pre: "<b>3.3.</b> "
 ---
 
-## Vấn đề
-
 Kubernetes có thể chấp nhận một NetworkPolicy dù chưa có thành phần thực thi rule. Bài này bật tính năng NetworkPolicy của Amazon VPC CNI và xác nhận agent hoạt động trên worker nodes trước khi kiểm tra kết nối.
 
-## Kiến thức cần dùng
+## Thành phần nào thực thi NetworkPolicy?
 
 NetworkPolicy lưu các rule qua Kubernetes API. Amazon VPC CNI sử dụng network policy agent trên từng Linux worker node để thực thi bằng eBPF. Lab bật agent trên EC2 managed nodes; cần kiểm tra điều kiện hỗ trợ trước khi chọn compute platform khác.
 
-## Thực hiện
-
-### Bật NetworkPolicy trên VPC CNI
+## Bước 1: bật NetworkPolicy trên VPC CNI
 
 1. EKS → cluster → Add-ons → Amazon VPC CNI → Edit.
 
@@ -33,7 +29,7 @@ NetworkPolicy lưu các rule qua Kubernetes API. Amazon VPC CNI sử dụng netw
 
 Ảnh xác nhận add-ons và role CNI được cài đặt. Cấu hình `enableNetworkPolicy` và container policy agent tiếp tục được xác minh bằng các lệnh bên dưới.
 
-### Cấu hình tương đương qua EKS API
+### Cấu hình tương đương qua EKS API (tùy chọn)
 
 Nếu chưa bật, API tương ứng:
 
@@ -44,7 +40,7 @@ aws eks update-addon --cluster-name eks-did --addon-name vpc-cni \
 
 `configuration-values` cần giữ các custom settings hiện có; đọc cấu hình trước khi update. Terraform dùng `aws_eks_addon.vpc_cni` trong [main.tf](/source/terraform/main.tf).
 
-## Kiểm chứng kết quả
+## Kiểm tra agent trên từng worker node
 
 ### Xác nhận cấu hình và policy agent
 

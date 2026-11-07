@@ -5,11 +5,9 @@ chapter: false
 pre: "<b>5.2.</b> "
 ---
 
-## Vấn đề
-
 Tag và tên repository chưa chứng minh image được tạo bởi nguồn đã tin cậy. Bài này tạo SBOM, ký image theo digest và áp dụng admission policy để kiểm tra chữ ký trước khi workload được tạo.
 
-## Kiến thức cần dùng
+## Scan, SBOM và chữ ký giải quyết việc gì?
 
 Ba thành phần phục vụ ba mục đích: SBOM liệt kê dependency; chữ ký gắn digest với public key tin cậy; admission policy kiểm tra image trước khi Kubernetes tạo workload. Image có chữ ký vẫn phải được quét lỗ hổng theo bài 5.1.
 
@@ -17,13 +15,11 @@ Ba thành phần phục vụ ba mục đích: SBOM liệt kê dependency; chữ 
 
 SBOM giúp đối chiếu các thành phần của image với kết quả scanning. Chữ ký xác minh nguồn ký và tính toàn vẹn của digest, không bảo đảm các dependency đã hết lỗ hổng.
 
-## Thực hiện
-
-### Quan sát cấu hình hiện tại
+## Bước 1: quan sát cấu hình hiện tại
 
 ECR → repository → Images: ghi lại image digest thay vì chỉ tag. IAM/ECR permissions xác định ai có quyền push. Cấu hình signature verification là Kubernetes admission, nên phần tiếp theo cần CLI.
 
-### Tạo SBOM và ký image
+## Bước 2: tạo SBOM và ký image
 
 ```bash
 source scripts/env.sh
@@ -39,7 +35,7 @@ IMAGE=$(cat .local/image.txt)
 cosign verify --insecure-ignore-tlog --key k8s/cosign.pub "$IMAGE"
 ```
 
-### Áp dụng admission policy
+## Bước 3: áp dụng admission policy
 
 ```bash
 bash scripts/admission.sh
@@ -51,7 +47,7 @@ Policy giới hạn namespace `notes` và repository app lab, yêu cầu signatu
 
 **Positive test:** server-side dry-run pod Restricted dùng digest đã ký phải được chấp nhận. **Negative test:** cùng repo nhưng digest mới chưa ký phải bị webhook từ chối. `verify.py --supply-chain` thực hiện hai test sau bước `prepare-unsigned.sh`. Script build cùng source với một image label khác để có digest mới, push nhưng không ký hoặc deploy nó.
 
-## Kiểm chứng kết quả
+## Thử image có chữ ký và image chưa ký
 
 ### Kiểm tra phạm vi và kết quả admission
 

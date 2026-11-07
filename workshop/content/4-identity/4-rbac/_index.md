@@ -5,17 +5,13 @@ chapter: false
 pre: "<b>4.4.</b> "
 ---
 
-## Vấn đề
-
 Role observer đã được EKS nhận diện, nhưng vẫn cần quy định những tài nguyên và thao tác được phép. Bài này cấp quyền đọc workload trong namespace notes và kiểm tra bằng credentials thật của observer.
 
-## Kiến thức cần dùng
+## Quyền đọc trong một namespace
 
 Role có phạm vi namespace. ClusterRole có thể dùng cho cluster-scoped resources hoặc tái sử dụng qua RoleBinding. RoleBinding cấp quyền trong namespace; ClusterRoleBinding có phạm vi toàn cluster. Các quyền được cộng dồn, không có deny Role để hủy allow khác.
 
-## Thực hiện
-
-### Tạo Role và RoleBinding
+## Bước 1: tạo Role và RoleBinding
 
 EKS → Access xác nhận observer group và không có admin policy. Kubernetes Resources có thể hiển thị roles/bindings tùy quyền của người xem. Tạo Role bằng manifest:
 
@@ -61,7 +57,7 @@ kubectl apply -f .local/observer-rbac.yaml
 
 Các tài nguyên này cũng có trong [manifest do render.py tạo](/source/scripts/render.py). Không gắn thêm ClusterRoleBinding cho observer.
 
-## Kiểm chứng kết quả
+## Dùng observer thử quyền được phép và bị từ chối
 
 ### Đăng nhập bằng observer và thử quyền
 

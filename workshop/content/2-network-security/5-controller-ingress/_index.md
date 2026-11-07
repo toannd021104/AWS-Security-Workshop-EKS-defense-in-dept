@@ -5,25 +5,21 @@ chapter: false
 pre: "<b>2.5.</b> "
 ---
 
-## Vấn đề
-
 Một Ingress mô tả đường truy cập Kubernetes chưa tự tạo ra ALB trên AWS. Bài này thiết lập controller và quyền cần thiết để chuyển cấu hình Ingress thành load balancer, sau đó kiểm tra các tài nguyên được tạo.
 
-## Kiến thức cần dùng
+## Ai tạo ALB từ Kubernetes Ingress?
 
 Ingress mô tả host/path/backend. AWS Load Balancer Controller theo dõi Ingress, Service và EndpointSlice rồi gọi ELB/EC2 APIs tạo ALB, listener, target group và rule SG. Controller không proxy từng HTTP request của ứng dụng.
 
-## Thực hiện
-
 Các tài nguyên này đã được dựng trong [phần chuẩn bị lab](/preparation/7-deploy-application/). Đối chiếu cấu hình hiện có theo các bước dưới đây; chỉ tạo mới nếu tài nguyên tương ứng chưa tồn tại.
 
-### Cấp quyền cho controller
+## Bước 1: cấp quyền cho controller
 
 IAM → Roles → `eks-did-controller`: trust principal `pods.eks.amazonaws.com`, actions `sts:AssumeRole` và `sts:TagSession`. EKS → Access → Pod Identity associations: namespace `kube-system`, ServiceAccount `aws-load-balancer-controller`, role trên. Policy lấy từ release controller, không dùng `AdministratorAccess`.
 
 AWS Console không cung cấp trình soạn đầy đủ mọi Kubernetes resource. Vì vậy cài Helm chart và tạo Ingress bằng CLI là bước cần thiết.
 
-### Cài controller và tạo Ingress
+## Bước 2: cài controller và tạo Ingress
 
 Script [deploy.sh](/source/scripts/deploy.sh) pin chart `3.6.2`, truyền region và VPC ID để controller không cần lấy thông tin qua IMDS:
 
@@ -54,7 +50,7 @@ kubectl get ingress -n notes --watch
 python3 scripts/publish-dns.py
 ```
 
-## Kiểm chứng kết quả
+## Kiểm tra tài nguyên controller đã tạo
 
 ### Đối chiếu Ingress với tài nguyên AWS
 

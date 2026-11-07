@@ -5,11 +5,9 @@ chapter: false
 pre: "<b>4.1.</b> "
 ---
 
-## Vấn đề
-
 Người vận hành dùng kubectl, trong khi API và worker gọi AWS services. Các hoạt động này đi qua những hệ thống xác thực và phân quyền khác nhau. Bài này phân biệt các bước đó để xác định đúng lớp kiểm soát khi một request được cho phép hoặc bị từ chối.
 
-## Kiến thức cần dùng
+## Hai quyết định trong một lần truy cập
 
 Authentication xác định chủ thể; authorization quyết định chủ thể được phép làm hành động nào với resource nào. Hai câu hỏi xuất hiện ở cả Kubernetes, AWS API và database, nhưng do các hệ thống khác nhau trả lời.
 
@@ -20,13 +18,11 @@ Authentication xác định chủ thể; authorization quyết định chủ th�
 | API ghi vào RDS | IAM DB token | `rds-db:connect` và PostgreSQL grants |
 | Người dùng đọc ghi chú | Chưa có trong app demo | Chưa có; không dùng app cho dữ liệu nhạy cảm |
 
-## Thực hiện
-
-### Đối chiếu các danh tính
+## Bước 1: đối chiếu các danh tính
 
 Mở IAM role của API trong IAM Console và Access Entry của observer trong EKS Console. Sau đó thực hiện các lệnh ở phần kiểm chứng để phân biệt danh tính terminal với quyền Kubernetes.
 
-## Kiểm chứng kết quả
+## Kiểm tra danh tính và quyền tương ứng
 
 ### Quan sát danh tính và quyền truy cập
 

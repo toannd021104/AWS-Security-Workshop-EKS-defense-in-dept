@@ -5,7 +5,13 @@ chapter: false
 pre: "<b>3.</b> "
 ---
 
-## Nội dung
+Security Groups đã giới hạn kết nối ở lớp AWS, nhưng frontend và API vẫn cùng chạy trên EKS. Namespace giúp tổ chức workload; nó chưa tự ngăn một pod không liên quan gọi API.
+
+Phần này kiểm tra kết nối trước khi áp dụng NetworkPolicy, thêm các allow rules cần thiết và chạy lại cùng phép thử. Sau đó kiểm tra cấu hình thực thi của policy, chuẩn Restricted, quyền container và đường truy cập metadata của node.
+
+CNI policy agent đã được bật ở [bước tạo EKS](/preparation/3-eks/); bài 3.3 giải thích và đối chiếu điều kiện này. Kết quả cần đạt: frontend vẫn gọi API, Notes vẫn lưu ghi chú/tạo báo cáo, còn pod không liên quan bị chặn. Các kiểm tra PSA và SecurityContext xác nhận thêm giới hạn thực thi workload.
+
+## Các bài trong phần này
 
 3.1. [Kubernetes Networking: Pod, Service và Namespace](/3-kubernetes-security/1-networking/)
 

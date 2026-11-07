@@ -5,34 +5,51 @@ chapter: false
 pre: ""
 ---
 
-<span class="lab-tag">AWS · KUBERNETES · HANDS-ON WORKSHOP</span>
+## Bảo vệ một ứng dụng, từng lớp một
 
-# A Layered Approach to Amazon EKS Security
+Một ứng dụng chạy được trên Amazon EKS chưa trả lời hết các câu hỏi về bảo mật. Request từ Internet đi vào pod nào? Frontend có thể kết nối thẳng đến database không? API có cần quyền nhận message mà worker đang xử lý không?
 
-*Từ Internet đến Pod: xây dựng và kiểm chứng từng lớp bảo mật.*
+Workshop này sử dụng **Notes**, một ứng dụng lưu ghi chú và tạo báo cáo, để trả lời từng câu hỏi bằng cấu hình và phép thử thực tế. Bắt đầu với ứng dụng hoạt động qua HTTPS, các bài tiếp theo lần lượt kiểm tra đường mạng, giới hạn kết nối giữa workload, thu hẹp quyền truy cập và kiểm chứng cách bảo vệ image, secrets, dữ liệu.
 
-## Tổng quan
+Sau mỗi thay đổi, chạy lại luồng lưu ghi chú và tạo báo cáo. Kết quả cần đạt gồm hai phần: thao tác hợp lệ vẫn hoạt động, còn kết nối hoặc quyền không cần thiết bị từ chối.
 
-Workshop này trình bày cách bảo vệ một ứng dụng trên Amazon EKS theo từng lớp, bắt đầu từ đường truy cập qua ALB, tiếp tục đến kết nối giữa các pod và quyền truy cập dịch vụ AWS. Các bài thực hành kết hợp cấu hình AWS với cơ chế bảo mật của Kubernetes trên cùng một hệ thống.
+## Bạn sẽ thực hiện những gì?
 
-Ứng dụng mẫu gồm frontend, API và worker. Ghi chú được lưu trên RDS PostgreSQL; yêu cầu tạo báo cáo được gửi qua SQS để worker xử lý. Kiến trúc này được sử dụng xuyên suốt workshop để giải thích các quyết định về network, workload và permissions.
+- Lần theo request từ Internet qua ALB đến frontend và API trên EKS; đối chiếu listener, target group và pod IP.
+- Giới hạn đường kết nối bằng Security Groups và NetworkPolicy, rồi so sánh trước và sau khi áp dụng policy.
+- Kiểm tra pod hardening, quyền quản trị qua IAM/RBAC và AWS role riêng cho API, worker.
+- Scan và ký image, thử admission policy, kiểm tra quyền truy cập secrets và mã hóa dữ liệu.
 
-![High-level architecture của ứng dụng](/images/high-level.svg "Frontend nhận request; API xử lý nghiệp vụ; worker xử lý báo cáo qua SQS. Database sử dụng RDS bên ngoài cluster.")
+## Ứng dụng xuyên suốt workshop
 
-Phần đầu giới thiệu nguyên tắc bảo mật nhiều lớp và kiến trúc EKS. Các phần tiếp theo triển khai những kiểm soát cụ thể: HTTPS/WAF, Security Groups, NetworkPolicy, pod hardening, IAM/RBAC và bảo vệ image, secrets, dữ liệu. Mỗi bài thực hành nêu vấn đề, giải thích kiến thức cần dùng, thực hiện cấu hình và kiểm chứng kết quả.
+Frontend phục vụ giao diện và chuyển lời gọi đến API. API lưu ghi chú trong RDS PostgreSQL; khi có yêu cầu tạo báo cáo, API gửi message đến SQS. Worker nhận message, xử lý và lưu kết quả vào database. Ba workload chạy trên EKS; database nằm ngoài cluster, sử dụng RDS.
 
-Đọc [Chuẩn bị thực hành](/preparation/) trước khi tạo tài nguyên. Workshop sử dụng tài nguyên AWS có tính phí; thực hiện [Cleanup](/cleanup/) khi kết thúc. Mã thực hành có trong [gói lab ZIP](/downloads/eks-defense-in-depth-lab.zip).
+![Kiến trúc tổng quan của Notes](/images/high-level.svg "Frontend, API và worker có nhiệm vụ riêng. Các bài thực hành lần lượt giới hạn kết nối và quyền theo những nhiệm vụ đó.")
 
-## Nội dung
+Không cần xây một ứng dụng mới ở mỗi chương. Cùng một request và cùng một luồng nghiệp vụ được dùng để kiểm tra tác động của các lớp bảo vệ.
 
-1. [Introduction to Defense in Depth](/1-introduction/)
+## Workshop dành cho ai?
 
-2. [Network Security — Securing the Request Path](/2-network-security/)
+Người đã làm quen với AWS và Kubernetes, muốn thực hành bảo mật một ứng dụng EKS theo đường truy cập thực tế. Nên biết cách dùng terminal và đọc YAML cơ bản; khái niệm Pod, Service, IAM, Security Groups được nhắc lại tại bước cần sử dụng.
 
-3. [Kubernetes Security — Securing Workloads](/3-kubernetes-security/)
+Cần một **tài khoản AWS**, quyền tạo các tài nguyên của lab và domain public có thể cấu hình DNS. Phần chuẩn bị hướng dẫn từ công cụ, VPC và cluster đến triển khai ứng dụng; không giả định bạn đã có lab chạy sẵn.
 
-4. [Identity & Access Management — Securing Permissions](/4-identity/)
+## Lộ trình thực hành
 
-5. [Supply Chain & Data Security](/5-supply-chain-data/)
+| Phần | Công việc chính | Thời gian dự kiến |
+|---|---|---|
+| [1. Introduction](/1-introduction/) | Hiểu bối cảnh, kiến trúc và các ranh giới bảo vệ | 20–30 phút |
+| [Chuẩn bị lab](/preparation/) | Tạo hạ tầng, triển khai Notes và kiểm tra baseline | 90–150 phút |
+| [2. Network Security](/2-network-security/) | Theo request và kiểm tra lớp mạng AWS | 60–90 phút |
+| [3. Kubernetes Security](/3-kubernetes-security/) | Giới hạn kết nối và quyền thực thi workload | 75–105 phút |
+| [4. Identity & Access Management](/4-identity/) | Kiểm chứng quyền của người dùng và ứng dụng | 60–90 phút |
+| [5. Supply Chain & Data Security](/5-supply-chain-data/) | Kiểm tra image, admission, secrets và encryption | 60–90 phút |
+| [Tổng kết](/summary/) và [Cleanup](/cleanup/) | Đối chiếu bằng chứng và gỡ tài nguyên | 15–30 phút |
 
-[Kết quả kiểm chứng trên AWS](/validation/results/) và [kết quả image scan](/evidence/image-scan.json) được công bố riêng. Các phép thử chức năng đạt không thay thế điều kiện chấp nhận image trước khi phát hành.
+Dự trù khoảng **6–10 giờ**, có thể chia thành nhiều buổi. Đây là ước lượng để lên kế hoạch; thời gian tạo tài nguyên và kinh nghiệm thao tác sẽ ảnh hưởng thời lượng thực tế.
+
+Mỗi phần sử dụng kết quả của phần trước. Bắt đầu với **Introduction**, tiếp tục **Chuẩn bị lab**, rồi thực hành chương 2–5. Dùng nút **Trước / Tiếp** ở cuối trang hoặc menu bên trái để di chuyển. Các bước AWS ưu tiên Console; CLI/API hỗ trợ thao tác Kubernetes và kiểm tra kết quả, Terraform là nhánh triển khai thay thế.
+
+> **Chi phí:** Các tài nguyên AWS do bạn tạo được tính phí theo tài khoản đang sử dụng. Đóng trình duyệt không dừng tài nguyên; thực hiện [Cleanup](/cleanup/) khi kết thúc hoặc khi không tiếp tục lab.
+
+Mã nguồn có trong [gói lab ZIP](/downloads/eks-defense-in-depth-lab.zip). [Báo cáo kiểm chứng](/validation/results/) ghi kết quả đã quan sát trên lab tham chiếu; [image scan](/evidence/image-scan.json) có gate riêng và có thể chặn release dù ứng dụng chạy được.

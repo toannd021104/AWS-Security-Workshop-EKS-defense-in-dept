@@ -1,6 +1,6 @@
 ---
 title: "Chuẩn bị lab"
-weight: 1
+weight: 2
 chapter: false
 pre: ""
 ---
