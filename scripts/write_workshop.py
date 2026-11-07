@@ -290,6 +290,8 @@ page(2,1,'request-flow','Request Flow: Internet → ALB → Pod',r'''
 
 Khi mở `https://notes.<domain>`, client phân giải DNS rồi mở TLS đến ALB. DNS không proxy HTTP. ALB kết thúc TLS, kiểm tra listener rule, chọn target healthy và mở kết nối HTTP riêng đến frontend pod `:8080`. Nginx nhận `/api/notes` và proxy đến `api.notes.svc.cluster.local:8080/notes`. API mở kết nối PostgreSQL TLS đến RDS `:5432`.
 
+> **Lưu ý về mã hóa:** HTTPS kết thúc tại ALB. Chặng ALB → frontend pod dùng HTTP port `8080`; frontend → API cũng dùng HTTP. Lab giữ lựa chọn này để đơn giản hóa cấu hình certificate và vận hành TLS nội bộ. Security Groups và NetworkPolicy giới hạn các kết nối được phép, nhưng không mã hóa lưu lượng. Việc nằm trong mạng AWS không đồng nghĩa kết nối đã được mã hóa.
+
 ### Console: đối chiếu từng đoạn
 
 1. Route 53 → Hosted zones → zone lab → record `notes`: điểm đến phải là ALB của lab.
@@ -404,7 +406,11 @@ Sau đó đọc `describe-certificate`, tạo record validation và đợi `ISSU
 
 ### TLS kết thúc ở đâu?
 
-Client → ALB được mã hóa; lab ALB → frontend và frontend → API dùng HTTP trong VPC. API/worker → RDS dùng TLS xác minh CA/hostname. Thiết kế này **không mã hóa end-to-end toàn bộ request path**. Nếu yêu cầu đó tồn tại, phải bổ sung backend HTTPS/mTLS và chứng minh lại.
+Client → ALB dùng HTTPS với certificate ACM. TLS kết thúc tại ALB; ALB → frontend pod dùng HTTP port `8080`, và frontend → API cũng dùng HTTP. API/worker → RDS dùng TLS xác minh CA/hostname.
+
+> **Lựa chọn của lab:** Giữ HTTP ở hai chặng nội bộ để đơn giản hóa cấu hình certificate, gia hạn và vận hành TLS. Các kết nối được giới hạn bằng Security Groups và NetworkPolicy. Những cơ chế này kiểm soát truy cập, **không mã hóa dữ liệu**; việc nằm trong mạng AWS không đồng nghĩa kết nối đã được mã hóa.
+
+Thiết kế này **không mã hóa toàn bộ request path**. Nếu chính sách bảo mật hoặc yêu cầu tuân thủ đòi hỏi mã hóa các chặng nội bộ, cần cấu hình HTTPS từ ALB đến frontend và TLS cho frontend → API. ALB không xác thực certificate của HTTPS target; yêu cầu xác minh danh tính workload cần được thiết kế riêng.
 ''')
 page(2,4,'security-groups','Network Access Control: Security Groups & NACLs',r'''
 ## SG stateful, NACL stateless

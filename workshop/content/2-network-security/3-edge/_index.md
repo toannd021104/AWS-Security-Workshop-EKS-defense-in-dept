@@ -40,4 +40,8 @@ Sau đó đọc `describe-certificate`, tạo record validation và đợi `ISSU
 
 ### TLS kết thúc ở đâu?
 
-Client → ALB được mã hóa; lab ALB → frontend và frontend → API dùng HTTP trong VPC. API/worker → RDS dùng TLS xác minh CA/hostname. Thiết kế này **không mã hóa end-to-end toàn bộ request path**. Nếu yêu cầu đó tồn tại, phải bổ sung backend HTTPS/mTLS và chứng minh lại.
+Client → ALB dùng HTTPS với certificate ACM. TLS kết thúc tại ALB; ALB → frontend pod dùng HTTP port `8080`, và frontend → API cũng dùng HTTP. API/worker → RDS dùng TLS xác minh CA/hostname.
+
+> **Lựa chọn của lab:** Giữ HTTP ở hai chặng nội bộ để đơn giản hóa cấu hình certificate, gia hạn và vận hành TLS. Các kết nối được giới hạn bằng Security Groups và NetworkPolicy. Những cơ chế này kiểm soát truy cập, **không mã hóa dữ liệu**; việc nằm trong mạng AWS không đồng nghĩa kết nối đã được mã hóa.
+
+Thiết kế này **không mã hóa toàn bộ request path**. Nếu chính sách bảo mật hoặc yêu cầu tuân thủ đòi hỏi mã hóa các chặng nội bộ, cần cấu hình HTTPS từ ALB đến frontend và TLS cho frontend → API. ALB không xác thực certificate của HTTPS target; yêu cầu xác minh danh tính workload cần được thiết kế riêng.
