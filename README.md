@@ -21,4 +21,4 @@ The [`examples/secure-payments-app`](examples/secure-payments-app) directory con
 
 For a reproducible AWS foundation, see the [Terraform deployment guide](infrastructure/terraform/README.md). The workshop modules remain console-first, with AWS CLI/API commands and Terraform as repeatable alternatives.
 
-To present the lab in Vietnamese, use the [presenter script](docs/presenter-script-vi.md). It explains the architecture, request flow, security layers, demo checkpoints, and sandbox limitations.
+To present the lab in Vietnamese, open the [25-minute Hugo presentation guide](content/presentation/). It follows the 11-slide deck, with speaker notes, timing, module links, and demo cues. A short [script index](docs/presenter-script-vi.md) points to the Hugo version.
