@@ -5,18 +5,31 @@ chapter: false
 pre: "<b>3.6.</b> "
 ---
 
-## Không để pod vô tình mang quyền của node
+## Vấn đề
+
+Worker node có IAM role để vận hành EKS. Nếu application pod lấy được credentials của node qua IMDS, nó có thể sử dụng quyền ngoài role được cấp riêng. Bài này cấu hình metadata options và kiểm tra truy cập IMDS từ pod thông thường.
+
+## Kiến thức cần dùng
+
+EC2 Instance Metadata Service (IMDS) cung cấp thông tin instance và credentials tạm thời của instance role qua địa chỉ `169.254.169.254`. IMDSv2 yêu cầu lấy session token trước khi truy cập metadata. Cấu hình response hop limit giới hạn số network hops của phản hồi lấy token.
 
 Node role cần pull image và thực hiện chức năng EKS. Quyền SQS/RDS của ứng dụng không nên gắn lên role này. Nếu pod lấy được node credentials qua EC2 IMDS, việc cấp role riêng theo workload có thể bị suy yếu.
 
-### Console: cấu hình trước khi tạo node
+## Thực hiện
+
+### Cấu hình metadata options trong launch template
 
 1. EC2 → Launch templates → template node lab → Advanced details → Metadata options.
+
 2. Metadata accessible: enabled; **IMDSv2 required**, response hop limit **1**.
+
 3. Không mở SSH từ Internet, EBS encrypted. CNI role riêng cho `aws-node`, không bắt CNI pod phụ thuộc metadata hop 1.
+
 4. EKS node group dùng đúng template version. Sửa launch template không tự cập nhật mọi node cũ; rollout node group có kiểm soát.
 
-### CLI/API: kiểm tra instance thay vì chỉ nhìn template
+## Kiểm chứng kết quả
+
+### Đọc cấu hình của EC2 instances đang chạy
 
 ```bash
 aws ec2 describe-instances \
@@ -26,7 +39,7 @@ aws ec2 describe-instances \
 
 Mong đợi nodes không có public IP, `HttpTokens=required`, `HttpPutResponseHopLimit=1`. Terraform dùng `aws_launch_template.nodes`.
 
-### Negative test từ pod thường
+### Thử truy cập IMDS từ application pod
 
 ```bash
 kubectl exec -n notes deployment/api -- python -c '

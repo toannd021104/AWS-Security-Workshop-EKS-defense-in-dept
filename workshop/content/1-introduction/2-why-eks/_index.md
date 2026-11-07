@@ -5,31 +5,14 @@ chapter: false
 pre: "<b>1.2.</b> "
 ---
 
-## Managed control plane không tự bảo vệ ứng dụng
+Amazon EKS cung cấp Kubernetes control plane được AWS quản lý. Ứng dụng chạy trên cluster vẫn phụ thuộc vào cách cấu hình mạng, worker nodes, container images và quyền truy cập. Vì vậy, việc sử dụng managed Kubernetes cần đi cùng các kiểm soát dành cho workload.
 
-EKS giảm công việc vận hành Kubernetes control plane. Bạn vẫn quyết định ai vào cluster, pod nào được kết nối, container chạy quyền gì và role AWS nào gắn vào workload.
+Một request đến ứng dụng đi qua nhiều ranh giới. Ở phía AWS, ALB nhận kết nối, Security Groups giới hạn lưu lượng và VPC cung cấp đường định tuyến. Khi request vào cluster, Kubernetes Service, pod labels và NetworkPolicy quyết định cách các workload kết nối. Các lời gọi đến SQS hoặc RDS tiếp tục chịu kiểm soát của IAM và quyền database.
 
-Với ứng dụng mẫu, xem bốn trường hợp:
+Private subnet giúp worker nodes không cần public IP để phục vụ ứng dụng qua ALB. Tuy nhiên, các pod trong VPC vẫn có thể kết nối với nhau nếu chưa có cơ chế hạn chế. Tương tự, việc cấp IAM role riêng cho API chỉ phát huy tác dụng khi pod không lấy được quyền rộng hơn từ worker node.
 
-1. **API có lỗ hổng:** NetworkPolicy giới hạn kết nối nhưng không hiểu logic nghiệp vụ hoặc sửa lỗi code.
-2. **Developer được `pods/exec`:** người đó có thể thực thi code trong container và sử dụng quyền hợp pháp của workload.
-3. **Frontend không có Pod Identity:** nếu vẫn lấy được node credentials qua IMDS, việc bỏ role riêng chưa đủ.
-4. **Image đã ký nhưng có lỗ hổng:** signature chứng minh nguồn ký/tính toàn vẹn, không chứng minh code an toàn.
+Trong lab, ba workload được tách theo chức năng. Frontend phục vụ giao diện và chuyển request đến API. API thực hiện nghiệp vụ đồng bộ. Worker xử lý báo cáo ở phía sau, không mở endpoint cho người dùng. RDS được triển khai bên ngoài cluster bằng dịch vụ managed.
 
-### Quan sát cấu hình
+Cách phân chia này cho phép áp dụng các giới hạn cụ thể: frontend không có AWS role ứng dụng; API chỉ gửi vào queue của lab; worker nhận và xóa message từ queue đó. Quyền PostgreSQL cũng được tách theo công việc của API và worker.
 
-**Console:** EKS → cluster → Access xem danh tính được cấp quyền. EC2 → Instances → node → Security kiểm tra IAM role; không nên thấy quyền SQS của ứng dụng trên node.
-
-```bash
-aws eks list-access-entries --cluster-name eks-did
-kubectl get deployments -n notes
-kubectl get rolebindings -n notes
-```
-
-Kết quả cần đọc: ba Deployment khác chức năng, identity riêng; không phải ba replica của một app.
-
-### Thiết kế để giới hạn tác động
-
-Frontend không cần AWS role và không có đường egress đến RDS. API chỉ gửi vào một queue. Worker chỉ nhận/xóa từ queue đó. PostgreSQL cấp SQL privileges riêng cho API và worker. Những giới hạn này vẫn có ý nghĩa khi một workload bị lỗi.
-
-Không thực hiện exploit trong bài này. Ta dùng probe có kiểm soát để kiểm tra các ranh giới. Phần ứng dụng chưa có đăng nhập người dùng và không được dùng lưu dữ liệu nhạy cảm; network/IAM không thay thế application authorization.
+Các chương tiếp theo lần lượt triển khai và kiểm chứng những giới hạn này. Ứng dụng mẫu phục vụ việc học network và phân quyền, chưa có cơ chế đăng nhập người dùng; chỉ sử dụng dữ liệu thử nghiệm trong lab.

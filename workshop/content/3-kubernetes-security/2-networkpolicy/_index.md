@@ -5,7 +5,13 @@ chapter: false
 pre: "<b>3.2.</b> "
 ---
 
-## Bắt đầu từ traffic matrix
+## Vấn đề
+
+Frontend cần gọi API, nhưng một pod không thuộc ứng dụng không cần kết nối đó. Khi chưa có NetworkPolicy, hai pod có thể đều truy cập API. Bài này kiểm tra trạng thái ban đầu rồi giới hạn kết nối, đồng thời giữ nguyên chức năng lưu ghi chú và tạo báo cáo.
+
+## Kiến thức cần dùng
+
+NetworkPolicy chọn pod bằng labels và khai báo các kết nối ingress hoặc egress được phép. Khi một pod đã được cô lập ở một chiều, lưu lượng thuộc chiều đó phải khớp ít nhất một allow rule. Các policies cộng dồn; một policy cho phép quá rộng có thể làm mất giới hạn mong muốn. Trước khi thực hành, bật policy enforcement theo [bài 3.3](/3-kubernetes-security/3-vpc-cni/).
 
 ![Các kết nối được phép và bị chặn](/images/network-policy.svg)
 
@@ -20,11 +26,23 @@ pre: "<b>3.2.</b> "
 | Frontend | Database/Internet | — | Deny |
 | Pod không liên quan | API | — | Deny |
 
-### Console trước
+## Thực hiện
 
-EKS Console giúp xem pod labels, IP và NetworkPolicy nếu resource browser hỗ trợ phiên bản đó. Policy creation/enforcement cần YAML và `kubectl`; không có nút AWS Security Group nào thay được pod selectors.
+### Ghi nhận kết nối trước khi áp dụng policy
 
-### CLI: xác nhận engine rồi áp dụng
+Mở EKS Resources để xem labels của frontend và API. Trong terminal, xác nhận ứng dụng đã hoạt động và namespace chưa có NetworkPolicy từ một lượt thực hành trước:
+
+```bash
+source scripts/env.sh
+kubectl get networkpolicy -n notes
+python3 scripts/network-proof.py --stage before
+```
+
+Script tạo hai pod thử nghiệm tuân thủ Restricted, dùng cùng image đã triển khai nhưng mang labels khác nhau. Khi chưa có policy, frontend và pod `untrusted` đều kết nối được đến API. Script cũng kiểm tra lưu ghi chú và tạo báo cáo, sau đó xóa các probe pods.
+
+Nếu policy đã tồn tại, script dừng để tránh ghi nhận sai baseline. Khi thực hành lại trên lab đã harden, dùng phần kiểm chứng sau policy; không cần xóa policy đang bảo vệ ứng dụng.
+
+### Áp dụng NetworkPolicy
 
 Làm 3.3 trước khi bật default deny. Khi baseline ứng dụng đã hoạt động:
 
@@ -49,14 +67,28 @@ ports:
 
 Đây là một phần rule, không phải manifest hoàn chỉnh. [render.py](/source/scripts/render.py) sinh toàn bộ policy từ CIDR thực, không pin IP RDS có thể thay khi failover.
 
-### Kiểm chứng
+## Kiểm chứng kết quả
+
+### So sánh với baseline
 
 ```bash
-python3 scripts/verify.py
+python3 scripts/network-proof.py --stage after
 ```
 
-Bộ kiểm tra dùng IP Service cho negative connectivity để phân biệt lỗi DNS với kết nối bị chặn. Frontend phải gọi API được; untrusted pod gọi API và frontend gọi RDS phải timeout. Positive API → RDS phải thành công để chứng minh DB đang sẵn sàng.
+Phép thử sau policy dùng IP Service cho negative connectivity để phân biệt lỗi DNS với kết nối bị chặn. Frontend phải gọi API được; untrusted pod gọi API và frontend gọi RDS phải timeout. Positive API → RDS phải thành công để chứng minh DB đang sẵn sàng.
 
-### Giới hạn
+### Phạm vi của các rule egress
 
-Egress HTTPS public hiện cho phép nhiều endpoint hơn SQS. Standard NetworkPolicy không có native FQDN/HTTP authorization; dùng IAM giới hạn một queue, thêm VPC Endpoint policies hoặc giải pháp egress phù hợp nếu cần siết theo dịch vụ. Không tuyên bố policy đã chặn mọi data exfiltration.
+Egress HTTPS public hiện cho phép nhiều endpoint hơn SQS. Standard NetworkPolicy không có native FQDN/HTTP authorization; dùng IAM giới hạn một queue, thêm VPC Endpoint policies hoặc giải pháp egress phù hợp nếu cần siết theo dịch vụ. Các rule của lab chưa giới hạn được mọi đường đưa dữ liệu ra ngoài.
+
+
+| Phép thử | Trước policy | Sau policy |
+|---|---|---|
+| Frontend → API | Kết nối được | Kết nối được |
+| Pod không liên quan → API | Kết nối được | Bị chặn |
+| Frontend → RDS | Chưa giới hạn theo pod | Bị chặn |
+| Lưu ghi chú và tạo báo cáo | Hoạt động | Hoạt động |
+
+[Báo cáo kiểm chứng sau policy trên sandbox](/evidence/network-proof-after.json) ghi lại kết quả của 5 phép thử thực tế.
+
+Các dòng baseline thể hiện kết quả cần quan sát khi chưa có policy. Script `--stage before` kiểm tra hai kết nối đến API và luồng nghiệp vụ; script `--stage after` kiểm tra thêm frontend → RDS. Một timeout chỉ có ý nghĩa khi phép thử kết nối hợp lệ và luồng ứng dụng cùng thành công.

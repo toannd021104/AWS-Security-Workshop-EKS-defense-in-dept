@@ -12,9 +12,13 @@ Chạy cleanup trong đúng account/profile. Lab dùng prefix `eks-did` và kube
 ### Console: những tài nguyên cần gỡ
 
 1. EKS/Kubernetes: xóa Ingress trước, đợi controller xóa ALB, target groups và SG do nó quản lý. Sau đó gỡ namespace app, Kyverno và controller.
+
 2. Route 53: xóa **record ứng dụng `notes`**, không xóa public hosted zone sandbox.
+
 3. Gỡ node group/add-ons/cluster; RDS, queue, ECR lab; NAT trước khi release EIP; subnet/route/IGW/VPC sau khi ENI không còn.
+
 4. Xóa ACM certificate và record validation thuộc cert lab. Schedule deletion CMK; xóa alias lab.
+
 5. Inspector là account-level setting: chỉ disable nếu chính lab đã bật và không có consumer khác. Không tắt scanning toàn account dùng chung mà không review.
 
 ### CLI: gỡ tài nguyên do controller quản lý

@@ -5,15 +5,23 @@ chapter: false
 pre: "<b>3.1.</b> "
 ---
 
-## Pod IP thay đổi; tên Service giúp client tìm đúng backend
+## Vấn đề
+
+Frontend cần gọi API ổn định dù pod API có thể được thay thế sau mỗi lần triển khai. Bài này xác định quan hệ giữa Pod, Service và EndpointSlice, đồng thời xem namespace tạo ra những ranh giới nào trong cluster.
+
+## Kiến thức cần dùng
 
 Pod là đơn vị chạy container, thường có IP riêng. Deployment có thể thay pod khi rollout, nên không hardcode pod IP trong Nginx. Service chọn pods bằng label; EndpointSlice thể hiện danh sách endpoints. Namespace nhóm resources và là phạm vi của nhiều policy, nhưng không tự tạo network isolation.
 
-### Console: đọc ứng dụng
+## Thực hiện
+
+### Xem workloads và Services
 
 EKS → cluster → Resources → Workloads → Deployments: frontend và API có hai replicas, worker có một. Trong Service and networking, hai Service `frontend`/`api` đều là ClusterIP. Worker không cần Service vì chỉ chủ động long-poll SQS.
 
-### CLI: xem mối liên hệ giữa objects
+## Kiểm chứng kết quả
+
+### Đối chiếu Service selectors với endpoints
 
 ```bash
 kubectl get pods -n notes -o wide --show-labels
@@ -38,3 +46,5 @@ Mong đợi JSON health API. DNS name chọn Service, Service routing chọn end
 Trước khi áp dụng policy, pod ở namespace khác vẫn có thể kết nối API nếu routing/security rules cho phép. Module 3.2 sẽ kiểm chứng điều đó rồi thu hẹp. Người có quyền tạo pod tùy ý có thể gắn label giống workload tin cậy, nên NetworkPolicy phải đi cùng RBAC; label không phải danh tính bất khả giả mạo.
 
 Manifest đầy đủ được tạo bởi [render.py](/source/scripts/render.py); cấu hình Nginx và ứng dụng có trong nguồn tải về.
+
+Đối chiếu selector `app: api`, labels của API pods và addresses trong EndpointSlice. Lệnh gọi health từ frontend trả JSON `workload: api` xác nhận DNS nội bộ và đường Service → pod cùng hoạt động.

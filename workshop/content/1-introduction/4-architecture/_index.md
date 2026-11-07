@@ -5,30 +5,30 @@ chapter: false
 pre: "<b>1.4.</b> "
 ---
 
-## Đọc hệ thống qua ba luồng
+Ứng dụng của workshop là một website ghi chú chạy trên Amazon EKS. Kiến trúc được chia thành ba workload: Nginx frontend, Python API và Python worker. RDS PostgreSQL lưu dữ liệu; SQS tách việc tạo báo cáo khỏi request trực tiếp của người dùng.
 
-![AWS architecture với VPC, subnet, EKS, RDS và SQS](/images/aws-architecture.svg "Khung nét đứt biểu diễn ranh giới mạng/logical. Association chứng chỉ/WAF không phải network hop.")
+![Kiến trúc AWS của workshop](/images/aws-architecture.svg "ALB nằm trong public subnets; worker nodes nằm trong private application subnets; RDS sử dụng database subnets riêng. Khung nét đứt biểu diễn các ranh giới mạng và logical.")
 
-**Luồng ứng dụng:** client phân giải DNS rồi kết nối ALB bằng HTTPS. ALB mở kết nối đến frontend pod trên 8080. Nginx proxy `/api/` qua Service API. API dùng TLS đến RDS, ký token IAM DB auth cho user `notes_api`.
+### Luồng truy cập ứng dụng
 
-**Luồng nền:** API gửi SQS message. Worker chủ động long-poll SQS, đếm ghi chú và ghi report bằng SQL role `notes_worker`. SQS không đẩy inbound connection vào worker.
+Trình duyệt phân giải domain và kết nối ALB bằng HTTPS. ALB kết thúc TLS rồi chuyển request bằng HTTP đến frontend pod port 8080. Nginx phục vụ giao diện và chuyển các request `/api/` đến Kubernetes Service của API. API kết nối RDS bằng TLS và sử dụng IAM database authentication với user `notes_api`.
 
-**Luồng quản trị:** `kubectl` đến EKS API endpoint qua đường riêng; IAM xác thực, EKS authorizer/RBAC phân quyền. Request này không qua ALB ứng dụng.
+> **Phạm vi mã hóa:** ALB → frontend và frontend → API dùng HTTP để đơn giản hóa cấu hình TLS nội bộ trong lab. Security Groups và NetworkPolicy giới hạn kết nối, nhưng không mã hóa lưu lượng. Việc nằm trong mạng AWS không đồng nghĩa kết nối đã được mã hóa.
 
-### Workload identity là luồng cấp credentials
+### Luồng xử lý báo cáo
 
-Pod Identity association liên kết namespace/ServiceAccount với IAM role. SDK lấy credentials tạm thời qua agent; API/worker sau đó dùng credentials để gọi SQS hoặc ký token RDS. Đây không phải đường mà HTTP request từ người dùng phải lần lượt đi qua.
+API gửi message vào SQS khi nhận yêu cầu tạo báo cáo. Worker chủ động đọc queue, lấy dữ liệu cần thiết và ghi báo cáo vào RDS bằng user `notes_worker`. SQS không mở kết nối inbound vào worker; worker không cần public endpoint hoặc Kubernetes Service riêng.
 
-### Những lựa chọn cố định trong lab
+### Luồng quản trị và cấp quyền
 
-| Lựa chọn | Lý do | Đánh đổi |
-|---|---|---|
-| ALB `ip` | VPC CNI cung cấp pod IP định tuyến được | Phải hiểu pod readiness và target registration |
-| Private nodes, RDS isolated | Giảm điểm vào public | Cần outbound cho image/API và đường quản trị phù hợp |
-| NetworkPolicy + node SG | Ít thành phần, dễ quan sát | SG không phân biệt từng pod; pod isolation do policy engine |
-| Pod Identity | Temporary credentials, role theo ServiceAccount | Cần agent/EKS Auth và SDK tương thích |
-| Một NAT, RDS Single-AZ | Giảm chi phí sandbox | Không đạt HA đa AZ cho toàn hệ thống |
+Người vận hành dùng `kubectl` kết nối đến EKS API endpoint. Đường quản trị này đi riêng với ALB phục vụ website. IAM xác thực danh tính; EKS Access Entries và Kubernetes RBAC cấp quyền thao tác tài nguyên.
 
-**Console:** xem VPC Resource map và EKS Resources. **CLI:** `kubectl get pods,svc,ingress -n notes -o wide`. Đối chiếu pod IP với target group ở 2.6.
+API và worker sử dụng EKS Pod Identity để nhận temporary AWS credentials theo ServiceAccount. Sau đó ứng dụng dùng credentials này để gọi SQS hoặc ký token kết nối RDS. Frontend không cần IAM role ứng dụng.
 
-Tải [AWS draw.io](/images/aws-architecture.drawio) hoặc [high-level draw.io](/images/high-level.drawio) để chỉnh sửa. Các hình dùng icon từ bộ AWS/Kubernetes đã thống nhất.
+### Các lựa chọn trong lab
+
+ALB sử dụng IP targets để chuyển request đến pod IP do VPC CNI cấp. NetworkPolicy kiểm soát kết nối theo workload; node Security Groups tiếp tục bảo vệ ở lớp tài nguyên AWS. Các lựa chọn và trường hợp thay thế được giải thích trong chương tương ứng.
+
+Lab sử dụng một NAT Gateway và RDS Single-AZ để giảm chi phí. Đây là các đánh đổi của môi trường thực hành; kiến trúc production cần đánh giá thêm yêu cầu availability và đường kết nối private.
+
+Có thể tải [sơ đồ AWS dạng draw.io](/images/aws-architecture.drawio) và [sơ đồ high-level dạng draw.io](/images/high-level.drawio) để xem hoặc chỉnh sửa. Chương 2 bắt đầu bằng việc theo dõi một request qua kiến trúc này.

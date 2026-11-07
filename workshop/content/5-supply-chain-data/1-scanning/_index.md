@@ -5,22 +5,33 @@ chapter: false
 pre: "<b>5.1.</b> "
 ---
 
-## Tìm lỗ hổng trước khi quyết định release
+## Vấn đề
+
+Image đã build và chạy được vẫn có thể chứa dependency có lỗ hổng đã biết. Bài này bật scanning, đọc kết quả của đúng image digest và thực hiện kiểm tra điều kiện phát hành trước khi chấp nhận image.
+
+## Kiến thức cần dùng
 
 Image scanning tìm các package/dependency có vulnerability đã biết. Kết quả cần được đánh giá theo mức độ, khả năng khai thác, bản sửa và exception có thời hạn. Scan không tự ngăn Kubernetes chạy image.
 
-### Console: basic và enhanced scanning
+## Thực hiện
+
+### Cấu hình scanning cho ECR
 
 1. ECR → Private registry → Features & Settings → Scanning: xem loại scanning đang dùng. Basic scan tập trung OS packages; enhanced scanning tích hợp Inspector, có thể theo dõi cả language packages theo khả năng hỗ trợ.
+
 2. Inspector → Activate → ECR scanning, nếu sandbox cho phép. Đây là cấu hình account/Region; review phạm vi trước khi đổi trong account dùng chung.
+
 3. Chọn repository `eks-did/notes`, xem digest đã push và scan findings. Chờ scan hoàn tất; “không thấy findings” trong lúc pending không phải kết quả sạch.
+
+![Image tags và digest trong ECR](/images/console-ecr-images.png "① Image digest. ② Image tags.")
+
+Chọn đúng digest đang triển khai trước khi mở findings. Các artifacts chữ ký và image chưa ký dùng cho phép thử admission không phải kết quả scan của image ứng dụng.
+
 4. Mở một finding, xem affected package, installed/fixed version và severity. Không đưa finding vào bài như bằng chứng exploit đã xảy ra.
 
+## Kiểm chứng kết quả
 
-
-![Ảnh AWS Console thực tế](/images/console-ecr.png "Repository thật: app image pin digest, Cosign signature artifact và unsigned image chỉ dùng negative test.")
-
-### CLI/API: build rồi đọc findings
+### Đọc kết quả theo image digest
 
 ```bash
 bash scripts/build-push.sh
@@ -41,7 +52,7 @@ aws inspector2 list-findings --filter-criteria \
 
 Basic scan APIs và Inspector có lifecycle/status khác nhau; không gọi `start-image-scan` như thể nó điều khiển enhanced scanning.
 
-### Release gate có hành vi thật
+### Kiểm tra điều kiện phát hành
 
 ```bash
 python3 scripts/scan-gate.py
@@ -51,8 +62,10 @@ Script yêu cầu coverage đã scan, đọc findings của **đúng deployed di
 
 Khi có bản vá, cập nhật base/dependency, build digest mới, scan lại rồi mới review gate. Đừng trộn kết quả scan image unsigned với image đang chạy.
 
-### Terraform và gate
+### Cấu hình repository và scanning coverage
 
 `aws_ecr_repository.app` bật immutable tags/basic scan; optional `aws_inspector2_enabler.ecr` bật ECR Inspector. Account có registry filters cần review để chắc repository lab nằm trong coverage. Tạo image mới với tag mới thay vì overwrite tag immutable.
 
-Workshop ghi kết quả scan thực tế; không hứa “zero CVE”. Nếu muốn gate theo severity, thêm bước CI đọc findings rồi cho phép/từ chối release theo policy. Không gọi scan thành công là deploy bị chặn tự động.
+Workshop ghi kết quả scan thực tế; không hứa “zero CVE”. Script gate của lab trả exit code để sử dụng trong quy trình phát hành. Việc scanning được bật riêng lẻ không tự chặn một deployment Kubernetes.
+
+Điều kiện đạt của bài là xác định đúng deployed digest, chờ coverage hoàn tất và đọc đúng quyết định của gate. Gate `BLOCK` khi còn HIGH/CRITICAL là kết quả thực thi đúng policy; đó không phải kết luận image đã đủ điều kiện phát hành.

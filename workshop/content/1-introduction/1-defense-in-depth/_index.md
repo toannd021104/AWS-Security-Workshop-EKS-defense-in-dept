@@ -5,37 +5,16 @@ chapter: false
 pre: "<b>1.1.</b> "
 ---
 
-## Một request hợp lệ không chứng minh toàn hệ thống an toàn
+Defense in Depth là cách phối hợp nhiều lớp bảo vệ để hạn chế khả năng truy cập trái phép và giảm phạm vi ảnh hưởng khi một lớp bị vượt qua. Mỗi lớp kiểm soát một ranh giới khác nhau: kết nối mạng, quyền thực thi, quyền truy cập hoặc dữ liệu.
 
-Giả sử website chỉ mở HTTPS, worker nodes không có public IP. Người dùng vẫn có thể khai thác lỗi trong API. Nếu API kết nối được mọi pod và mang quyền AWS rộng, tác động vượt xa một endpoint bị lỗi.
+Trong ứng dụng của workshop, người dùng gửi request qua ALB đến frontend. Frontend gọi API; API lưu ghi chú trên RDS và gửi yêu cầu tạo báo cáo đến SQS. Worker nhận yêu cầu từ SQS và ghi kết quả vào database. Những thành phần này cần các kết nối và quyền khác nhau để hoàn thành công việc.
 
-Defense in Depth là phối hợp nhiều lớp kiểm soát để giảm khả năng xâm nhập và giới hạn phạm vi ảnh hưởng khi một lớp không đủ. Trong workshop này, chúng ta tập trung vào **phòng ngừa và giới hạn quyền**, không dựng hệ thống detection/response.
+HTTPS bảo vệ kết nối từ người dùng đến ALB. Security Groups giới hạn kết nối giữa các tài nguyên AWS. NetworkPolicy tiếp tục giới hạn lưu lượng giữa workload trong cluster. Pod Security Admission và SecurityContext kiểm soát cấu hình thực thi của container, còn IAM và RBAC xác định các thao tác được phép.
 
-| Câu hỏi | Lớp kiểm soát |
-|---|---|
-| Ai đến được điểm vào? | ALB listener, HTTPS, WAF, Security Group |
-| Pod nào gọi được API? | NetworkPolicy |
-| Container được chạy với đặc quyền gì? | Pod Security Admission, securityContext |
-| Ai sửa được workload? | EKS Access Entry, Kubernetes RBAC |
-| Pod được gọi AWS API nào? | Pod Identity và IAM policy |
-| Artifact và dữ liệu được bảo vệ thế nào? | Scanning, signature gate, TLS, encryption, secret access |
+![Các lớp bảo vệ trên kiến trúc ứng dụng](/images/high-level.svg "Mỗi workload có vai trò riêng; các lớp bảo vệ được áp dụng theo đường truy cập và trách nhiệm của workload.")
 
-### Quan sát ngay trong lab
+Ví dụ, frontend chỉ cần gọi API nên không được kết nối trực tiếp đến RDS. Nếu container frontend gặp sự cố, giới hạn này giúp thu hẹp đường truy cập sang database. API được gửi message vào SQS nhưng không cần nhận hoặc xóa message; những thao tác đó thuộc về worker.
 
-**Console:** VPC → Subnets kiểm tra workers ở private subnet; EKS → Resources xem frontend, API, worker. Đây mới là quan sát cấu hình.
+Các lớp bảo vệ cần được kiểm tra cùng nhau. Sau khi cho phép frontend gọi API, cần thử thêm một pod không thuộc ứng dụng để xác nhận nó bị chặn. Sau khi giới hạn quyền AWS của API, chức năng lưu ghi chú và gửi yêu cầu báo cáo vẫn phải hoạt động.
 
-**CLI/API:** kiểm tra những controls hiện có:
-
-```bash
-kubectl get pods -n notes -o wide
-kubectl get networkpolicy -n notes
-kubectl get serviceaccounts -n notes
-```
-
-Nếu chưa có NetworkPolicy, namespace vẫn không tự cô lập traffic. Nếu đã có policy, vẫn cần phép thử để biết engine có thực thi.
-
-### Quyết định của lab
-
-Mỗi lớp có một phép thử dương và âm. Sau khi mở frontend → API, chúng ta còn thử pod không liên quan → API. Sau khi cấp API quyền gửi SQS, thử nhận message bằng cùng role phải bị từ chối.
-
-Terraform/YAML là bản mô tả ý định; kết quả kết nối và kết quả authorization mới chứng minh hành vi. Bài kế tiếp xác định những khoảng trống cụ thể trên EKS.
+Workshop tập trung vào các lớp bảo vệ này trên Amazon EKS. Phần tiếp theo xác định những ranh giới cần kiểm soát trong một hệ thống kết hợp AWS và Kubernetes.

@@ -5,39 +5,34 @@ chapter: false
 pre: ""
 ---
 
-<span class="lab-tag">HANDS-ON WORKSHOP · AWS + KUBERNETES</span>
+<span class="lab-tag">AWS · KUBERNETES · HANDS-ON WORKSHOP</span>
 
 # A Layered Approach to Amazon EKS Security
 
 *Từ Internet đến Pod: xây dựng và kiểm chứng từng lớp bảo mật.*
 
-Một website chạy được chưa chứng minh rằng các thành phần chỉ truy cập được đúng nơi cần thiết. Workshop này giúp bạn dựng một ứng dụng EKS, theo dõi request từ ALB đến pod, rồi giới hạn network và quyền của từng chủ thể.
+## Tổng quan
 
-Bạn đã biết AWS/Kubernetes nhưng quên một số khái niệm? Mỗi bài nhắc lại đúng kiến thức sắp dùng, giải thích lựa chọn và dẫn đến một thao tác có thể kiểm chứng. Không cần học thuộc danh sách dịch vụ trước khi bắt đầu.
+Workshop này trình bày cách bảo vệ một ứng dụng trên Amazon EKS theo từng lớp, bắt đầu từ đường truy cập qua ALB, tiếp tục đến kết nối giữa các pod và quyền truy cập dịch vụ AWS. Các bài thực hành kết hợp cấu hình AWS với cơ chế bảo mật của Kubernetes trên cùng một hệ thống.
 
-![High-level architecture: ứng dụng, quản trị và workload identity](/images/high-level.svg "Ba workload: frontend, API, worker. RDS và SQS là dịch vụ managed.")
+Ứng dụng mẫu gồm frontend, API và worker. Ghi chú được lưu trên RDS PostgreSQL; yêu cầu tạo báo cáo được gửi qua SQS để worker xử lý. Kiến trúc này được sử dụng xuyên suốt workshop để giải thích các quyết định về network, workload và permissions.
 
-### Sau workshop, bạn làm được gì?
+![High-level architecture của ứng dụng](/images/high-level.svg "Frontend nhận request; API xử lý nghiệp vụ; worker xử lý báo cáo qua SQS. Database sử dụng RDS bên ngoài cluster.")
 
-- Giải thích chính xác ALB target type `ip` đưa request đến pod như thế nào.
-- Xây VPC hai AZ, EKS private workers, ALB HTTPS, RDS private và SQS.
-- Giới hạn frontend → API → database; kiểm tra pod không liên quan bị chặn.
-- Cấp quyền Kubernetes cho người vận hành và quyền AWS riêng cho API/worker.
-- Áp dụng pod hardening, kiểm tra image, ký digest và đặt admission gate.
-- Chứng minh bằng cả hành động được phép và hành động bị từ chối.
+Phần đầu giới thiệu nguyên tắc bảo mật nhiều lớp và kiến trúc EKS. Các phần tiếp theo triển khai những kiểm soát cụ thể: HTTPS/WAF, Security Groups, NetworkPolicy, pod hardening, IAM/RBAC và bảo vệ image, secrets, dữ liệu. Mỗi bài thực hành nêu vấn đề, giải thích kiến thức cần dùng, thực hiện cấu hình và kiểm chứng kết quả.
 
-### Bắt đầu
+Đọc [Chuẩn bị thực hành](/preparation/) trước khi tạo tài nguyên. Workshop sử dụng tài nguyên AWS có tính phí; thực hiện [Cleanup](/cleanup/) khi kết thúc. Mã thực hành có trong [gói lab ZIP](/downloads/eks-defense-in-depth-lab.zip).
 
-Đọc [Chuẩn bị và cách dùng workshop](/preparation/) trước. [Tải mã lab ZIP](/downloads/eks-defense-in-depth-lab.zip) để chạy các bài thực hành; source Hugo được giữ cùng repository. Bạn chọn **một** cách tạo hạ tầng: Console, CLI/API hoặc Terraform. Các cách mô tả cùng thiết kế; không tạo lại cùng tài nguyên bằng cả ba.
+## Nội dung
 
-| Module | Câu hỏi dẫn đường |
-|---|---|
-| [1. Introduction](/1-introduction/) | Mỗi lớp bảo vệ giải quyết khoảng trống nào? |
-| [2. Network Security](/2-network-security/) | Request từ Internet đến private pod bằng đường nào? |
-| [3. Kubernetes Security](/3-kubernetes-security/) | Pod được kết nối và chạy với đặc quyền gì? |
-| [4. Identity & Access Management](/4-identity/) | Ai được thao tác Kubernetes và AWS? |
-| [5. Supply Chain & Data Security](/5-supply-chain-data/) | Image nào được chạy, dữ liệu được bảo vệ ở đâu? |
+1. [Introduction to Defense in Depth](/1-introduction/)
 
-Kết quả thực nghiệm được ghi riêng tại [Kiểm chứng và trạng thái sandbox](/validation/). Một bước có hướng dẫn không đồng nghĩa đã chạy thành công trong sandbox. Xem [Cleanup](/cleanup/) khi kết thúc; tài nguyên AWS tiếp tục tính phí khi bạn đóng trình duyệt.
+2. [Network Security — Securing the Request Path](/2-network-security/)
 
-Threat detection, GuardDuty, incident response và slide không thuộc phiên bản này.
+3. [Kubernetes Security — Securing Workloads](/3-kubernetes-security/)
+
+4. [Identity & Access Management — Securing Permissions](/4-identity/)
+
+5. [Supply Chain & Data Security](/5-supply-chain-data/)
+
+[Kết quả kiểm chứng trên sandbox](/validation/results/) và [kết quả image scan](/evidence/image-scan.json) được công bố riêng. Các phép thử chức năng đạt không thay thế điều kiện chấp nhận image trước khi phát hành.

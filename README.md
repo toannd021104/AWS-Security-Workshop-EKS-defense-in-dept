@@ -53,6 +53,21 @@ python3 scripts/check_site.py
 
 Kết quả public nằm trong `evidence/verification.json` và trang validation. `.local` giữ log, kubeconfig và dữ liệu nhạy cảm: không publish. Console screenshots thực tế được chụp bằng phiên chỉ đọc; thông tin đăng nhập không được đưa lên website.
 
+## Cách tổ chức bài học
+
+Trang chủ giới thiệu phạm vi và kiến trúc; trang chương chỉ liệt kê các bài trực tiếp. Bốn bài chương 1 giải thích liền mạch. Các bài thực hành chương 2–5 theo cấu trúc **Vấn đề → Kiến thức cần dùng → Thực hiện → Kiểm chứng kết quả**, ưu tiên Console, dùng CLI/API khi cần và liên kết Terraform tương ứng.
+
+Bài NetworkPolicy có phép thử độc lập, không áp dụng hoặc xóa policy trong lúc kiểm chứng:
+
+```bash
+# Chỉ trên baseline chưa có NetworkPolicy:
+python3 scripts/network-proof.py --stage before
+# Sau khi áp dụng k8s/network-policies.yaml:
+python3 scripts/network-proof.py --stage after
+```
+
+Mười sáu ảnh Console được dùng trong bài, có khoanh đỏ/đánh số ở các trường cần đối chiếu. Nguồn ảnh và cách chú thích được ghi trong `evidence/console-screenshots.json`.
+
 ## Chỉnh sửa nội dung và sơ đồ
 
 - Trang Markdown chuẩn nằm trong `workshop/content/`.

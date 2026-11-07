@@ -5,34 +5,20 @@ chapter: false
 pre: "<b>1.3.</b> "
 ---
 
-## Xác định việc AWS làm và việc bạn phải làm
+AWS Shared Responsibility Model phân chia trách nhiệm bảo mật giữa AWS và người sử dụng dịch vụ. Với Amazon EKS, AWS vận hành hạ tầng của Kubernetes control plane. Người dùng quản lý cách truy cập cluster và cấu hình các workload chạy trên đó.
 
-Lab sử dụng **EKS managed node groups**, không dùng Fargate hoặc Auto Mode. Ranh giới trách nhiệm phụ thuộc lựa chọn compute.
+Workshop sử dụng EKS managed node groups. AWS cung cấp cơ chế tạo và cập nhật node group; người vận hành vẫn lựa chọn phiên bản, lên lịch cập nhật, cấu hình IAM role và kiểm soát truy cập EC2 Instance Metadata Service. Ranh giới này khác với các lựa chọn compute như Fargate hoặc EKS Auto Mode.
 
-| Thành phần | AWS quản lý | Bạn cấu hình và kiểm chứng |
+![Thông tin cluster EKS thực tế](/images/console-eks.png "Cluster của lab sử dụng EKS 1.35. AWS quản lý control plane; cấu hình truy cập và workload thuộc trách nhiệm của người triển khai.")
+
+| Thành phần | AWS quản lý | Người dùng cấu hình |
 |---|---|---|
-| EKS control plane | Hạ tầng và vận hành control plane | Endpoint exposure, access entries, authorization |
-| Managed node group | Cơ chế provisioning/update tích hợp | Chọn phiên bản AMI, rollout cập nhật, IAM, IMDS, workload placement |
-| VPC | Hạ tầng mạng AWS | Subnet, route, SG/NACL, outbound |
-| Workload | Kubernetes API/compute nền | Image, pod privileges, NetworkPolicy, identity |
-| RDS | Hạ tầng dịch vụ DB theo cấu hình | Public access, SG, users/grants, backup, encryption |
+| EKS control plane | Hạ tầng và vận hành control plane | Endpoint access, Access Entries và authorization |
+| Managed node group | Cơ chế provisioning và update | AMI release, rollout cập nhật, IAM role, IMDS và workload placement |
+| VPC | Hạ tầng mạng AWS | Subnets, route tables, Security Groups và NACLs |
+| Kubernetes workload | Nền tảng dịch vụ bên dưới | Image, SecurityContext, NetworkPolicy và workload identity |
+| RDS | Hạ tầng database managed | Network access, users, SQL grants, backup và encryption settings |
 
-### Thực hành đọc ranh giới
+Ví dụ, RDS hỗ trợ mã hóa storage và quản lý master credentials, nhưng người triển khai phải lựa chọn cấu hình phù hợp và giới hạn quyền truy cập. EKS hỗ trợ NetworkPolicy qua VPC CNI, nhưng policy chỉ có hiệu lực khi tính năng thực thi được bật và các rule được khai báo đúng.
 
-**Console:** EKS → Compute → node group, ghi phiên bản AMI release và Kubernetes version. RDS → database → Connectivity & security, xác nhận Publicly accessible = No.
-
-```bash
-aws eks describe-nodegroup --cluster-name eks-did --nodegroup-name private-workers \
-  --query 'nodegroup.{status:status,version:version,release:releaseVersion}'
-aws rds describe-db-instances --db-instance-identifier eks-did \
-  --query 'DBInstances[0].{public:PubliclyAccessible,encrypted:StorageEncrypted,multiAZ:MultiAZ}'
-```
-
-Mong đợi: node group `ACTIVE`, DB private và encrypted. `MultiAZ=false` là giảm chi phí lab, không phải khuyến nghị HA cho production.
-
-### Bài học
-
-Có encryption không đồng nghĩa mọi người đều bị chặn đọc dữ liệu: IAM/SQL/RBAC vẫn quyết định quyền truy cập. Có managed nodes không đồng nghĩa node image luôn được cập nhật theo yêu cầu của bạn. Trong Terraform, cấu hình ở `aws_eks_node_group.private` và `aws_db_instance.this`; xem [mã hạ tầng](/source/terraform/main.tf).
-
-
-![Ảnh AWS Console thực tế](/images/console-eks.png "EKS cluster thực tế: trạng thái Active, version 1.35 và managed control plane.")
+Khi đọc kiến trúc ở bài tiếp theo, mỗi ranh giới bảo mật sẽ gắn với một thành phần và một trách nhiệm cụ thể. Đây là cơ sở để xác định cấu hình cần thực hiện trong các bài thực hành.

@@ -1,0 +1,36 @@
+{
+  "timestamp_utc": "2026-11-07T14:11:36.693824+00:00",
+  "command": "python3 scripts/network-proof.py --stage after",
+  "stage": "after",
+  "results": [
+    {
+      "test": "Frontend to API allowed",
+      "status": "PASS",
+      "detail": "TCP allowed"
+    },
+    {
+      "test": "Untrusted to API denied after policy",
+      "status": "PASS",
+      "detail": "TCP blocked"
+    },
+    {
+      "test": "Frontend to RDS denied",
+      "status": "PASS",
+      "detail": "TCP blocked"
+    },
+    {
+      "test": "Application note flow",
+      "status": "PASS",
+      "detail": "HTTPS → frontend → API → RDS insert/read succeeds"
+    },
+    {
+      "test": "Application report flow",
+      "status": "PASS",
+      "detail": "API SendMessage → worker Receive/Delete → RDS report persisted"
+    }
+  ],
+  "notes": [
+    "Observed output from the executed script; no existing NetworkPolicy was changed.",
+    "The before-policy branch was not rerun on the already hardened cluster in this revision."
+  ]
+}

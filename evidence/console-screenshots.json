@@ -1,0 +1,23 @@
+{
+  "source": "Real AWS Console screenshots from the guru sandbox; read-only federated browser sessions.",
+  "captured_on": "2026-11-07",
+  "annotations": "Red numbered callouts and crops only; no resource values fabricated.",
+  "images": [
+    "console-acm-certificate.png",
+    "console-alb.png",
+    "console-api-trust.png",
+    "console-ecr-images.png",
+    "console-eks-addons.png",
+    "console-eks-endpoint.png",
+    "console-eks.png",
+    "console-observer-access.png",
+    "console-pod-identity.png",
+    "console-rds-encryption.png",
+    "console-rds.png",
+    "console-sqs-encryption.png",
+    "console-subnets.png",
+    "console-target-protocol.png",
+    "console-targets.png",
+    "console-waf-rule.png"
+  ]
+}

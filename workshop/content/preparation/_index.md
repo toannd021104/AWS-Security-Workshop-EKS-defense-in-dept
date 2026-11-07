@@ -5,7 +5,11 @@ chapter: false
 pre: ""
 ---
 
-## Bạn sẽ xây gì?
+## Môi trường thực hành
+
+Đọc chương 1 để nắm kiến trúc trước khi tạo tài nguyên. Các bài thực hành được tổ chức theo bốn phần: vấn đề, kiến thức cần dùng, thực hiện và kiểm chứng kết quả. Ảnh khoanh đỏ đánh dấu trường hoặc kết quả cần đối chiếu trên Console.
+
+Các bước dưới đây chuẩn bị ứng dụng nền. `deploy.sh` chưa áp dụng NetworkPolicy; phép thử trước/sau isolation được thực hiện ở bài 3.2. Một số quyền và cấu hình cần thiết để chạy ứng dụng được tạo trong phần chuẩn bị và sẽ được phân tích, kiểm tra chi tiết ở các chương sau.
 
 [Tải mã lab](/downloads/eks-defense-in-depth-lab.zip), giải nén và mở terminal tại thư mục chứa `app/`, `scripts/`, `infrastructure/`. ZIP không chứa credentials hoặc Terraform state.
 
@@ -55,11 +59,17 @@ State chứa metadata nhạy cảm. Không upload `.terraform`, `terraform.tfvar
 ### 3. Dựng EKS qua Console nếu không dùng Terraform
 
 1. IAM → Roles → Create role → AWS service → **EKS – Cluster**. Đặt `eks-did-cluster-role`, gắn `AmazonEKSClusterPolicy`.
+
 2. Tạo role EC2 `eks-did-node-role`, gắn `AmazonEKSWorkerNodePolicy` và `AmazonEC2ContainerRegistryPullOnly`. Không gắn quyền ứng dụng lên node role. VPC CNI dùng role IRSA riêng theo bước 5.
+
 3. EKS → Add cluster → Create → tên `eks-did`, version `1.35`, chọn role cluster. **Không chọn Auto Mode**: lab dùng managed node group để quan sát CNI và IMDS.
+
 4. Networking → VPC lab, hai private application subnets. Endpoint **Public and private**, Public access CIDRs = IP workstation `/32`. Authentication mode chọn **EKS API**, giữ quyền bootstrap cho người tạo đến khi đã kiểm chứng danh tính quản trị khác.
+
 5. Chọn add-ons VPC CNI, CoreDNS, kube-proxy, Pod Identity Agent. Bật NetworkPolicy trong VPC CNI theo 3.3. Chọn bản add-on tương thích version cluster. Sau khi cluster Active, copy OIDC issuer trong EKS Overview → IAM → Identity providers → Add OpenID Connect provider, audience `sts.amazonaws.com`. Tạo web-identity role `eks-did-vpc-cni-role` cho provider này, gắn `AmazonEKS_CNI_Policy`; trust phải giới hạn `sub=system:serviceaccount:kube-system:aws-node` và `aud=sts.amazonaws.com`. Chọn role này ở VPC CNI add-on IAM role. [Terraform trust tương đương](/source/terraform/main.tf) có đủ điều kiện; không để trust cho mọi ServiceAccount.
+
 6. Tạo EC2 Launch Template cho node: không SSH key, IMDS **token required**, response hop limit **1**, EBS 20 GiB gp3 mã hóa. Dùng template này khi tạo managed node group `private-workers`, hai private subnets, `t3.medium`, min/desired/max đều 2 cho lab. Không chỉ định AMI tùy ý; để EKS chọn AL2023 phù hợp.
+
 7. Compute → Node group phải `ACTIVE`, hai node `Ready`. Nếu node không join, kiểm tra NAT route, CNI role và IAM policies trước khi đổi endpoint CIDR.
 
 ```bash
@@ -97,4 +107,4 @@ Tên subnet phải chứa `-public-`, `-private-`, `-database-` để script xá
 
 EKS control plane, hai EC2 nodes, NAT, public IPv4, ALB, RDS, WAF, KMS và Inspector có thể tính phí; giá phụ thuộc Region và thời gian chạy. Đây không phải lab miễn phí. Các quyền IAM/CreateRole/PassRole, EKS, EC2, ELB, RDS, SQS, ECR, ACM, Route 53 là điều kiện chính. WAF/Inspector/CMK có thể bị SCP chặn; ghi đúng dịch vụ/action bị từ chối, không tìm cách vượt SCP.
 
-Sau khi hạ tầng sẵn sàng, đọc Module 1 để hiểu vì sao cần từng lớp. [Cleanup](/cleanup/) là bước bắt buộc khi ngừng sử dụng lab.
+Sau khi môi trường nền hoạt động, bắt đầu chương 2 để theo dõi request và kiểm tra cấu hình mạng. [Cleanup](/cleanup/) là bước bắt buộc khi ngừng sử dụng lab.
