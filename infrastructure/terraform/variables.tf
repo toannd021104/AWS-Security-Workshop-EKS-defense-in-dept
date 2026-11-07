@@ -1,50 +1,57 @@
+variable "name" {
+  description = "Prefix for this independent disposable lab."
+  type        = string
+  default     = "eks-did"
+}
 variable "aws_region" {
-  description = "AWS Region for this disposable workshop environment."
+  description = "AWS Region."
   type        = string
   default     = "us-east-1"
 }
-
 variable "aws_profile" {
-  description = "Named AWS CLI profile used by Terraform."
+  description = "Local AWS CLI profile."
   type        = string
   default     = "guru"
 }
-
-variable "name" {
-  description = "Short prefix applied to lab resources."
-  type        = string
-  default     = "eks-depth-lab"
-}
-
 variable "kubernetes_version" {
-  description = "EKS Kubernetes version. Confirm it is supported in the selected Region before apply."
+  description = "Standard-support EKS version."
   type        = string
-  default     = "1.36"
+  default     = "1.35"
 }
-
 variable "admin_cidr" {
-  description = "Single trusted public IPv4 CIDR allowed to reach the EKS public API endpoint. Set this to your current public IP /32."
+  description = "Public IPv4 /32 of the workstation managing EKS."
   type        = string
-
   validation {
-    condition     = can(regex("^[0-9]{1,3}(\\.[0-9]{1,3}){3}/32$", var.admin_cidr))
-    error_message = "admin_cidr must be one IPv4 address with a /32 mask."
+    condition     = can(cidrhost(var.admin_cidr, 0)) && endswith(var.admin_cidr, "/32")
+    error_message = "Use your workstation public IPv4 /32."
   }
 }
-
 variable "node_instance_type" {
-  description = "EC2 instance type for the small managed node group."
+  description = "Managed node instance type."
   type        = string
   default     = "t3.medium"
 }
-
 variable "node_count" {
-  description = "Fixed node count across the two private subnets."
+  description = "Number of private workers."
   type        = number
   default     = 2
-
-  validation {
-    condition     = var.node_count >= 2 && var.node_count <= 4
-    error_message = "Use two to four nodes for this small two-AZ lab."
-  }
+}
+variable "dns_zone_name" {
+  description = "An existing public hosted zone that you control, including trailing dot."
+  type        = string
+}
+variable "enable_waf" {
+  description = "Create regional WAF test Web ACL when permitted."
+  type        = bool
+  default     = true
+}
+variable "enable_kms" {
+  description = "Create customer managed demonstration key when permitted."
+  type        = bool
+  default     = true
+}
+variable "enable_inspector" {
+  description = "Enable ECR enhanced scanning through Inspector when permitted."
+  type        = bool
+  default     = true
 }

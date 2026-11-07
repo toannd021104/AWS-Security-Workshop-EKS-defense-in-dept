@@ -1,0 +1,414 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: notes
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.35
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend
+  namespace: notes
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api
+  namespace: notes
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: worker
+  namespace: notes
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: db-init
+  namespace: notes
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend
+  namespace: notes
+data:
+  nginx.conf: "pid /tmp/nginx.pid;\nevents { worker_connections 256; }\nhttp {\n \
+    \ include /etc/nginx/mime.types;\n  client_body_temp_path /tmp/client_temp;\n\
+    \  proxy_temp_path /tmp/proxy_temp;\n  fastcgi_temp_path /tmp/fastcgi_temp;\n\
+    \  uwsgi_temp_path /tmp/uwsgi_temp;\n  scgi_temp_path /tmp/scgi_temp;\n  server\
+    \ {\n    listen 8080;\n    server_tokens off;\n    root /usr/share/nginx/html;\n\
+    \    location = /healthz { return 200 'ok'; add_header Content-Type text/plain;\
+    \ }\n    location /api/ { proxy_pass http://api.notes.svc.cluster.local:8080/;\
+    \ proxy_connect_timeout 5s; proxy_read_timeout 15s; }\n    location / { try_files\
+    \ $uri /index.html; }\n  }\n}\n"
+  index.html: '<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport"
+    content="width=device-width"><title>EKS Notes Lab</title>
+
+    <style>body{font:17px system-ui;max-width:760px;margin:7vh auto;padding:24px;color:#172c43;background:#f4f7fb}h1{font-size:42px}input,button{font:inherit;padding:12px;border:1px
+    solid #abbccd;border-radius:5px}input{width:65%}button{background:#173c64;color:white;cursor:pointer}li{padding:10px}pre{white-space:pre-wrap;background:white;padding:20px}small{color:#48657d}</style>
+
+    <small>DEFENSE IN DEPTH · AMAZON EKS</small><h1>Một request, nhiều lớp bảo vệ.</h1><p>ALB
+    → Nginx → API → RDS. Báo cáo được xử lý qua SQS và worker.</p>
+
+    <form id="form"><input id="body" maxlength="1000" placeholder="Nội dung ghi chú"
+    required><button>Lưu</button></form><ul id="notes"></ul>
+
+    <button id="report">Tạo báo cáo nền</button><pre id="result">Đang tải…</pre>
+
+    <script>const result=document.querySelector(''#result'');async function call(p,opt){const
+    r=await fetch(''/api/''+p,opt);const d=await r.json();if(!r.ok)throw Error(JSON.stringify(d));return
+    d}async function load(){const rows=await call(''notes'');const ul=document.querySelector(''#notes'');ul.replaceChildren();for(const
+    row of rows){const li=document.createElement(''li'');li.textContent=row.body;ul.append(li)}result.textContent=JSON.stringify(await
+    call(''reports''),null,2)}document.querySelector(''#form'').onsubmit=async e=>{e.preventDefault();try{await
+    call(''notes'',{method:''POST'',headers:{''Content-Type'':''application/json''},body:JSON.stringify({body:document.querySelector(''#body'').value})});e.target.reset();await
+    load()}catch(e){result.textContent=e.message}};document.querySelector(''#report'').onclick=async()=>{try{result.textContent=JSON.stringify(await
+    call(''reports'',{method:''POST''}));setTimeout(()=>load().catch(e=>result.textContent=e.message),3000)}catch(e){result.textContent=e.message}};load().catch(e=>result.textContent=e.message)</script></html>
+
+    '
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: application
+  namespace: notes
+data:
+  AWS_REGION: us-east-1
+  DB_HOST: eks-did.cshqsec6ut4l.us-east-1.rds.amazonaws.com
+  QUEUE_URL: https://sqs.us-east-1.amazonaws.com/936286918025/eks-did-reports
+  DB_SECRET_ARN: arn:aws:secretsmanager:us-east-1:936286918025:secret:rds!db-47dde786-7921-4c9d-9ea5-75409da724e5-8lloD3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: notes
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      serviceAccountName: frontend
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: frontend
+        image: nginxinc/nginx-unprivileged:1.28-alpine
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 96Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        args:
+        - nginx
+        - -c
+        - /etc/workshop/nginx.conf
+        - -g
+        - daemon off;
+        volumeMounts:
+        - name: config
+          mountPath: /etc/workshop
+          readOnly: true
+        - name: config
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: frontend
+      - name: tmp
+        emptyDir:
+          sizeLimit: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: notes
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: notes
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      serviceAccountName: api
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: api
+        image: 936286918025.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 96Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        envFrom:
+        - configMapRef:
+            name: application
+        env:
+        - name: MODE
+          value: api
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: notes
+spec:
+  type: ClusterIP
+  selector:
+    app: api
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: notes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      serviceAccountName: worker
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: worker
+        image: 936286918025.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 96Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        envFrom:
+        - configMapRef:
+            name: application
+        env:
+        - name: MODE
+          value: worker
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-init
+  namespace: notes
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: db-init
+    spec:
+      serviceAccountName: db-init
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: db-init
+        image: 936286918025.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 96Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        envFrom:
+        - configMapRef:
+            name: application
+        env:
+        - name: MODE
+          value: db-init
+      restartPolicy: Never
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: notes
+  namespace: notes
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/subnets: subnet-0213bd3b9e66834ea,subnet-081ad77e25d78546d
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:936286918025:certificate/0a56af02-d0a3-42f6-81dc-968f4a1594d0
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/load-balancer-name: eks-did-notes
+    alb.ingress.kubernetes.io/tags: Project=eks-did,ManagedBy=aws-load-balancer-controller
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-1:936286918025:regional/webacl/eks-did/40502d97-d7a3-422e-939c-dab15704bc7b
+spec:
+  ingressClassName: alb
+  rules:
+  - host: notes.936286918025.realhandsonlabs.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 8080
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observer
+  namespace: notes
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observer
+  namespace: notes
+subjects:
+- kind: Group
+  name: notes-observers
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: observer
+  apiGroup: rbac.authorization.k8s.io

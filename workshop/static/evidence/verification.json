@@ -1,0 +1,137 @@
+{
+  "timestamp_utc": "2026-11-07T13:00:18.927645+00:00",
+  "results": [
+    {
+      "test": "HTTPS frontend",
+      "status": "PASS",
+      "detail": "200"
+    },
+    {
+      "test": "API health",
+      "status": "PASS",
+      "detail": "{'status': 'ok', 'workload': 'api'}"
+    },
+    {
+      "test": "WAF negative header",
+      "status": "PASS",
+      "detail": "403"
+    },
+    {
+      "test": "Database note flow",
+      "status": "PASS",
+      "detail": "HTTPS → frontend → API → RDS insert/read succeeds"
+    },
+    {
+      "test": "Queue and worker report flow",
+      "status": "PASS",
+      "detail": "API SendMessage → worker Receive/Delete → RDS report persisted"
+    },
+    {
+      "test": "Node private placement and IMDS options",
+      "status": "PASS",
+      "detail": "Two private workers; IMDSv2 required; hop limit 1"
+    },
+    {
+      "test": "IMDS token blocked from ordinary pod",
+      "status": "PASS",
+      "detail": "IMDS token unreachable from ordinary pod\n"
+    },
+    {
+      "test": "VPC CNI policy agent",
+      "status": "PASS",
+      "detail": "Expected behavior observed"
+    },
+    {
+      "test": "NetworkPolicy frontend to API allowed",
+      "status": "PASS",
+      "detail": "TCP allowed\n"
+    },
+    {
+      "test": "NetworkPolicy untrusted to API denied",
+      "status": "PASS",
+      "detail": "TCP blocked\n"
+    },
+    {
+      "test": "NetworkPolicy frontend to RDS denied",
+      "status": "PASS",
+      "detail": "TCP blocked\n"
+    },
+    {
+      "test": "After isolation: API DB still works",
+      "status": "PASS",
+      "detail": "[{'id': 1, 'body': 'validation-68fb2129'}]"
+    },
+    {
+      "test": "After isolation: SQS and worker still work",
+      "status": "PASS",
+      "detail": "API SendMessage → worker Receive/Delete → RDS report persisted"
+    },
+    {
+      "test": "Frontend has no injected AWS application credentials",
+      "status": "PASS",
+      "detail": "No application or fallback node credentials\n"
+    },
+    {
+      "test": "API Pod Identity role",
+      "status": "PASS",
+      "detail": "API uses its dedicated role\n"
+    },
+    {
+      "test": "API cannot receive SQS",
+      "status": "PASS",
+      "detail": "AccessDenied\n"
+    },
+    {
+      "test": "Worker cannot send SQS",
+      "status": "PASS",
+      "detail": "AccessDenied\n"
+    },
+    {
+      "test": "API cannot read master secret",
+      "status": "PASS",
+      "detail": "AccessDeniedException\n"
+    },
+    {
+      "test": "API SQL cannot write reports",
+      "status": "PASS",
+      "detail": "SQL privilege denied as expected\n"
+    },
+    {
+      "test": "Real observer authorization",
+      "status": "PASS",
+      "detail": "Real assumed IAM role: list pods allowed; secrets/patch/exec denied"
+    },
+    {
+      "test": "Restricted Pod Security Admission",
+      "status": "PASS",
+      "detail": "Restricted rejects noncompliant pod before creation"
+    },
+    {
+      "test": "Container nonroot and read-only filesystem",
+      "status": "PASS",
+      "detail": "UID 10001; root filesystem write rejected\n"
+    },
+    {
+      "test": "KMS encryption and context binding",
+      "status": "PASS",
+      "detail": "Roundtrip succeeds; mismatched encryption context rejected"
+    },
+    {
+      "test": "Admission signed image allowed",
+      "status": "PASS",
+      "detail": "Signed digest accepted"
+    },
+    {
+      "test": "Admission unsigned image denied",
+      "status": "PASS",
+      "detail": "Unsigned digest rejected by verifier admission"
+    }
+  ],
+  "limitations": [
+    "Single NAT, Single-AZ RDS and single admission/controller replicas are lab cost tradeoffs.",
+    "ALB→frontend→API uses private HTTP, not end-to-end TLS.",
+    "NetworkPolicy standard startup mode; HTTPS egress is not restricted by hostname.",
+    "Signing policy covers app repository, not all images; registry verification token expires.",
+    "Console instructions are documented; actual provisioning was performed with Terraform/CLI."
+  ]
+}

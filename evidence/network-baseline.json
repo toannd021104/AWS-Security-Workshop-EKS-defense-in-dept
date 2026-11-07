@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-07T12:56:15.010861+00:00",
+  "scope": "Before default-deny policies were applied on the same sandbox lab",
+  "results": [
+    {
+      "test": "Before isolation: untrusted can reach API",
+      "status": "PASS",
+      "detail": "TCP allowed\n"
+    }
+  ]
+}

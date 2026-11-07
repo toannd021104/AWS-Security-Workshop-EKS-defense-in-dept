@@ -1,0 +1,37 @@
+baseURL = "http://localhost:1314/"
+theme = "hugo-theme-learn"
+title = "EKS Defense in Depth"
+defaultContentLanguage = "vi"
+languageCode = "vi-VN"
+[outputs]
+home = ["HTML", "RSS", "JSON"]
+[params]
+themeVariant = "workshop"
+description = "Triển khai và kiểm chứng các lớp bảo vệ Amazon EKS từ Internet đến Pod."
+author = "EKS Defense in Depth Workshop"
+showVisitedLinks = true
+disableBreadcrumb = false
+disableNextPrev = false
+disableAssetsBusting = true
+custom_css = ["css/workshop.css"]
+[markup.goldmark.renderer]
+unsafe = true
+[[module.mounts]]
+source = "static"
+target = "static"
+[[module.mounts]]
+source = "../app"
+target = "static/source/app"
+includeFiles = ["*.py", "*.html", "Dockerfile", "requirements.txt"]
+[[module.mounts]]
+source = "../k8s"
+target = "static/source/k8s"
+includeFiles = ["*.yaml", "*.pub"]
+[[module.mounts]]
+source = "../scripts"
+target = "static/source/scripts"
+includeFiles = ["*.py", "*.sh"]
+[[module.mounts]]
+source = "../infrastructure/terraform"
+target = "static/source/terraform"
+includeFiles = ["*.tf", "*.json", "*.example", ".terraform.lock.hcl"]

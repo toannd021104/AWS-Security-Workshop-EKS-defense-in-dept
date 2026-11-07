@@ -1,0 +1,41 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-notes-image
+spec:
+  validationFailureAction: Enforce
+  background: false
+  webhookConfiguration:
+    failurePolicy: Fail
+  rules:
+  - name: require-workshop-signature
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+          namespaces:
+          - notes
+    verifyImages:
+    - imageReferences:
+      - 936286918025.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes*
+      imageRegistryCredentials:
+        secrets:
+        - ecr-verify
+      mutateDigest: false
+      verifyDigest: true
+      required: true
+      attestors:
+      - entries:
+        - keys:
+            publicKeys: '-----BEGIN PUBLIC KEY-----
+
+              MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgG6ASCGkPLNsnY8pSXhrTsWsAg5g
+
+              sMj904Kpgnrm1+X9eMVEYYlmc6QrpXxIEstMwUOM6rU1ZSTRTTegEhbmhw==
+
+              -----END PUBLIC KEY-----
+
+              '
+            rekor:
+              ignoreTlog: true

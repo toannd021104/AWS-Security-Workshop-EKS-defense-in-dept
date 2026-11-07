@@ -210,10 +210,6 @@ resource "aws_eks_cluster" "this" {
 
   depends_on = [aws_iam_role_policy_attachment.cluster_policy]
 
-  # GuardDuty adds this service-managed tag when EKS Runtime Monitoring is enabled.
-  lifecycle {
-    ignore_changes = [tags["GuardDutyManaged"]]
-  }
 
   tags = { Name = var.name }
 }
