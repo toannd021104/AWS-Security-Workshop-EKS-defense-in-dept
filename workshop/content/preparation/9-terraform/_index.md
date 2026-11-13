@@ -48,7 +48,7 @@ enable_kms = true
 enable_inspector = true
 ```
 
-Thay IP và zone bằng giá trị thật. Các flags liên quan dịch vụ bị giới hạn bởi quyền truy cập hoặc chính sách tài khoản chỉ được tắt khi đã ghi nhận phần bài tương ứng chưa được kiểm chứng. WAF cần cho phép thử edge; KMS và Inspector được dùng ở chương 5.
+Thay IP và zone bằng giá trị thật. Nếu `aws sts get-caller-identity` trả STS assumed-role/SSO session ARN, thêm `observer_trusted_principal_arn = "YOUR_ADMIN_IAM_ROLE_ARN"` vào tfvars; lấy IAM role ARN từ IAM Console, không dùng STS session ARN. Terraform kiểm tra đầu vào này trước khi tạo role observer. Các flags liên quan dịch vụ bị giới hạn bởi quyền truy cập hoặc chính sách tài khoản chỉ được tắt khi đã ghi nhận phần bài tương ứng chưa được kiểm chứng. WAF cần cho phép thử edge; KMS và Inspector được dùng ở chương 5.
 
 ## Tạo hạ tầng
 

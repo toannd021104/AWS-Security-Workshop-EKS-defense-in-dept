@@ -13,6 +13,10 @@ Workshop này sử dụng **Notes**, một ứng dụng lưu ghi chú và tạo 
 
 Sau mỗi thay đổi, chạy lại luồng lưu ghi chú và tạo báo cáo. Kết quả cần đạt gồm hai phần: thao tác hợp lệ vẫn hoạt động, còn kết nối hoặc quyền không cần thiết bị từ chối.
 
+Trước mỗi phép thử, dự đoán kết quả và lớp nào đưa ra quyết định. Sau đó so output với dự đoán: một timeout, `Forbidden` hay `AccessDenied` có ý nghĩa khác nhau. Đến cuối workshop, cần giải thích được cả **vì sao request hợp lệ đi qua** lẫn **vì sao một thao tác khác bị chặn**.
+
+Ảnh Console và sơ đồ có thể bấm để phóng to; chọn **Kích thước gốc** khi cần đọc IP, policy hoặc vùng khoanh đỏ rồi đóng ảnh để trở lại đúng bài.
+
 ## Bạn sẽ thực hiện những gì?
 
 - Lần theo request từ Internet qua ALB đến frontend và API trên EKS; đối chiếu listener, target group và pod IP.

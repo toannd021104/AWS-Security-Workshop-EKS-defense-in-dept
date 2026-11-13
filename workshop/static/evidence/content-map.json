@@ -1,0 +1,158 @@
+[
+  [
+    1,
+    1,
+    "1-introduction/1-defense-in-depth",
+    "Defense in Depth là gì?"
+  ],
+  [
+    1,
+    2,
+    "1-introduction/2-why-eks",
+    "Tại sao Amazon EKS cần Defense in Depth?"
+  ],
+  [
+    1,
+    3,
+    "1-introduction/3-shared-responsibility",
+    "AWS Shared Responsibility Model"
+  ],
+  [
+    1,
+    4,
+    "1-introduction/4-architecture",
+    "Tổng quan kiến trúc và các Security Layers"
+  ],
+  [
+    2,
+    1,
+    "2-network-security/1-request-flow",
+    "Request Flow: Internet → ALB → Pod"
+  ],
+  [
+    2,
+    2,
+    "2-network-security/2-vpc",
+    "VPC Architecture: Public & Private Subnets, Routing, NAT Gateway"
+  ],
+  [
+    2,
+    3,
+    "2-network-security/3-edge",
+    "Edge Security: AWS WAF, ALB và HTTPS"
+  ],
+  [
+    2,
+    4,
+    "2-network-security/4-security-groups",
+    "Network Access Control: Security Groups & NACLs"
+  ],
+  [
+    2,
+    5,
+    "2-network-security/5-controller-ingress",
+    "AWS Load Balancer Controller và Kubernetes Ingress"
+  ],
+  [
+    2,
+    6,
+    "2-network-security/6-target-types",
+    "ALB Target Types: Instance vs IP"
+  ],
+  [
+    3,
+    1,
+    "3-kubernetes-security/1-networking",
+    "Kubernetes Networking: Pod, Service và Namespace"
+  ],
+  [
+    3,
+    2,
+    "3-kubernetes-security/2-networkpolicy",
+    "Network Segmentation với Kubernetes NetworkPolicy"
+  ],
+  [
+    3,
+    3,
+    "3-kubernetes-security/3-vpc-cni",
+    "NetworkPolicy Enforcement với Amazon VPC CNI"
+  ],
+  [
+    3,
+    4,
+    "3-kubernetes-security/4-pod-security",
+    "Pod Security Standards & Pod Security Admission"
+  ],
+  [
+    3,
+    5,
+    "3-kubernetes-security/5-securitycontext",
+    "Container Hardening với SecurityContext"
+  ],
+  [
+    3,
+    6,
+    "3-kubernetes-security/6-node-imds",
+    "Worker Node Security và IMDSv2"
+  ],
+  [
+    4,
+    1,
+    "4-identity/1-authentication-authorization",
+    "Authentication vs Authorization"
+  ],
+  [
+    4,
+    2,
+    "4-identity/2-endpoint",
+    "EKS API Endpoint Security"
+  ],
+  [
+    4,
+    3,
+    "4-identity/3-human-access",
+    "Human Access: AWS IAM & EKS Access Entries"
+  ],
+  [
+    4,
+    4,
+    "4-identity/4-rbac",
+    "Kubernetes RBAC: Role, ClusterRole và Bindings"
+  ],
+  [
+    4,
+    5,
+    "4-identity/5-workload-identity",
+    "Workload Identity: IRSA vs EKS Pod Identity"
+  ],
+  [
+    4,
+    6,
+    "4-identity/6-least-privilege",
+    "Least Privilege và IAM Policies"
+  ],
+  [
+    5,
+    1,
+    "5-supply-chain-data/1-scanning",
+    "Container Image Scanning với ECR & Inspector"
+  ],
+  [
+    5,
+    2,
+    "5-supply-chain-data/2-sbom-signing",
+    "SBOM, Image Signing & Admission Policies"
+  ],
+  [
+    5,
+    3,
+    "5-supply-chain-data/3-secrets",
+    "Kubernetes Secrets & AWS Secrets Manager"
+  ],
+  [
+    5,
+    4,
+    "5-supply-chain-data/4-encryption",
+    "Data Encryption với AWS KMS"
+  ]
+]

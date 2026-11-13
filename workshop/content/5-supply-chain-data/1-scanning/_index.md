@@ -30,19 +30,23 @@ Chọn đúng digest đang triển khai trước khi mở findings. Các artifac
 ### Đọc kết quả theo image digest
 
 ```bash
-bash scripts/build-push.sh
-IMAGE=$(cat .local/image.txt)
+source scripts/env.sh
+IMAGE=$(python3 scripts/deployed-image.py)
+printf '%s\n' "$IMAGE"
 aws ecr describe-images --repository-name eks-did/notes \
   --query 'imageDetails[].{digest:imageDigest,tags:imageTags,scan:imageScanStatus.status}'
 ```
 
-Enhanced scanning dùng Inspector APIs:
+Không build lại image ở bước quan sát này. Script đối chiếu digest trong `.local/image.txt` với Deployment và `imageID` của các pod API/worker đang Ready; nếu khác, dừng thay vì báo scan của image chưa triển khai. Muốn thử bản build khác, triển khai và kiểm tra baseline của bản đó trước khi ghi bằng chứng.
+
+Enhanced scanning dùng Inspector APIs, lọc đúng hash thay vì gom findings của mọi image trong repository:
 
 ```bash
+SCAN_FILTER=$(jq -cn --arg digest "${IMAGE##*@}" \
+  '{ecrImageHash:[{comparison:"EQUALS",value:$digest}],findingStatus:[{comparison:"EQUALS",value:"ACTIVE"}]}')
 aws inspector2 batch-get-account-status \
   --account-ids "$(aws sts get-caller-identity --query Account --output text)"
-aws inspector2 list-findings --filter-criteria \
-  '{"ecrImageRepositoryName":[{"comparison":"EQUALS","value":"eks-did/notes"}],"findingStatus":[{"comparison":"EQUALS","value":"ACTIVE"}]}' \
+aws inspector2 list-findings --filter-criteria "$SCAN_FILTER" \
   --query 'findings[].{severity:severity,title:title}'
 ```
 
@@ -54,9 +58,9 @@ Basic scan APIs và Inspector có lifecycle/status khác nhau; không gọi `sta
 python3 scripts/scan-gate.py
 ```
 
-Script yêu cầu coverage đã scan, đọc findings của **đúng deployed digest**, trả exit 1 nếu có HIGH/CRITICAL hoặc chưa có coverage hoàn tất. [Kết quả scan thực tế](/evidence/image-scan.json) trong lượt lab ghi 4 HIGH, 8 MEDIUM, 2 LOW, 2 UNTRIAGED; 4 HIGH chưa có bản sửa theo Inspector. Gate trả `BLOCK`, không tự miễn trừ vì chưa có fix. Ứng dụng vẫn được dùng trong môi trường thực hành để kiểm tra network/identity; kết quả đó không phải phê duyệt release production.
+Script yêu cầu coverage đã scan, đọc findings của **đúng deployed digest**, trả exit 1 nếu có HIGH/CRITICAL hoặc chưa có coverage hoàn tất. [Kết quả scan thực tế](/evidence/image-scan.json) ghi kết quả theo timestamp và digest. Lượt scan tham chiếu ngày 2026-11-13 (UTC) ghi 0 CRITICAL, 4 HIGH, 10 MEDIUM, 3 LOW, 0 UNTRIAGED; release gate **BLOCK**. Đọc timestamp, digest và coverage trong báo cáo để đối chiếu đúng lượt build; không suy ra kết quả của image khác hoặc một lần scan mới. Gate không tự miễn trừ HIGH/CRITICAL khi chưa có fix. Ứng dụng vẫn được dùng trong môi trường thực hành để kiểm tra network/identity; kết quả đó không phải phê duyệt release production.
 
-Khi có bản vá, cập nhật base/dependency, build digest mới, scan lại rồi mới review gate. Đừng trộn kết quả scan image unsigned với image đang chạy.
+Khi có bản vá, cập nhật base/dependency rồi build digest mới. Trước khi ký hoặc deploy, chạy `python3 scripts/scan-gate.py --candidate`: script kiểm tra repository/account và scan chính digest trong `.local/image.txt`, không yêu cầu digest đó đang chạy. Đợi Inspector hoàn tất coverage rồi chạy lại nếu gate đang BLOCK vì chưa có kết quả. Chỉ tiếp tục phát hành khi gate ALLOW; kết quả lưu riêng tại `evidence/candidate-image-scan.json`. Khi có HIGH/CRITICAL, tiếp tục sửa image thay vì bỏ qua gate. Sau rollout, chạy gate mặc định để đối chiếu image thực sự chạy. Đừng trộn bằng chứng candidate với deployed image.
 
 ### Cấu hình repository và scanning coverage
 

@@ -1,7 +1,6 @@
 {
   "source": "Real AWS Console screenshots from the workshop AWS account; read-only federated browser sessions.",
-  "captured_on": "2026-11-07",
-  "annotations": "Red numbered callouts and crops only; no resource values fabricated.",
+  "annotations": "Red numbered callouts and crops only; no resource values fabricated. Capture dates are recorded per image.",
   "images": [
     "console-acm-certificate.png",
     "console-alb.png",
@@ -19,5 +18,23 @@
     "console-target-protocol.png",
     "console-targets.png",
     "console-waf-rule.png"
-  ]
+  ],
+  "capture_dates_by_image": {
+    "console-acm-certificate.png": "2026-11-13",
+    "console-alb.png": "2026-11-07",
+    "console-api-trust.png": "2026-11-07",
+    "console-ecr-images.png": "2026-11-07",
+    "console-eks-addons.png": "2026-11-07",
+    "console-eks-endpoint.png": "2026-11-07",
+    "console-eks.png": "2026-11-07",
+    "console-observer-access.png": "2026-11-13",
+    "console-pod-identity.png": "2026-11-13",
+    "console-rds-encryption.png": "2026-11-13",
+    "console-rds.png": "2026-11-07",
+    "console-sqs-encryption.png": "2026-11-13",
+    "console-subnets.png": "2026-11-07",
+    "console-target-protocol.png": "2026-11-07",
+    "console-targets.png": "2026-11-07",
+    "console-waf-rule.png": "2026-11-13"
+  }
 }

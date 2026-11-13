@@ -5,9 +5,17 @@ C=ROOT/'workshop/content'
 MODULES=[('1-introduction','Introduction to Defense in Depth'),('2-network-security','Network Security – Securing the Request Path'),('3-kubernetes-security','Kubernetes Security – Securing Workloads'),('4-identity','Identity & Access Management – Securing Permissions'),('5-supply-chain-data','Supply Chain & Data Security')]
 PAGES=[]
 
+def scan_summary():
+ report = json.loads((ROOT/'evidence/image-scan.json').read_text())
+ counts = report.get('active_findings_by_severity', {})
+ findings = ', '.join(f'{counts.get(level, 0)} {level}' for level in ['CRITICAL','HIGH','MEDIUM','LOW','UNTRIAGED'])
+ date = report['timestamp_utc'].split('T')[0]
+ return f'Lượt scan tham chiếu ngày {date} (UTC) ghi {findings}; release gate **{report["release_gate"]}**. Đọc timestamp, digest và coverage trong báo cáo để đối chiếu đúng lượt build; không suy ra kết quả của image khác hoặc một lần scan mới.'
+
+
 def write(path,title,weight,body,pre='',**params):
  p=C/path/'_index.md';p.parent.mkdir(parents=True,exist_ok=True)
- p.write_text('---\ntitle: '+json.dumps(title,ensure_ascii=False)+'\nweight: '+str(weight)+'\nchapter: false\npre: '+json.dumps(pre)+'\n'+''.join(k+': '+json.dumps(v,ensure_ascii=False)+'\n' for k,v in params.items())+'---\n\n'+body.strip()+'\n')
+ p.write_text('---\ntitle: '+json.dumps(title,ensure_ascii=False)+'\nweight: '+str(weight)+'\nchapter: false\npre: '+json.dumps(pre)+'\n'+''.join(k+': '+json.dumps(v,ensure_ascii=False)+'\n' for k,v in params.items())+'---\n\n'+body.strip().replace('{{scan_summary}}',scan_summary())+'\n')
 def page(m,n,slug,title,body):
  path=MODULES[m-1][0]+'/'+str(n)+'-'+slug
  write(Path(path),title,n,body,f'<b>{m}.{n}.</b> ');PAGES.append((m,n,path,title))
@@ -19,6 +27,10 @@ Một ứng dụng chạy được trên Amazon EKS chưa trả lời hết các
 Workshop này sử dụng **Notes**, một ứng dụng lưu ghi chú và tạo báo cáo, để trả lời từng câu hỏi bằng cấu hình và phép thử thực tế. Bắt đầu với ứng dụng hoạt động qua HTTPS, các bài tiếp theo lần lượt kiểm tra đường mạng, giới hạn kết nối giữa workload, thu hẹp quyền truy cập và kiểm chứng cách bảo vệ image, secrets, dữ liệu.
 
 Sau mỗi thay đổi, chạy lại luồng lưu ghi chú và tạo báo cáo. Kết quả cần đạt gồm hai phần: thao tác hợp lệ vẫn hoạt động, còn kết nối hoặc quyền không cần thiết bị từ chối.
+
+Trước mỗi phép thử, dự đoán kết quả và lớp nào đưa ra quyết định. Sau đó so output với dự đoán: một timeout, `Forbidden` hay `AccessDenied` có ý nghĩa khác nhau. Đến cuối workshop, cần giải thích được cả **vì sao request hợp lệ đi qua** lẫn **vì sao một thao tác khác bị chặn**.
+
+Ảnh Console và sơ đồ có thể bấm để phóng to; chọn **Kích thước gốc** khi cần đọc IP, policy hoặc vùng khoanh đỏ rồi đóng ảnh để trở lại đúng bài.
 
 ## Bạn sẽ thực hiện những gì?
 
@@ -625,7 +637,7 @@ kubectl get networkpolicy -n notes
 python3 scripts/network-proof.py --stage before
 ```
 
-Script tạo hai pod thử nghiệm tuân thủ Restricted, dùng cùng image đã triển khai nhưng mang labels khác nhau. Khi chưa có policy, frontend và pod `untrusted` đều kết nối được đến API. Script cũng kiểm tra lưu ghi chú và tạo báo cáo, sau đó xóa các probe pods.
+Script tạo hai Deployment probe tuân thủ Restricted, mỗi Deployment có một pod dùng cùng image đã triển khai nhưng mang labels khác nhau. Controller ownership giúp VPC CNI áp dụng NetworkPolicy ổn định. Probe không có label `workshop-serving=true`, nên không được Service/ALB chọn làm backend dù dùng `app=frontend` để kiểm tra policy frontend. Khi chưa có policy, frontend và pod `untrusted` đều kết nối được đến API. Script cũng kiểm tra lưu ghi chú và tạo báo cáo, sau đó xóa các Deployment probe cùng pods của chúng. Script lưu kết quả theo stage vào `evidence/network-proof-before.json` hoặc `network-proof-after.json`.
 
 Nếu policy đã tồn tại, script dừng để tránh ghi nhận sai baseline. Khi thực hành lại trên lab đã harden, dùng phần kiểm chứng sau policy; không cần xóa policy đang bảo vệ ứng dụng.
 
@@ -983,13 +995,68 @@ curl -fsS https://checkip.amazonaws.com
 `kubectl get nodes` từ workstation được cho phép phải thành công. Đọc public CIDR từ API để xác nhận không có mạng rộng ngoài dự kiến. Workshop không dùng một timeout từ mạng chưa biết để tuyên bố đã kiểm chứng private-only; giới hạn test được ghi trong validation.
 ''')
 page(4,3,'human-access','Human Access: AWS IAM & EKS Access Entries',r'''
-Một người cần xem trạng thái ứng dụng mà không có quyền quản trị cluster. Bài này tạo IAM role observer và đưa danh tính đó vào EKS qua Access Entry; quyền Kubernetes cụ thể sẽ được cấu hình ở bài RBAC.
+Một người cần xem trạng thái ứng dụng mà không có quyền quản trị cluster. Bài này thiết lập IAM role observer và đưa danh tính đó vào EKS qua Access Entry; quyền Kubernetes cụ thể sẽ được cấu hình ở bài RBAC.
+
+Nếu chọn Terraform, role và Access Entry observer đã tồn tại: mở chúng để đối chiếu, không Create lại. Nhánh Console tạo chúng ở bài này. Cả hai nhánh tiếp tục bằng cùng phép thử observer ở bài 4.4.
 
 ## Từ IAM principal đến danh tính Kubernetes
 
 Lab dùng role `eks-did-observer`, access entry map vào group `notes-observers`. Group được bind vào Role chỉ đọc của namespace `notes`. Không associate thêm policy admin cho role này.
 
 ## Bước 1: tạo IAM role và Access Entry
+
+**Nhánh Terraform:** mở role `eks-did-observer` và Access Entry đã có, đối chiếu trust/permissions bên dưới rồi chuyển đến phần kiểm tra. **Nhánh Console:** tạo role và Access Entry nếu chưa tồn tại.
+
+Trước khi nhập policy, lấy account của lab:
+
+```bash
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+OBSERVER_ARN="arn:aws:iam::$ACCOUNT_ID:role/eks-did-observer"
+aws sts get-caller-identity --query Arn --output text
+```
+
+Chọn IAM principal được phép assume observer: nếu output là IAM user ARN, dùng ARN đó. Nếu output có `arn:aws:sts::…:assumed-role/…`, mở **IAM → Roles → role quản trị đang dùng → Summary** để lấy **IAM role ARN** (bao gồm path nếu có); không dán STS session ARN vào hướng dẫn này.
+
+Trong Custom trust policy, thay `YOUR_ADMIN_IAM_PRINCIPAL_ARN` bằng IAM user/role ARN vừa xác định:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {"AWS": "YOUR_ADMIN_IAM_PRINCIPAL_ARN"},
+    "Action": "sts:AssumeRole"
+  }]
+}
+```
+
+Policy permissions của **observer role** chỉ đọc endpoint cluster. Thay `YOUR_ACCOUNT_ID` bằng `$ACCOUNT_ID` thực tế:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": "eks:DescribeCluster",
+    "Resource": "arn:aws:eks:us-east-1:YOUR_ACCOUNT_ID:cluster/eks-did"
+  }]
+}
+```
+
+Principal quản trị gọi AssumeRole cũng cần được cho phép `sts:AssumeRole` trên `$OBSERVER_ARN`, trong giới hạn permissions boundary/SCP đang áp dụng. Nếu identity quản trị chưa có quyền đó, thêm statement sau vào policy phù hợp của principal quản trị; đây không phải policy của observer:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": "sts:AssumeRole",
+    "Resource": "arn:aws:iam::YOUR_ACCOUNT_ID:role/eks-did-observer"
+  }]
+}
+```
+
+Các JSON trên chỉ dùng sau khi đã thay placeholders. Không cấp thêm quyền Kubernetes bằng IAM policy này.
 
 1. IAM → Roles → Create role → Custom trust policy. Cho phép **IAM principal quản trị lab của bạn** `sts:AssumeRole`; không dùng wildcard principal hoặc hardcode principal của account ví dụ.
 
@@ -1241,7 +1308,22 @@ except ClientError as e:
     assert "AccessDenied" in e.response["Error"]["Code"]'
 ```
 
-Phải bị AccessDenied. Kiểm tra SQL riêng: API không được insert `notes.reports`; IAM connect không tự cấp quyền SQL. Db-init dùng master secret chỉ cho bootstrap; sau khi hoàn tất, pod job có thể xóa, và không cấp quyền đọc secret cho API/worker.
+Phải bị AccessDenied. Kiểm tra SQL riêng bằng cùng user ứng dụng:
+
+```bash
+kubectl exec -n notes deployment/api -- python -c '
+import main, psycopg
+try:
+    with main.connect() as conn:
+        conn.execute("INSERT INTO notes.reports(id,note_count) VALUES(gen_random_uuid(),0)")
+    raise SystemExit("UNEXPECTED: API can insert reports")
+except psycopg.errors.InsufficientPrivilege:
+    print("DENIED: notes_api cannot insert reports")'
+```
+
+Kết quả mong đợi là dòng `DENIED`, trong khi POST/GET `/api/notes` vẫn thành công. Kết nối RDS đã qua lớp mạng, TLS và IAM DB authentication; quyền SQL vẫn có thể từ chối một câu lệnh cụ thể. `rds-db:connect` không tự cấp `INSERT`, `SELECT` hoặc quyền quản trị database.
+
+SDK tạo IAM DB auth token bằng cách ký cục bộ với temporary credentials; không có IAM action tên `rds:GenerateDBAuthToken` cần cấp cho pod. Token có hạn cho việc xác thực kết nối mới; nó không phải master password cần lưu trong Secret. Db-init dùng master secret chỉ cho bootstrap; sau khi hoàn tất, pod job có thể xóa, và không cấp quyền đọc secret cho API/worker.
 ''')
 page(5,1,'scanning','Container Image Scanning với ECR & Inspector',r'''
 Image đã build và chạy được vẫn có thể chứa dependency có lỗ hổng đã biết. Bài này bật scanning, đọc kết quả của đúng image digest và thực hiện kiểm tra điều kiện phát hành trước khi chấp nhận image.
@@ -1269,19 +1351,23 @@ Chọn đúng digest đang triển khai trước khi mở findings. Các artifac
 ### Đọc kết quả theo image digest
 
 ```bash
-bash scripts/build-push.sh
-IMAGE=$(cat .local/image.txt)
+source scripts/env.sh
+IMAGE=$(python3 scripts/deployed-image.py)
+printf '%s\n' "$IMAGE"
 aws ecr describe-images --repository-name eks-did/notes \
   --query 'imageDetails[].{digest:imageDigest,tags:imageTags,scan:imageScanStatus.status}'
 ```
 
-Enhanced scanning dùng Inspector APIs:
+Không build lại image ở bước quan sát này. Script đối chiếu digest trong `.local/image.txt` với Deployment và `imageID` của các pod API/worker đang Ready; nếu khác, dừng thay vì báo scan của image chưa triển khai. Muốn thử bản build khác, triển khai và kiểm tra baseline của bản đó trước khi ghi bằng chứng.
+
+Enhanced scanning dùng Inspector APIs, lọc đúng hash thay vì gom findings của mọi image trong repository:
 
 ```bash
+SCAN_FILTER=$(jq -cn --arg digest "${IMAGE##*@}" \
+  '{ecrImageHash:[{comparison:"EQUALS",value:$digest}],findingStatus:[{comparison:"EQUALS",value:"ACTIVE"}]}')
 aws inspector2 batch-get-account-status \
   --account-ids "$(aws sts get-caller-identity --query Account --output text)"
-aws inspector2 list-findings --filter-criteria \
-  '{"ecrImageRepositoryName":[{"comparison":"EQUALS","value":"eks-did/notes"}],"findingStatus":[{"comparison":"EQUALS","value":"ACTIVE"}]}' \
+aws inspector2 list-findings --filter-criteria "$SCAN_FILTER" \
   --query 'findings[].{severity:severity,title:title}'
 ```
 
@@ -1293,9 +1379,9 @@ Basic scan APIs và Inspector có lifecycle/status khác nhau; không gọi `sta
 python3 scripts/scan-gate.py
 ```
 
-Script yêu cầu coverage đã scan, đọc findings của **đúng deployed digest**, trả exit 1 nếu có HIGH/CRITICAL hoặc chưa có coverage hoàn tất. [Kết quả scan thực tế](/evidence/image-scan.json) trong lượt lab ghi 4 HIGH, 8 MEDIUM, 2 LOW, 2 UNTRIAGED; 4 HIGH chưa có bản sửa theo Inspector. Gate trả `BLOCK`, không tự miễn trừ vì chưa có fix. Ứng dụng vẫn được dùng trong môi trường thực hành để kiểm tra network/identity; kết quả đó không phải phê duyệt release production.
+Script yêu cầu coverage đã scan, đọc findings của **đúng deployed digest**, trả exit 1 nếu có HIGH/CRITICAL hoặc chưa có coverage hoàn tất. [Kết quả scan thực tế](/evidence/image-scan.json) ghi kết quả theo timestamp và digest. {{scan_summary}} Gate không tự miễn trừ HIGH/CRITICAL khi chưa có fix. Ứng dụng vẫn được dùng trong môi trường thực hành để kiểm tra network/identity; kết quả đó không phải phê duyệt release production.
 
-Khi có bản vá, cập nhật base/dependency, build digest mới, scan lại rồi mới review gate. Đừng trộn kết quả scan image unsigned với image đang chạy.
+Khi có bản vá, cập nhật base/dependency rồi build digest mới. Trước khi ký hoặc deploy, chạy `python3 scripts/scan-gate.py --candidate`: script kiểm tra repository/account và scan chính digest trong `.local/image.txt`, không yêu cầu digest đó đang chạy. Đợi Inspector hoàn tất coverage rồi chạy lại nếu gate đang BLOCK vì chưa có kết quả. Chỉ tiếp tục phát hành khi gate ALLOW; kết quả lưu riêng tại `evidence/candidate-image-scan.json`. Khi có HIGH/CRITICAL, tiếp tục sửa image thay vì bỏ qua gate. Sau rollout, chạy gate mặc định để đối chiếu image thực sự chạy. Đừng trộn bằng chứng candidate với deployed image.
 
 ### Cấu hình repository và scanning coverage
 
@@ -1322,6 +1408,16 @@ ECR → repository → Images: ghi lại image digest thay vì chỉ tag. IAM/EC
 
 ## Bước 2: tạo SBOM và ký image
 
+Cài [Cosign](https://docs.sigstore.dev/cosign/system_config/installation/) và [Trivy](https://trivy.dev/latest/getting-started/installation/) theo hướng dẫn chính thức cho Linux, rồi kiểm tra trước khi thay đổi policy:
+
+```bash
+cosign version
+trivy --version
+python3 scripts/preflight.py --stage supply-chain
+```
+
+Các công cụ cần nằm trên PATH; Docker phải hoạt động và `.local/image.txt` phải chứa digest đã build cho account hiện tại. Phiên đăng nhập ECR từ bước build được các công cụ dùng để truy cập private repository; nếu token đã hết hạn, chạy lại lệnh ECR login trong [build-push.sh](/source/scripts/build-push.sh) trước khi ký. Không cần đổi digest hoặc deploy image mới chỉ để refresh login.
+
 ```bash
 source scripts/env.sh
 bash scripts/supply-chain.sh
@@ -1335,6 +1431,8 @@ Lab không upload signature vào public transparency log; `--tlog-upload=false` 
 IMAGE=$(cat .local/image.txt)
 cosign verify --insecure-ignore-tlog --key k8s/cosign.pub "$IMAGE"
 ```
+
+Nếu thực hành một lần cập nhật image sau khi đã bật admission: build digest mới, chạy `python3 scripts/scan-gate.py --candidate` và chỉ khi ALLOW mới ký bằng `bash scripts/supply-chain.sh --candidate`, rồi redeploy. Chế độ candidate kiểm tra digest thuộc đúng repository của account lab, nhưng không tuyên bố digest đó đang chạy hoặc đã qua release gate. Sau rollout, dùng `deployed-image.py` và scan gate mặc định để ghi bằng chứng của image thực sự chạy. Không đổi public key đang được policy tin cậy trong lúc cập nhật.
 
 ## Bước 3: áp dụng admission policy
 
@@ -1434,7 +1532,7 @@ Dữ liệu của ứng dụng tồn tại trên nhiều dịch vụ, mỗi dị
 
 ## Bước 1: tạo KMS key và đối chiếu cấu hình dịch vụ
 
-KMS → Customer managed keys → Create symmetric Encrypt/Decrypt key → alias `eks-did`. Giới hạn key administrators/users vào identity lab cần thiết, bật rotation. Terraform tạo `aws_kms_key.lab` và alias, tùy chọn tắt nếu SCP không cho.
+Nếu dùng Terraform với `enable_kms=true`, key và alias `eks-did` đã được tạo: mở key đó để kiểm tra, không tạo key/alias trùng. Nếu chọn Console và chưa có key lab, vào KMS → Customer managed keys → Create symmetric Encrypt/Decrypt key → alias `eks-did`. Giới hạn key administrators/users vào identity lab cần thiết, bật rotation. Terraform tạo `aws_kms_key.lab` và alias, tùy chọn tắt nếu SCP không cho.
 
 RDS → Configuration kiểm tra storage encrypted và KMS key ID. ECR và SQS có cấu hình riêng; đối chiếu key và cơ chế mã hóa của từng dịch vụ.
 
@@ -1484,17 +1582,20 @@ write(Path('cleanup'),'Cleanup: gỡ lab đúng thứ tự',90,r'''
 
 Chạy cleanup trong đúng account/profile. Lab dùng prefix `eks-did` và kubeconfig riêng; không xóa VPC/default resources hoặc dịch vụ của người khác.
 
-### Console: những tài nguyên cần gỡ
+### Console: gỡ theo quan hệ phụ thuộc
 
-1. EKS/Kubernetes: xóa Ingress trước, đợi controller xóa ALB, target groups và SG do nó quản lý. Sau đó gỡ namespace app, Kyverno và controller.
+Nhánh Console cần gỡ cả những tài nguyên tiền đề đã tạo thủ công. Nhánh Terraform dùng cùng thứ tự gỡ phần Kubernetes, sau đó destroy bằng đúng state; không xóa tay tài nguyên Terraform rồi bỏ qua việc đối chiếu state.
 
-2. Route 53: xóa **record ứng dụng `notes`**, giữ lại public hosted zone đang sử dụng.
+1. **Kubernetes/ALB:** xóa policy ký image trước; xóa Ingress `notes`, giữ controller chạy đến khi ALB `eks-did-notes`, target groups và SG do controller tạo đã biến mất. Gỡ Deployment probe nếu còn, namespace `notes`, Kyverno và AWS Load Balancer Controller. `cleanup.py` thực hiện phần này và dừng nếu ALB chưa được gỡ.
+2. **DNS:** Route 53 → zone đang sử dụng → xóa record ứng dụng `notes`. Giữ public hosted zone, delegation và records của ứng dụng khác.
+3. **EKS:** xóa managed node group `private-workers`, chờ EC2 instances kết thúc; xóa add-ons và cluster `eks-did`. Không xóa IAM roles/OIDC provider khi node/add-on còn sử dụng chúng.
+4. **RDS/SQS/ECR:** xóa RDS `eks-did` theo lựa chọn snapshot cho dữ liệu cần giữ; lab disposable không giữ final snapshot. Chờ DB xóa xong rồi gỡ DB subnet group đã ghi ở RDS Connectivity (`eks-did-database` khi tạo theo Console, `eks-did` khi dùng Terraform) và SG `eks-did-database`. Xóa queue `eks-did-reports`; xóa images/signatures/test digest trước khi xóa ECR repo `eks-did/notes`. Master secret do RDS quản lý được gỡ theo lifecycle của DB; kiểm tra metadata, không chụp hoặc xuất secret value.
+5. **WAF/ACM:** WAF → Web ACL `eks-did` → Associated AWS resources phải rỗng sau khi ALB bị xóa, rồi xóa Web ACL để dừng phí ACL/rules. Xóa ACM certificate của hostname lab khi không còn in use; chỉ xóa DNS validation record tương ứng, không xóa record dùng chung với certificate khác.
+6. **Mạng:** xóa NAT Gateway, chờ Deleted rồi release EIP của lab. Sau khi EC2/RDS/ALB ENIs đã biến mất, xóa các SG riêng còn lại, route associations/tables và sáu subnets lab. Detach/delete IGW rồi xóa VPC `eks-did`. Không xóa default VPC hay SG của tài nguyên khác.
+7. **IAM/OIDC:** detach managed policies, xóa inline policies rồi xóa các role `eks-did-cluster-role`, `eks-did-node-role`, `eks-did-vpc-cni-role`, `eks-did-api`, `eks-did-worker`, `eks-did-db-init`, `eks-did-controller`, `eks-did-observer`. Xóa OIDC provider khớp issuer của cluster vừa gỡ; không xóa provider dùng bởi cluster khác. Access Entries/Pod Identity associations thuộc cluster đã xóa không cần giữ lại.
+8. **KMS/logs/Inspector:** xóa alias `alias/eks-did`, schedule deletion key lab với waiting period 7 ngày. Xem CloudWatch Logs và xóa log groups riêng của lab nếu không cần giữ. Inspector là cấu hình account/Region: chỉ disable nếu lab đã bật và không có consumer khác; không tắt scanning của account dùng chung để dọn một repository.
 
-3. Gỡ node group/add-ons/cluster; RDS, queue, ECR lab; NAT trước khi release EIP; subnet/route/IGW/VPC sau khi ENI không còn.
-
-4. Xóa ACM certificate và record validation thuộc cert lab. Schedule deletion CMK; xóa alias lab.
-
-5. Inspector là account-level setting: chỉ disable nếu chính lab đã bật và không có consumer khác. Không tắt scanning toàn account dùng chung mà không review.
+Ghi lại tên/ID trước khi xóa để đối chiếu. Một role còn tồn tại thường không tính phí, nhưng Web ACL, EIP, storage hoặc tài nguyên đang chạy có thể vẫn phát sinh phí sau khi đóng trang web.
 
 ### CLI: gỡ tài nguyên do controller quản lý
 
@@ -1525,10 +1626,23 @@ aws ec2 describe-nat-gateways --filter Name=state,Values=available,pending \
   --query 'NatGateways[].{id:NatGatewayId,vpc:VpcId}'
 ```
 
-Kiểm tra EIP, CloudWatch log groups và KMS PendingDeletion. Giữ lại source, public key và báo cáo đã loại credentials; không upload state, registry auth secret hoặc private signing key.
+Kiểm tra thêm WAF, EIP và các tài nguyên phụ trợ:
+
+```bash
+aws wafv2 list-web-acls --scope REGIONAL \
+  --query 'WebACLs[?Name==`eks-did`].Name'
+aws ec2 describe-addresses --filters Name=tag:Name,Values=eks-did-nat \
+  --query 'Addresses[].AllocationId'
+aws iam list-roles --query 'Roles[?starts_with(RoleName, `eks-did-`)].RoleName'
+aws kms list-aliases --query 'Aliases[?AliasName==`alias/eks-did`].AliasName'
+```
+
+WAF, EIP, IAM roles và alias lab cần không còn trong kết quả. Key đã schedule deletion có thể còn trạng thái PendingDeletion đến hết waiting period; giữ Key ID trong ghi chép nếu cần đối chiếu. Kiểm tra CloudWatch log groups theo tên cluster. Giữ lại source, public key và báo cáo đã loại credentials; không upload state, registry auth secret hoặc private signing key.
 ''')
 write(Path('validation'),'Kiểm chứng và kết quả thực hành',80,r'''
 ## Ý định và kết quả là hai thứ khác nhau
+
+Chạy trang này sau khi hoàn thành NetworkPolicy, IAM/RBAC, PSA và KMS. Bộ kiểm tra tạo/xóa probe pods, tạo dữ liệu Notes/báo cáo và **áp dụng lại NetworkPolicy của lab**; vì vậy không dùng nó để ghi baseline trước cách ly. Dùng `network-proof.py --stage before` trong bài 3.2 cho phép thử baseline độc lập.
 
 Hướng dẫn trong từng bài mô tả kết quả mong đợi. Báo cáo tại đây ghi những gì bộ kiểm tra thực sự quan sát. `PASS` chỉ áp dụng cho phép thử được nêu, không phải chứng nhận production-ready.
 
@@ -1541,7 +1655,21 @@ python3 scripts/verify.py --supply-chain
 
 Bộ kiểm tra chạy app flow, WAF, network allow/deny, observer credentials, IAM deny, PostgreSQL grants, PSA, IMDS và KMS round-trip. Các bài kiểm tra không khai thác lỗ hổng hoặc chạy workload privileged.
 
-Image scanning và release gate có [báo cáo riêng](/evidence/image-scan.json): gate có thể chặn release dù các test chức năng/phân quyền PASS. Tải [SBOM CycloneDX thực tế](/evidence/sbom.cdx.json) để xem thành phần image.
+Image scanning và release gate có [báo cáo riêng](/evidence/image-scan.json): gate có thể chặn release dù các test chức năng/phân quyền PASS. Tải [SBOM CycloneDX thực tế](/evidence/sbom.cdx.json) để xem thành phần image. [Ghi nhận review độc lập và phạm vi kiểm thử](/evidence/workshop-review.md) giải thích những lỗi đã sửa và giới hạn kiểm chứng.
+
+## Đọc một kết quả bị từ chối
+
+| Bằng chứng | Lớp đang kiểm tra | Điều kiện đối chứng |
+|---|---|---|
+| Header thử WAF trả HTTP 403 | WAF gắn ALB | Cùng URL không có header trả 200 |
+| Pod untrusted kết nối API bằng IP bị timeout | NetworkPolicy | Probe frontend và nghiệp vụ API vẫn hoạt động |
+| Observer nhận `Forbidden` khi đọc Kubernetes Secret | Kubernetes authorization | Cùng observer vẫn list được pods |
+| API nhận `AccessDenied` khi ReceiveMessage | IAM action/resource của workload | API vẫn SendMessage, worker vẫn xử lý report |
+| API insert reports gặp `InsufficientPrivilege` | PostgreSQL grants | API vẫn tạo/đọc ghi chú |
+| Pod dry-run bị báo `violates PodSecurity` | Pod Security Admission | Manifest Restricted hợp lệ vẫn được chấp nhận |
+| Digest chưa ký bị webhook từ chối | Image signature admission | Digest đã ký trong cùng repo được chấp nhận |
+
+Tên lỗi không tự chứng minh nguyên nhân. Đọc đúng request, identity và đối chứng thành công trước khi kết luận lớp bảo vệ có hiệu lực. Lỗi hết hạn credentials hoặc dependency chưa sẵn sàng không được tính là negative test đạt.
 
 Xem [báo cáo thực nghiệm](/validation/results/) để biết test đã chạy và giới hạn. Script lưu log chi tiết trong `.local/` được gitignore; bản public chỉ lưu kết quả đã lọc.
 ''')
@@ -1577,7 +1705,7 @@ HTTPS kết thúc tại ALB; frontend và API sử dụng HTTP nội bộ trong 
 
 Một NAT Gateway, RDS Single-AZ và một replica controller/admission là các lựa chọn giảm chi phí thực hành; cần đánh giá lại availability khi thiết kế hệ thống sử dụng thực tế. Policy ký image chỉ bao phủ các image/repository được nêu trong bài.
 
-[Kết quả scan tham chiếu](/evidence/image-scan.json) ghi nhận 4 HIGH chưa có bản sửa và gate **BLOCK**. Việc các kiểm tra chức năng và phân quyền đạt không phê duyệt image đó để phát hành.
+[Kết quả scan tham chiếu](/evidence/image-scan.json) được ghi riêng. {{scan_summary}} Việc các kiểm tra chức năng và phân quyền đạt không phê duyệt image đó để phát hành.
 
 ## Kết thúc thực hành
 
@@ -1609,7 +1737,7 @@ Các role cần để Notes hoạt động đã có từ phần chuẩn bị. D�
 
 Scan đúng digest đang chạy, đọc release gate, tạo SBOM và chữ ký rồi thử admission bằng một image chưa ký. Tiếp theo kiểm tra master secret của RDS, quyền bootstrap và encryption context của KMS.
 
-Kết quả scan phải được đánh giá riêng với chức năng ứng dụng: lab tham chiếu hiện có HIGH findings chưa có bản sửa và release gate trả BLOCK. Hoàn thành phần này rồi dùng [Tổng kết](/summary/) để đối chiếu toàn bộ bằng chứng trước khi cleanup.""",
+Kết quả scan phải được đánh giá riêng với chức năng ứng dụng. {{scan_summary}} Hoàn thành phần này rồi dùng [Tổng kết](/summary/) để đối chiếu toàn bộ bằng chứng trước khi cleanup.""",
 }
 
 for i,(slug,title) in enumerate(MODULES,1):

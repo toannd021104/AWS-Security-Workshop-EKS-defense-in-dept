@@ -1,0 +1,28 @@
+{
+  "verified_on": "2026-11-13",
+  "region": "us-east-1",
+  "kubernetes": "1.35",
+  "platform": "eks.27",
+  "addons": [
+    {
+      "name": "coredns",
+      "version": "v1.13.2-eksbuild.75",
+      "status": "ACTIVE"
+    },
+    {
+      "name": "eks-pod-identity-agent",
+      "version": "v1.4.1-eksbuild.3",
+      "status": "ACTIVE"
+    },
+    {
+      "name": "kube-proxy",
+      "version": "v1.35.3-eksbuild.69",
+      "status": "ACTIVE"
+    },
+    {
+      "name": "vpc-cni",
+      "version": "v1.22.4-eksbuild.14",
+      "status": "ACTIVE"
+    }
+  ]
+}

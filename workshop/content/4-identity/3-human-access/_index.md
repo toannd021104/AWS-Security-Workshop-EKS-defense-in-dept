@@ -5,13 +5,68 @@ chapter: false
 pre: "<b>4.3.</b> "
 ---
 
-Một người cần xem trạng thái ứng dụng mà không có quyền quản trị cluster. Bài này tạo IAM role observer và đưa danh tính đó vào EKS qua Access Entry; quyền Kubernetes cụ thể sẽ được cấu hình ở bài RBAC.
+Một người cần xem trạng thái ứng dụng mà không có quyền quản trị cluster. Bài này thiết lập IAM role observer và đưa danh tính đó vào EKS qua Access Entry; quyền Kubernetes cụ thể sẽ được cấu hình ở bài RBAC.
+
+Nếu chọn Terraform, role và Access Entry observer đã tồn tại: mở chúng để đối chiếu, không Create lại. Nhánh Console tạo chúng ở bài này. Cả hai nhánh tiếp tục bằng cùng phép thử observer ở bài 4.4.
 
 ## Từ IAM principal đến danh tính Kubernetes
 
 Lab dùng role `eks-did-observer`, access entry map vào group `notes-observers`. Group được bind vào Role chỉ đọc của namespace `notes`. Không associate thêm policy admin cho role này.
 
 ## Bước 1: tạo IAM role và Access Entry
+
+**Nhánh Terraform:** mở role `eks-did-observer` và Access Entry đã có, đối chiếu trust/permissions bên dưới rồi chuyển đến phần kiểm tra. **Nhánh Console:** tạo role và Access Entry nếu chưa tồn tại.
+
+Trước khi nhập policy, lấy account của lab:
+
+```bash
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+OBSERVER_ARN="arn:aws:iam::$ACCOUNT_ID:role/eks-did-observer"
+aws sts get-caller-identity --query Arn --output text
+```
+
+Chọn IAM principal được phép assume observer: nếu output là IAM user ARN, dùng ARN đó. Nếu output có `arn:aws:sts::…:assumed-role/…`, mở **IAM → Roles → role quản trị đang dùng → Summary** để lấy **IAM role ARN** (bao gồm path nếu có); không dán STS session ARN vào hướng dẫn này.
+
+Trong Custom trust policy, thay `YOUR_ADMIN_IAM_PRINCIPAL_ARN` bằng IAM user/role ARN vừa xác định:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {"AWS": "YOUR_ADMIN_IAM_PRINCIPAL_ARN"},
+    "Action": "sts:AssumeRole"
+  }]
+}
+```
+
+Policy permissions của **observer role** chỉ đọc endpoint cluster. Thay `YOUR_ACCOUNT_ID` bằng `$ACCOUNT_ID` thực tế:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": "eks:DescribeCluster",
+    "Resource": "arn:aws:eks:us-east-1:YOUR_ACCOUNT_ID:cluster/eks-did"
+  }]
+}
+```
+
+Principal quản trị gọi AssumeRole cũng cần được cho phép `sts:AssumeRole` trên `$OBSERVER_ARN`, trong giới hạn permissions boundary/SCP đang áp dụng. Nếu identity quản trị chưa có quyền đó, thêm statement sau vào policy phù hợp của principal quản trị; đây không phải policy của observer:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": "sts:AssumeRole",
+    "Resource": "arn:aws:iam::YOUR_ACCOUNT_ID:role/eks-did-observer"
+  }]
+}
+```
+
+Các JSON trên chỉ dùng sau khi đã thay placeholders. Không cấp thêm quyền Kubernetes bằng IAM policy này.
 
 1. IAM → Roles → Create role → Custom trust policy. Cho phép **IAM principal quản trị lab của bạn** `sts:AssumeRole`; không dùng wildcard principal hoặc hardcode principal của account ví dụ.
 

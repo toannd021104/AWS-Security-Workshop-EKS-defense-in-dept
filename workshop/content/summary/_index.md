@@ -36,7 +36,7 @@ HTTPS kết thúc tại ALB; frontend và API sử dụng HTTP nội bộ trong 
 
 Một NAT Gateway, RDS Single-AZ và một replica controller/admission là các lựa chọn giảm chi phí thực hành; cần đánh giá lại availability khi thiết kế hệ thống sử dụng thực tế. Policy ký image chỉ bao phủ các image/repository được nêu trong bài.
 
-[Kết quả scan tham chiếu](/evidence/image-scan.json) ghi nhận 4 HIGH chưa có bản sửa và gate **BLOCK**. Việc các kiểm tra chức năng và phân quyền đạt không phê duyệt image đó để phát hành.
+[Kết quả scan tham chiếu](/evidence/image-scan.json) được ghi riêng. Lượt scan tham chiếu ngày 2026-11-13 (UTC) ghi 0 CRITICAL, 4 HIGH, 10 MEDIUM, 3 LOW, 0 UNTRIAGED; release gate **BLOCK**. Đọc timestamp, digest và coverage trong báo cáo để đối chiếu đúng lượt build; không suy ra kết quả của image khác hoặc một lần scan mới. Việc các kiểm tra chức năng và phân quyền đạt không phê duyệt image đó để phát hành.
 
 ## Kết thúc thực hành
 

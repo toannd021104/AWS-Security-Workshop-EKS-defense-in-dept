@@ -116,6 +116,15 @@ Ví dụ một phần access log:
 
 `--prefix=true` thêm tên pod/container để biết pod nào nhận request. Log còn có thể chứa health checks của ALB; số dòng cuối không bảo đảm chứa mọi request vừa gửi.
 
+## Kiểm tra WAF đã tham gia đường truy cập
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  -H 'x-workshop-test: block-me' "https://$APP_HOST/"
+```
+
+Lab đầy đủ phải trả **403**, còn request không có header vẫn trả **200**. Trên WAF Console, Web ACL `eks-did` phải có ALB `eks-did-notes` trong Associated AWS resources. Nếu đã chọn `--without-waf`, ghi rõ bước edge này bị bỏ qua; không đánh dấu hoàn thành WAF chỉ vì HTTPS hoạt động.
+
 ## Điều kiện hoàn thành chuẩn bị
 
 | Kiểm tra | Kết quả cần đạt |
@@ -124,6 +133,7 @@ Ví dụ một phần access log:
 | Job db-init | Complete |
 | Deployments | Frontend 2/2, API 2/2, worker 1/1 |
 | Domain và HTTPS | Trang chủ trả 200, certificate hợp lệ |
+| WAF | ALB có association; header thử trả 403 |
 | API | Health trả `workload: api` |
 | RDS | Đọc lại được ghi chú vừa tạo |
 | SQS/worker | Nhận được report cùng ID đã gửi |

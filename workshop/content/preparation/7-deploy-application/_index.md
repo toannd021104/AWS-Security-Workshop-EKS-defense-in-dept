@@ -28,7 +28,9 @@ Kết quả mong đợi:
 Saved .local/lab.json and .local/lab.env; no secret values are fetched.
 ```
 
-Script đọc EKS, RDS, subnets, queue, ECR, certificate và hosted zone để tạo metadata cho account của bạn. Nó không cần Terraform state và không lấy giá trị master password. Nếu có nhiều public zones, `DNS_ZONE_NAME` giúp chọn đúng zone.
+Script đọc EKS, RDS, subnets, queue, ECR, certificate, WAF, KMS và hosted zone để tạo metadata cho account của bạn. Thiếu quyền discovery WAF hoặc thiếu Web ACL sẽ làm script dừng trước khi lưu cấu hình; một website chạy được chưa chứng minh WAF đã được gắn. KMS demo key không phải dependency của Notes: nhánh Console có thể tạo nó ở bài 5.4, nên metadata ghi DEFERRED nếu key chưa có. Nó không cần Terraform state và không lấy giá trị master password. Nếu có nhiều public zones, `DNS_ZONE_NAME` giúp chọn đúng zone.
+
+Nếu đã chủ động bỏ phần WAF hoặc KMS vì quyền tài khoản không cho phép, dùng `--without-waf` hoặc `--without-kms` khi chạy `capture-config.py` và ghi phần tương ứng là **chưa kiểm chứng**. Không dùng các tùy chọn đó để che lỗi discovery trong một lab dự định thực hành đầy đủ.
 
 Nạp các biến vừa tạo:
 
@@ -59,6 +61,14 @@ Mở **ECR → eks-did/notes → Images** để đối chiếu image vừa push.
 
 ## Cài controller và triển khai manifests
 
+Kiểm tra metadata thuộc đúng account đang đăng nhập trước khi dùng nó để render tài nguyên:
+
+```bash
+python3 scripts/preflight.py --stage deploy
+```
+
+Các dòng `Account matches metadata`, `Region matches metadata`, `EKS cluster` và `Pinned application image` phải PASS. Nếu đổi profile sang account khác, thu thập cấu hình và build image cho account đó; không tái dùng `.local/lab.json`, kubeconfig hoặc Terraform state của account cũ.
+
 ```bash
 bash scripts/deploy.sh
 ```
@@ -83,6 +93,8 @@ kubectl -n kube-system rollout status deployment/aws-load-balancer-controller
 kubectl get job db-init -n notes
 kubectl get deployments,pods,services,ingress -n notes
 ```
+
+Khi chạy lại `deploy.sh`, một Job `db-init` đã Complete được lưu log vào `.local/db-init-previous.log` rồi tạo lại để tránh lỗi immutable pod template. SQL bootstrap có thể chạy lại; script không tự xóa một Job còn chạy hoặc đã fail. Nếu image mới chịu policy chữ ký từ chương 5, chạy `python3 scripts/scan-gate.py --candidate`, chỉ khi ALLOW mới chạy `bash scripts/supply-chain.sh --candidate` để ký digest mới bằng key được policy tin cậy trước khi redeploy. Chế độ này ký image vừa build trong repository lab, không gọi nó là deployed image; sau rollout, chạy lại `deployed-image.py` và scan gate để đối chiếu bằng chứng.
 
 Job có completions `1/1`; Deployments có số ready `2/2`, `2/2`, `1/1`. Ingress cần có ADDRESS là DNS name của ALB. Nếu Job không hoàn tất, đọc `kubectl logs job/db-init -n notes`; nếu ALB chưa xuất hiện, đọc controller logs và Ingress events trước khi chuyển sang DNS.
 

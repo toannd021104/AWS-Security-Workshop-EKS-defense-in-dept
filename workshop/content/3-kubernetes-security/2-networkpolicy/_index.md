@@ -34,7 +34,7 @@ kubectl get networkpolicy -n notes
 python3 scripts/network-proof.py --stage before
 ```
 
-Script tạo hai pod thử nghiệm tuân thủ Restricted, dùng cùng image đã triển khai nhưng mang labels khác nhau. Khi chưa có policy, frontend và pod `untrusted` đều kết nối được đến API. Script cũng kiểm tra lưu ghi chú và tạo báo cáo, sau đó xóa các probe pods.
+Script tạo hai Deployment probe tuân thủ Restricted, mỗi Deployment có một pod dùng cùng image đã triển khai nhưng mang labels khác nhau. Controller ownership giúp VPC CNI áp dụng NetworkPolicy ổn định. Probe không có label `workshop-serving=true`, nên không được Service/ALB chọn làm backend dù dùng `app=frontend` để kiểm tra policy frontend. Khi chưa có policy, frontend và pod `untrusted` đều kết nối được đến API. Script cũng kiểm tra lưu ghi chú và tạo báo cáo, sau đó xóa các Deployment probe cùng pods của chúng. Script lưu kết quả theo stage vào `evidence/network-proof-before.json` hoặc `network-proof-after.json`.
 
 Nếu policy đã tồn tại, script dừng để tránh ghi nhận sai baseline. Khi thực hành lại trên lab đã harden, dùng phần kiểm chứng sau policy; không cần xóa policy đang bảo vệ ứng dụng.
 

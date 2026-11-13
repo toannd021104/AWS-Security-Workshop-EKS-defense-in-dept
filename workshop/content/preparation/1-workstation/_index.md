@@ -80,7 +80,7 @@ cd AWS-Security-Workshop-EKS-defense-in-dept
 mkdir -p .local
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install boto3 PyYAML
+python3 -m pip install -r requirements-lab.txt
 export AWS_PROFILE=guru AWS_REGION=us-east-1
 source scripts/env.sh
 ```
@@ -94,6 +94,7 @@ Có thể dùng [gói ZIP mã lab](/downloads/eks-defense-in-depth-lab.zip) thay
 | `k8s/` | Manifests được render cho account của bạn |
 | `infrastructure/terraform/` | Hạ tầng tương đương bằng Terraform |
 | `.local/` | Kubeconfig, metadata lab và các file tạm trên máy |
+| `requirements-lab.txt` | Phiên bản Python dependencies dùng cho các script thực hành |
 
 `source scripts/env.sh` đặt `KUBECONFIG` vào `.local/kubeconfig`. Ở bước này chưa có `.local/lab.env`, nên biến `APP_HOST` chưa được script tự nạp. Khai báo domain của bạn để sử dụng khi cấp certificate:
 
@@ -113,11 +114,40 @@ App hostname: notes.example.com
 
 Trong terminal mới, kích hoạt lại `.venv`, đặt profile/Region và `source scripts/env.sh`. Trước khi bước thu thập cấu hình hoàn tất, khai báo lại `DNS_ZONE_NAME` theo giá trị bạn đã chọn.
 
+## Kiểm tra đầu vào trước khi tạo tài nguyên
+
+```bash
+python3 scripts/preflight.py --stage setup
+```
+
+Script chỉ đọc: kiểm tra công cụ, Docker daemon, Python dependencies và AWS STS. Ví dụ các dòng cuối khi đầu vào đã sẵn sàng:
+
+```text
+PASS | Docker daemon | linux/x86_64
+PASS | AWS identity | Account 123456789012; Region us-east-1
+Readiness: PASSED (setup)
+```
+
+Account và kiến trúc CPU trong output phụ thuộc máy của bạn. `FAIL` dừng bước chuẩn bị; sửa đầu vào được nêu rồi chạy lại. `PASSED` chưa bảo đảm IAM cho phép tạo mọi dịch vụ hoặc account còn đủ quota. Nếu chọn Terraform, kiểm tra thêm `terraform version`; nhánh Console không cần công cụ này.
+
+Ở chương 5 sẽ cần **Cosign** và **Trivy**. Hai công cụ đó chưa cần để hoàn thành baseline; cách cài và kiểm tra được đặt ngay trước bài sử dụng chúng.
+
 ## Quyền và chi phí
 
 Lab cần quyền tạo/quản lý VPC, EC2, EKS, IAM roles/PassRole, ELB, RDS, SQS, ECR, ACM và Route 53. Tài khoản cần có quyền sử dụng WAF, Inspector và KMS cho các phần thực hành tương ứng. Nếu gặp lỗi thiếu quyền, kiểm tra IAM policies và chính sách của tổ chức trước khi tiếp tục.
 
 EKS, EC2, ALB, NAT Gateway/public IPv4, RDS và các dịch vụ bảo mật có thể phát sinh phí khi lab đang chạy. Xem [Cleanup](/cleanup/) để biết thứ tự gỡ tài nguyên khi kết thúc.
+
+| Tài nguyên lab | Số lượng dự kiến | Điều gì tiếp tục tính phí? |
+|---|---|---|
+| EKS control plane | 1 cluster, standard support | Cluster còn tồn tại, kể cả không có pod |
+| EC2 managed workers | 2 × t3.medium + EBS | Nodes đang chạy và storage đi kèm |
+| NAT Gateway | 1 + public IPv4 | Thời gian tồn tại, dữ liệu xử lý và có thể có cross-AZ traffic |
+| ALB | 1 + public IPv4 | Thời gian tồn tại và dung lượng xử lý/LCU |
+| RDS PostgreSQL | 1 db.t3.micro, Single-AZ | Instance, storage và backup phát sinh |
+| WAF, KMS, Inspector, ECR, Route 53 | Theo phần đã bật | Web ACL/rules/requests, key, scanning, image storage và DNS |
+
+Lập dự toán theo Region và thời gian thực hành tại [AWS Pricing Calculator](https://calculator.aws/). Đây là danh sách đầu vào tính giá, không phải báo giá cố định. Hai nodes ở hai AZ không làm RDS Single-AZ hoặc một NAT trở thành HA. Giữa hai buổi học, có thể lưu source/bằng chứng và cleanup rồi dựng lại; dừng pod hoặc đóng trang Console không dừng các khoản phí hạ tầng.
 
 **Kết quả cần có:** STS trả đúng account, các công cụ sẵn sàng, Docker daemon hoạt động và mã nguồn nằm trong thư mục làm việc.
 

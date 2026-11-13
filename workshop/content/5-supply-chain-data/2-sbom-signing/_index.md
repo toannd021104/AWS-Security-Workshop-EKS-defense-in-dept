@@ -21,6 +21,16 @@ ECR → repository → Images: ghi lại image digest thay vì chỉ tag. IAM/EC
 
 ## Bước 2: tạo SBOM và ký image
 
+Cài [Cosign](https://docs.sigstore.dev/cosign/system_config/installation/) và [Trivy](https://trivy.dev/latest/getting-started/installation/) theo hướng dẫn chính thức cho Linux, rồi kiểm tra trước khi thay đổi policy:
+
+```bash
+cosign version
+trivy --version
+python3 scripts/preflight.py --stage supply-chain
+```
+
+Các công cụ cần nằm trên PATH; Docker phải hoạt động và `.local/image.txt` phải chứa digest đã build cho account hiện tại. Phiên đăng nhập ECR từ bước build được các công cụ dùng để truy cập private repository; nếu token đã hết hạn, chạy lại lệnh ECR login trong [build-push.sh](/source/scripts/build-push.sh) trước khi ký. Không cần đổi digest hoặc deploy image mới chỉ để refresh login.
+
 ```bash
 source scripts/env.sh
 bash scripts/supply-chain.sh
@@ -34,6 +44,8 @@ Lab không upload signature vào public transparency log; `--tlog-upload=false` 
 IMAGE=$(cat .local/image.txt)
 cosign verify --insecure-ignore-tlog --key k8s/cosign.pub "$IMAGE"
 ```
+
+Nếu thực hành một lần cập nhật image sau khi đã bật admission: build digest mới, chạy `python3 scripts/scan-gate.py --candidate` và chỉ khi ALLOW mới ký bằng `bash scripts/supply-chain.sh --candidate`, rồi redeploy. Chế độ candidate kiểm tra digest thuộc đúng repository của account lab, nhưng không tuyên bố digest đó đang chạy hoặc đã qua release gate. Sau rollout, dùng `deployed-image.py` và scan gate mặc định để ghi bằng chứng của image thực sự chạy. Không đổi public key đang được policy tin cậy trong lúc cập nhật.
 
 ## Bước 3: áp dụng admission policy
 

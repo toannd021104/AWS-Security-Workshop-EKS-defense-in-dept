@@ -3,7 +3,7 @@ title: "Kết quả kiểm chứng thực tế"
 weight: 1
 ---
 
-Thời điểm UTC: 2026-11-07T13:00:18.927645+00:00
+Thời điểm UTC: 2026-11-13T15:17:07.161725+00:00
 
 | Phép thử | Kết quả | Chi tiết |
 |---|---|---|
@@ -16,9 +16,9 @@ Thời điểm UTC: 2026-11-07T13:00:18.927645+00:00
 | IMDS token blocked from ordinary pod | PASS | IMDS token unreachable from ordinary pod  |
 | VPC CNI policy agent | PASS | Expected behavior observed |
 | NetworkPolicy frontend to API allowed | PASS | TCP allowed  |
-| NetworkPolicy untrusted to API denied | PASS | TCP blocked  |
-| NetworkPolicy frontend to RDS denied | PASS | TCP blocked  |
-| After isolation: API DB still works | PASS | [{'id': 1, 'body': 'validation-68fb2129'}] |
+| NetworkPolicy untrusted to API denied | PASS | TCP timeout; compare against the positive application checks  |
+| NetworkPolicy frontend to RDS denied | PASS | TCP timeout; compare against the positive application checks  |
+| After isolation: API DB still works | PASS | [{'id': 5, 'body': 'validation-16457f2e'}, {'id': 4, 'body': 'validation-2dc7e63d'}, {'id': 3, 'body': 'validation-c8fdeccc'}, {'id': 2, 'body': 'validation-3af85468'}, {'id': 1, 'body': 'validation-5d6e295e'}] |
 | After isolation: SQS and worker still work | PASS | API SendMessage → worker Receive/Delete → RDS report persisted |
 | Frontend has no injected AWS application credentials | PASS | No application or fallback node credentials  |
 | API Pod Identity role | PASS | API uses its dedicated role  |
@@ -40,7 +40,3 @@ Thời điểm UTC: 2026-11-07T13:00:18.927645+00:00
 - NetworkPolicy standard startup mode; HTTPS egress is not restricted by hostname.
 - Signing policy covers app repository, not all images; registry verification token expires.
 - Console instructions are documented; actual provisioning was performed with Terraform/CLI.
-
-### Baseline trước isolation
-
-Lượt thử trước khi áp dụng NetworkPolicy đã xác nhận pod không liên quan kết nối được API. [Bằng chứng baseline](/evidence/network-baseline.json) được giữ riêng; bảng trên là lượt kiểm tra sau hardening.

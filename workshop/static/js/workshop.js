@@ -41,6 +41,48 @@
   document.querySelector('#body')?.addEventListener('click', () => setMenu(false));
   sidebar?.addEventListener('click', event => { if (event.target.closest('a')) setMenu(false); });
 
+  // Keep screenshots and diagrams readable without leaving the current lesson.
+  if (typeof HTMLDialogElement !== 'undefined') {
+    const viewer = document.createElement('dialog');
+    viewer.className = 'image-viewer';
+    viewer.setAttribute('aria-labelledby', 'image-viewer-title');
+    viewer.innerHTML = `<div class="image-viewer-header"><h2 id="image-viewer-title"></h2><div class="image-viewer-controls"><button type="button" class="image-size" aria-pressed="false">Kích thước gốc</button><button type="button" class="image-close" aria-label="Đóng ảnh">Đóng ×</button></div></div><div class="image-viewer-body" tabindex="0" aria-label="Ảnh phóng to; cuộn để xem chi tiết"><img alt=""></div><p class="image-viewer-caption"></p>`;
+    document.body.append(viewer);
+    const picture = viewer.querySelector('img');
+    const title = viewer.querySelector('h2');
+    const caption = viewer.querySelector('.image-viewer-caption');
+    const size = viewer.querySelector('.image-size');
+    let opener;
+    document.querySelectorAll('#body-inner figure > a').forEach(link => {
+      const original = link.querySelector('img');
+      if (!original) return;
+      link.setAttribute('aria-label', `Phóng to ảnh: ${original.alt}`);
+      link.title = 'Bấm để phóng to ảnh';
+      link.addEventListener('click', event => {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        opener = link;
+        picture.src = original.currentSrc || original.src;
+        picture.alt = original.alt;
+        title.textContent = original.alt || 'Ảnh minh họa';
+        caption.textContent = link.closest('figure').querySelector('figcaption')?.textContent || '';
+        viewer.dataset.mode = 'fit';
+        size.textContent = 'Kích thước gốc';
+        size.setAttribute('aria-pressed', 'false');
+        viewer.showModal();
+      });
+    });
+    size.addEventListener('click', () => {
+      const actual = viewer.dataset.mode !== 'actual';
+      viewer.dataset.mode = actual ? 'actual' : 'fit';
+      size.textContent = actual ? 'Vừa màn hình' : 'Kích thước gốc';
+      size.setAttribute('aria-pressed', String(actual));
+    });
+    viewer.querySelector('.image-close').addEventListener('click', () => viewer.close());
+    viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
+    viewer.addEventListener('close', () => { picture.removeAttribute('src'); opener?.focus(); });
+  }
+
   document.querySelectorAll('pre').forEach(pre => {
     const code = pre.querySelector('code');
     if (!code) return;

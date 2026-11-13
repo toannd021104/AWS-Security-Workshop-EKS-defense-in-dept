@@ -78,7 +78,7 @@ cd AWS-Security-Workshop-EKS-defense-in-dept
 mkdir -p .local
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install boto3 PyYAML
+python3 -m pip install -r requirements-lab.txt
 export AWS_PROFILE=guru AWS_REGION=us-east-1
 source scripts/env.sh
 ```
@@ -92,6 +92,7 @@ Có thể dùng [gói ZIP mã lab](/downloads/eks-defense-in-depth-lab.zip) thay
 | `k8s/` | Manifests được render cho account của bạn |
 | `infrastructure/terraform/` | Hạ tầng tương đương bằng Terraform |
 | `.local/` | Kubeconfig, metadata lab và các file tạm trên máy |
+| `requirements-lab.txt` | Phiên bản Python dependencies dùng cho các script thực hành |
 
 `source scripts/env.sh` đặt `KUBECONFIG` vào `.local/kubeconfig`. Ở bước này chưa có `.local/lab.env`, nên biến `APP_HOST` chưa được script tự nạp. Khai báo domain của bạn để sử dụng khi cấp certificate:
 
@@ -111,11 +112,40 @@ App hostname: notes.example.com
 
 Trong terminal mới, kích hoạt lại `.venv`, đặt profile/Region và `source scripts/env.sh`. Trước khi bước thu thập cấu hình hoàn tất, khai báo lại `DNS_ZONE_NAME` theo giá trị bạn đã chọn.
 
+## Kiểm tra đầu vào trước khi tạo tài nguyên
+
+```bash
+python3 scripts/preflight.py --stage setup
+```
+
+Script chỉ đọc: kiểm tra công cụ, Docker daemon, Python dependencies và AWS STS. Ví dụ các dòng cuối khi đầu vào đã sẵn sàng:
+
+```text
+PASS | Docker daemon | linux/x86_64
+PASS | AWS identity | Account 123456789012; Region us-east-1
+Readiness: PASSED (setup)
+```
+
+Account và kiến trúc CPU trong output phụ thuộc máy của bạn. `FAIL` dừng bước chuẩn bị; sửa đầu vào được nêu rồi chạy lại. `PASSED` chưa bảo đảm IAM cho phép tạo mọi dịch vụ hoặc account còn đủ quota. Nếu chọn Terraform, kiểm tra thêm `terraform version`; nhánh Console không cần công cụ này.
+
+Ở chương 5 sẽ cần **Cosign** và **Trivy**. Hai công cụ đó chưa cần để hoàn thành baseline; cách cài và kiểm tra được đặt ngay trước bài sử dụng chúng.
+
 ## Quyền và chi phí
 
 Lab cần quyền tạo/quản lý VPC, EC2, EKS, IAM roles/PassRole, ELB, RDS, SQS, ECR, ACM và Route 53. Tài khoản cần có quyền sử dụng WAF, Inspector và KMS cho các phần thực hành tương ứng. Nếu gặp lỗi thiếu quyền, kiểm tra IAM policies và chính sách của tổ chức trước khi tiếp tục.
 
 EKS, EC2, ALB, NAT Gateway/public IPv4, RDS và các dịch vụ bảo mật có thể phát sinh phí khi lab đang chạy. Xem [Cleanup](/cleanup/) để biết thứ tự gỡ tài nguyên khi kết thúc.
+
+| Tài nguyên lab | Số lượng dự kiến | Điều gì tiếp tục tính phí? |
+|---|---|---|
+| EKS control plane | 1 cluster, standard support | Cluster còn tồn tại, kể cả không có pod |
+| EC2 managed workers | 2 × t3.medium + EBS | Nodes đang chạy và storage đi kèm |
+| NAT Gateway | 1 + public IPv4 | Thời gian tồn tại, dữ liệu xử lý và có thể có cross-AZ traffic |
+| ALB | 1 + public IPv4 | Thời gian tồn tại và dung lượng xử lý/LCU |
+| RDS PostgreSQL | 1 db.t3.micro, Single-AZ | Instance, storage và backup phát sinh |
+| WAF, KMS, Inspector, ECR, Route 53 | Theo phần đã bật | Web ACL/rules/requests, key, scanning, image storage và DNS |
+
+Lập dự toán theo Region và thời gian thực hành tại [AWS Pricing Calculator](https://calculator.aws/). Đây là danh sách đầu vào tính giá, không phải báo giá cố định. Hai nodes ở hai AZ không làm RDS Single-AZ hoặc một NAT trở thành HA. Giữa hai buổi học, có thể lưu source/bằng chứng và cleanup rồi dựng lại; dừng pod hoặc đóng trang Console không dừng các khoản phí hạ tầng.
 
 **Kết quả cần có:** STS trả đúng account, các công cụ sẵn sàng, Docker daemon hoạt động và mã nguồn nằm trong thư mục làm việc.
 
@@ -547,7 +577,9 @@ Kết quả mong đợi:
 Saved .local/lab.json and .local/lab.env; no secret values are fetched.
 ```
 
-Script đọc EKS, RDS, subnets, queue, ECR, certificate và hosted zone để tạo metadata cho account của bạn. Nó không cần Terraform state và không lấy giá trị master password. Nếu có nhiều public zones, `DNS_ZONE_NAME` giúp chọn đúng zone.
+Script đọc EKS, RDS, subnets, queue, ECR, certificate, WAF, KMS và hosted zone để tạo metadata cho account của bạn. Thiếu quyền discovery WAF hoặc thiếu Web ACL sẽ làm script dừng trước khi lưu cấu hình; một website chạy được chưa chứng minh WAF đã được gắn. KMS demo key không phải dependency của Notes: nhánh Console có thể tạo nó ở bài 5.4, nên metadata ghi DEFERRED nếu key chưa có. Nó không cần Terraform state và không lấy giá trị master password. Nếu có nhiều public zones, `DNS_ZONE_NAME` giúp chọn đúng zone.
+
+Nếu đã chủ động bỏ phần WAF hoặc KMS vì quyền tài khoản không cho phép, dùng `--without-waf` hoặc `--without-kms` khi chạy `capture-config.py` và ghi phần tương ứng là **chưa kiểm chứng**. Không dùng các tùy chọn đó để che lỗi discovery trong một lab dự định thực hành đầy đủ.
 
 Nạp các biến vừa tạo:
 
@@ -578,6 +610,14 @@ Mở **ECR → eks-did/notes → Images** để đối chiếu image vừa push.
 
 ## Cài controller và triển khai manifests
 
+Kiểm tra metadata thuộc đúng account đang đăng nhập trước khi dùng nó để render tài nguyên:
+
+```bash
+python3 scripts/preflight.py --stage deploy
+```
+
+Các dòng `Account matches metadata`, `Region matches metadata`, `EKS cluster` và `Pinned application image` phải PASS. Nếu đổi profile sang account khác, thu thập cấu hình và build image cho account đó; không tái dùng `.local/lab.json`, kubeconfig hoặc Terraform state của account cũ.
+
 ```bash
 bash scripts/deploy.sh
 ```
@@ -602,6 +642,8 @@ kubectl -n kube-system rollout status deployment/aws-load-balancer-controller
 kubectl get job db-init -n notes
 kubectl get deployments,pods,services,ingress -n notes
 ```
+
+Khi chạy lại `deploy.sh`, một Job `db-init` đã Complete được lưu log vào `.local/db-init-previous.log` rồi tạo lại để tránh lỗi immutable pod template. SQL bootstrap có thể chạy lại; script không tự xóa một Job còn chạy hoặc đã fail. Nếu image mới chịu policy chữ ký từ chương 5, chạy `python3 scripts/scan-gate.py --candidate`, chỉ khi ALLOW mới chạy `bash scripts/supply-chain.sh --candidate` để ký digest mới bằng key được policy tin cậy trước khi redeploy. Chế độ này ký image vừa build trong repository lab, không gọi nó là deployed image; sau rollout, chạy lại `deployed-image.py` và scan gate để đối chiếu bằng chứng.
 
 Job có completions `1/1`; Deployments có số ready `2/2`, `2/2`, `1/1`. Ingress cần có ADDRESS là DNS name của ALB. Nếu Job không hoàn tất, đọc `kubectl logs job/db-init -n notes`; nếu ALB chưa xuất hiện, đọc controller logs và Ingress events trước khi chuyển sang DNS.
 
@@ -735,6 +777,15 @@ Ví dụ một phần access log:
 
 `--prefix=true` thêm tên pod/container để biết pod nào nhận request. Log còn có thể chứa health checks của ALB; số dòng cuối không bảo đảm chứa mọi request vừa gửi.
 
+## Kiểm tra WAF đã tham gia đường truy cập
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  -H 'x-workshop-test: block-me' "https://$APP_HOST/"
+```
+
+Lab đầy đủ phải trả **403**, còn request không có header vẫn trả **200**. Trên WAF Console, Web ACL `eks-did` phải có ALB `eks-did-notes` trong Associated AWS resources. Nếu đã chọn `--without-waf`, ghi rõ bước edge này bị bỏ qua; không đánh dấu hoàn thành WAF chỉ vì HTTPS hoạt động.
+
 ## Điều kiện hoàn thành chuẩn bị
 
 | Kiểm tra | Kết quả cần đạt |
@@ -743,6 +794,7 @@ Ví dụ một phần access log:
 | Job db-init | Complete |
 | Deployments | Frontend 2/2, API 2/2, worker 1/1 |
 | Domain và HTTPS | Trang chủ trả 200, certificate hợp lệ |
+| WAF | ALB có association; header thử trả 403 |
 | API | Health trả `workload: api` |
 | RDS | Đọc lại được ghi chú vừa tạo |
 | SQS/worker | Nhận được report cùng ID đã gửi |
@@ -799,7 +851,7 @@ enable_kms = true
 enable_inspector = true
 ```
 
-Thay IP và zone bằng giá trị thật. Các flags liên quan dịch vụ bị giới hạn bởi quyền truy cập hoặc chính sách tài khoản chỉ được tắt khi đã ghi nhận phần bài tương ứng chưa được kiểm chứng. WAF cần cho phép thử edge; KMS và Inspector được dùng ở chương 5.
+Thay IP và zone bằng giá trị thật. Nếu `aws sts get-caller-identity` trả STS assumed-role/SSO session ARN, thêm `observer_trusted_principal_arn = "YOUR_ADMIN_IAM_ROLE_ARN"` vào tfvars; lấy IAM role ARN từ IAM Console, không dùng STS session ARN. Terraform kiểm tra đầu vào này trước khi tạo role observer. Các flags liên quan dịch vụ bị giới hạn bởi quyền truy cập hoặc chính sách tài khoản chỉ được tắt khi đã ghi nhận phần bài tương ứng chưa được kiểm chứng. WAF cần cho phép thử edge; KMS và Inspector được dùng ở chương 5.
 
 ## Tạo hạ tầng
 

@@ -1,0 +1,30 @@
+{
+  "timestamp_utc": "2026-11-13T15:10:30.082942+00:00",
+  "stage": "before",
+  "region": "us-east-1",
+  "results": [
+    {
+      "test": "Frontend to API allowed",
+      "status": "PASS",
+      "detail": "TCP allowed\n"
+    },
+    {
+      "test": "Untrusted to API allowed before policy",
+      "status": "PASS",
+      "detail": "TCP allowed\n"
+    },
+    {
+      "test": "Application note flow",
+      "status": "PASS",
+      "detail": "HTTPS → frontend → API → RDS insert/read succeeds"
+    },
+    {
+      "test": "Application report flow",
+      "status": "PASS",
+      "detail": "API SendMessage → worker Receive/Delete → RDS report persisted"
+    }
+  ],
+  "limitations": [
+    "Connectivity probes test only the named paths; they do not prove all egress is restricted."
+  ]
+}

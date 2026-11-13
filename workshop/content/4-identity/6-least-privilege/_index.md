@@ -63,4 +63,19 @@ except ClientError as e:
     assert "AccessDenied" in e.response["Error"]["Code"]'
 ```
 
-Phải bị AccessDenied. Kiểm tra SQL riêng: API không được insert `notes.reports`; IAM connect không tự cấp quyền SQL. Db-init dùng master secret chỉ cho bootstrap; sau khi hoàn tất, pod job có thể xóa, và không cấp quyền đọc secret cho API/worker.
+Phải bị AccessDenied. Kiểm tra SQL riêng bằng cùng user ứng dụng:
+
+```bash
+kubectl exec -n notes deployment/api -- python -c '
+import main, psycopg
+try:
+    with main.connect() as conn:
+        conn.execute("INSERT INTO notes.reports(id,note_count) VALUES(gen_random_uuid(),0)")
+    raise SystemExit("UNEXPECTED: API can insert reports")
+except psycopg.errors.InsufficientPrivilege:
+    print("DENIED: notes_api cannot insert reports")'
+```
+
+Kết quả mong đợi là dòng `DENIED`, trong khi POST/GET `/api/notes` vẫn thành công. Kết nối RDS đã qua lớp mạng, TLS và IAM DB authentication; quyền SQL vẫn có thể từ chối một câu lệnh cụ thể. `rds-db:connect` không tự cấp `INSERT`, `SELECT` hoặc quyền quản trị database.
+
+SDK tạo IAM DB auth token bằng cách ký cục bộ với temporary credentials; không có IAM action tên `rds:GenerateDBAuthToken` cần cấp cho pod. Token có hạn cho việc xác thực kết nối mới; nó không phải master password cần lưu trong Secret. Db-init dùng master secret chỉ cho bootstrap; sau khi hoàn tất, pod job có thể xóa, và không cấp quyền đọc secret cho API/worker.

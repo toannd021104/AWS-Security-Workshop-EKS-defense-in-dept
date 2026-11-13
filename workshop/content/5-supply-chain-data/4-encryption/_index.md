@@ -24,7 +24,7 @@ Dữ liệu của ứng dụng tồn tại trên nhiều dịch vụ, mỗi dị
 
 ## Bước 1: tạo KMS key và đối chiếu cấu hình dịch vụ
 
-KMS → Customer managed keys → Create symmetric Encrypt/Decrypt key → alias `eks-did`. Giới hạn key administrators/users vào identity lab cần thiết, bật rotation. Terraform tạo `aws_kms_key.lab` và alias, tùy chọn tắt nếu SCP không cho.
+Nếu dùng Terraform với `enable_kms=true`, key và alias `eks-did` đã được tạo: mở key đó để kiểm tra, không tạo key/alias trùng. Nếu chọn Console và chưa có key lab, vào KMS → Customer managed keys → Create symmetric Encrypt/Decrypt key → alias `eks-did`. Giới hạn key administrators/users vào identity lab cần thiết, bật rotation. Terraform tạo `aws_kms_key.lab` và alias, tùy chọn tắt nếu SCP không cho.
 
 RDS → Configuration kiểm tra storage encrypted và KMS key ID. ECR và SQS có cấu hình riêng; đối chiếu key và cơ chế mã hóa của từng dịch vụ.
 

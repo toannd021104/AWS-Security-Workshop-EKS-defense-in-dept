@@ -26,7 +26,9 @@ AWS CLI profile `guru`, region `us-east-1`. Kiểm tra `aws sts get-caller-ident
 
 ```bash
 export AWS_PROFILE=guru AWS_REGION=us-east-1
-python3 -m pip install boto3 PyYAML
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements-lab.txt
 cp infrastructure/terraform/terraform.tfvars.example infrastructure/terraform/terraform.tfvars
 # Sửa admin_cidr /32 và dns_zone_name. Không dùng nguyên địa chỉ minh họa.
 terraform -chdir=infrastructure/terraform init

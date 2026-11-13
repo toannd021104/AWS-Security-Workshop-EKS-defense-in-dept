@@ -1,22 +1,22 @@
 {
-  "timestamp_utc": "2026-11-07T14:11:36.693824+00:00",
-  "command": "python3 scripts/network-proof.py --stage after",
+  "timestamp_utc": "2026-11-13T15:11:25.477689+00:00",
   "stage": "after",
+  "region": "us-east-1",
   "results": [
     {
       "test": "Frontend to API allowed",
       "status": "PASS",
-      "detail": "TCP allowed"
+      "detail": "TCP allowed\n"
     },
     {
       "test": "Untrusted to API denied after policy",
       "status": "PASS",
-      "detail": "TCP blocked"
+      "detail": "TCP timeout; compare against the positive application checks\n"
     },
     {
       "test": "Frontend to RDS denied",
       "status": "PASS",
-      "detail": "TCP blocked"
+      "detail": "TCP timeout; compare against the positive application checks\n"
     },
     {
       "test": "Application note flow",
@@ -29,8 +29,7 @@
       "detail": "API SendMessage → worker Receive/Delete → RDS report persisted"
     }
   ],
-  "notes": [
-    "Observed output from the executed script; no existing NetworkPolicy was changed.",
-    "The before-policy branch was not rerun on the already hardened cluster in this revision."
+  "limitations": [
+    "Connectivity probes test only the named paths; they do not prove all egress is restricted."
   ]
 }
