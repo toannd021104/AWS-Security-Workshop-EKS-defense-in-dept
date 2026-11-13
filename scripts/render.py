@@ -54,14 +54,14 @@ for name in ['frontend','api','worker','db-init']:
         c['ports']=[{'containerPort':8080,'name':'http'}]
         c['readinessProbe']={'httpGet':{'path':'/healthz','port':8080},'initialDelaySeconds':3,'periodSeconds':5}
         c['livenessProbe']={'httpGet':{'path':'/healthz','port':8080},'initialDelaySeconds':15,'periodSeconds':10}
-    template={'metadata':{'labels':{'app':name}},'spec':pod}
+    template={'metadata':{'labels':{'app':name,'workshop-serving':'true'}},'spec':pod}
     if name=='db-init':
         pod['restartPolicy']='Never'
         add('Job','db-init',{'backoffLimit':3,'activeDeadlineSeconds':300,'template':template})
     else:
         add('Deployment',name,{'replicas':2 if name in ['frontend','api'] else 1,'selector':{'matchLabels':{'app':name}},'template':template})
     if name in ['frontend','api']:
-        add('Service',name,{'type':'ClusterIP','selector':{'app':name},'ports':[{'name':'http','port':8080,'targetPort':8080}]})
+        add('Service',name,{'type':'ClusterIP','selector':{'app':name,'workshop-serving':'true'},'ports':[{'name':'http','port':8080,'targetPort':8080}]})
 annotations={'alb.ingress.kubernetes.io/scheme':'internet-facing','alb.ingress.kubernetes.io/target-type':'ip','alb.ingress.kubernetes.io/subnets':','.join(config['public_subnets']),'alb.ingress.kubernetes.io/listen-ports':'[{"HTTP":80},{"HTTPS":443}]','alb.ingress.kubernetes.io/ssl-redirect':'443','alb.ingress.kubernetes.io/certificate-arn':config['certificate_arn'],'alb.ingress.kubernetes.io/healthcheck-path':'/healthz','alb.ingress.kubernetes.io/load-balancer-name':'eks-did-notes','alb.ingress.kubernetes.io/tags':'Project=eks-did,ManagedBy=aws-load-balancer-controller'}
 if config['waf_arn']: annotations['alb.ingress.kubernetes.io/wafv2-acl-arn']=config['waf_arn']
 add('Ingress','notes',{'ingressClassName':'alb','rules':[{'host':config['hostname'],'http':{'paths':[{'path':'/','pathType':'Prefix','backend':{'service':{'name':'frontend','port':{'number':8080}}}}]}}]})['metadata']['annotations']=annotations

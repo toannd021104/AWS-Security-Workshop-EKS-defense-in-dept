@@ -85,9 +85,9 @@ spec:
   egress:
   - to:
     - ipBlock:
-        cidr: 10.20.64.0/24
-    - ipBlock:
         cidr: 10.20.65.0/24
+    - ipBlock:
+        cidr: 10.20.64.0/24
     ports:
     - port: 5432
       protocol: TCP
@@ -125,9 +125,9 @@ spec:
   egress:
   - to:
     - ipBlock:
-        cidr: 10.20.64.0/24
-    - ipBlock:
         cidr: 10.20.65.0/24
+    - ipBlock:
+        cidr: 10.20.64.0/24
     ports:
     - port: 5432
       protocol: TCP
@@ -165,9 +165,9 @@ spec:
   egress:
   - to:
     - ipBlock:
-        cidr: 10.20.64.0/24
-    - ipBlock:
         cidr: 10.20.65.0/24
+    - ipBlock:
+        cidr: 10.20.64.0/24
     ports:
     - port: 5432
       protocol: TCP

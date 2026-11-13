@@ -83,9 +83,9 @@ metadata:
   namespace: notes
 data:
   AWS_REGION: us-east-1
-  DB_HOST: eks-did.cshqsec6ut4l.us-east-1.rds.amazonaws.com
-  QUEUE_URL: https://sqs.us-east-1.amazonaws.com/936286918025/eks-did-reports
-  DB_SECRET_ARN: arn:aws:secretsmanager:us-east-1:936286918025:secret:rds!db-47dde786-7921-4c9d-9ea5-75409da724e5-8lloD3
+  DB_HOST: eks-did.cc3m4cs24plo.us-east-1.rds.amazonaws.com
+  QUEUE_URL: https://sqs.us-east-1.amazonaws.com/672682388275/eks-did-reports
+  DB_SECRET_ARN: arn:aws:secretsmanager:us-east-1:672682388275:secret:rds!db-4f3274c8-472a-407f-9d27-9902bca4fc0b-rr41AT
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -101,6 +101,7 @@ spec:
     metadata:
       labels:
         app: frontend
+        workshop-serving: 'true'
     spec:
       serviceAccountName: frontend
       automountServiceAccountToken: false
@@ -174,6 +175,7 @@ spec:
   type: ClusterIP
   selector:
     app: frontend
+    workshop-serving: 'true'
   ports:
   - name: http
     port: 8080
@@ -193,6 +195,7 @@ spec:
     metadata:
       labels:
         app: api
+        workshop-serving: 'true'
     spec:
       serviceAccountName: api
       automountServiceAccountToken: false
@@ -204,7 +207,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: api
-        image: 936286918025.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f
+        image: 672682388275.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -249,6 +252,7 @@ spec:
   type: ClusterIP
   selector:
     app: api
+    workshop-serving: 'true'
   ports:
   - name: http
     port: 8080
@@ -268,6 +272,7 @@ spec:
     metadata:
       labels:
         app: worker
+        workshop-serving: 'true'
     spec:
       serviceAccountName: worker
       automountServiceAccountToken: false
@@ -279,7 +284,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: worker
-        image: 936286918025.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f
+        image: 672682388275.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -312,6 +317,7 @@ spec:
     metadata:
       labels:
         app: db-init
+        workshop-serving: 'true'
     spec:
       serviceAccountName: db-init
       automountServiceAccountToken: false
@@ -323,7 +329,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: db-init
-        image: 936286918025.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f
+        image: 672682388275.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -353,18 +359,18 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/subnets: subnet-0213bd3b9e66834ea,subnet-081ad77e25d78546d
+    alb.ingress.kubernetes.io/subnets: subnet-099792d2aabfc8c76,subnet-0f73d5e08a9960aab
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
     alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:936286918025:certificate/0a56af02-d0a3-42f6-81dc-968f4a1594d0
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:672682388275:certificate/15c262f1-d1b8-4d6e-aa87-88baba33e2ed
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
     alb.ingress.kubernetes.io/load-balancer-name: eks-did-notes
     alb.ingress.kubernetes.io/tags: Project=eks-did,ManagedBy=aws-load-balancer-controller
-    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-1:936286918025:regional/webacl/eks-did/40502d97-d7a3-422e-939c-dab15704bc7b
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-1:672682388275:regional/webacl/eks-did/0a56e592-c485-400f-90cc-7744cbe46da1
 spec:
   ingressClassName: alb
   rules:
-  - host: notes.936286918025.realhandsonlabs.net
+  - host: notes.672682388275.realhandsonlabs.net
     http:
       paths:
       - path: /

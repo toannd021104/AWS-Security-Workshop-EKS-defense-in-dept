@@ -209,8 +209,15 @@ resource "aws_iam_role" "observer" {
   name = "${var.name}-observer"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
-    Statement = [{ Effect = "Allow", Principal = { AWS = data.aws_caller_identity.current.arn }, Action = "sts:AssumeRole" }]
+    Statement = [{ Effect = "Allow", Principal = { AWS = coalesce(var.observer_trusted_principal_arn, data.aws_caller_identity.current.arn) }, Action = "sts:AssumeRole" }]
   })
+  lifecycle {
+    precondition {
+      condition     = var.observer_trusted_principal_arn != null || can(regex("^arn:[^:]+:iam::", data.aws_caller_identity.current.arn))
+      error_message = "Set observer_trusted_principal_arn to your IAM role ARN when running Terraform with an STS/SSO session."
+    }
+  }
+
 }
 resource "aws_iam_role_policy" "observer" {
   name   = "describe-one-cluster"

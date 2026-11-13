@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Observe connectivity before/after NetworkPolicy without changing policies."""
 import argparse
+import datetime
+import re
 import importlib.util
 import json
 import socket
@@ -22,17 +24,22 @@ try:
     lab.make_probe(prefix + 'frontend', 'frontend')
     lab.make_probe(prefix + 'untrusted', 'untrusted')
     service = json.loads(lab.k('get', 'svc', 'api', '-n', 'notes', '-o', 'json'))['spec']['clusterIP']
-    lab.check('Frontend to API allowed', lambda: lab.tcp(prefix + 'frontend', service, 8080, True))
+    lab.check('Frontend to API allowed', lambda: lab.tcp('deployment/' + prefix + 'frontend', service, 8080, True))
     lab.check('Untrusted to API ' + ('allowed before policy' if args.stage == 'before' else 'denied after policy'),
-              lambda: lab.tcp(prefix + 'untrusted', service, 8080, args.stage == 'before'))
+              lambda: lab.tcp('deployment/' + prefix + 'untrusted', service, 8080, args.stage == 'before'))
     if args.stage == 'after':
         db_ip = socket.gethostbyname(lab.C['db_host'])
-        lab.check('Frontend to RDS denied', lambda: lab.tcp(prefix + 'frontend', db_ip, 5432, False))
+        lab.check('Frontend to RDS denied', lambda: lab.tcp('deployment/' + prefix + 'frontend', db_ip, 5432, False))
     lab.check('Application note flow', lab.note_flow)
     lab.check('Application report flow', lab.report_flow)
 finally:
-    lab.k('delete', 'pod', prefix + 'frontend', prefix + 'untrusted', '-n', 'notes',
+    lab.k('delete', 'deployment', prefix + 'frontend', prefix + 'untrusted', '-n', 'notes',
           '--ignore-not-found', '--wait=false')
+report = {'timestamp_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          'stage': args.stage, 'region': lab.C['region'], 'results': lab.RESULTS,
+          'limitations': ['Connectivity probes test only the named paths; they do not prove all egress is restricted.']}
+public = json.loads(re.sub(r'\b\d{12}\b', 'ACCOUNT', json.dumps(report, ensure_ascii=False)))
+(lab.R / 'evidence' / f'network-proof-{args.stage}.json').write_text(json.dumps(public, ensure_ascii=False, indent=2))
 if not lab.RESULTS or any(row['status'] != 'PASS' for row in lab.RESULTS):
     raise SystemExit(1)
 print('Connectivity checks passed; existing NetworkPolicies were left unchanged.')

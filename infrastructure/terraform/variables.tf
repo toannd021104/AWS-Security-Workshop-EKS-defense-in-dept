@@ -55,3 +55,14 @@ variable "enable_inspector" {
   type        = bool
   default     = true
 }
+
+variable "observer_trusted_principal_arn" {
+  description = "IAM user/role allowed to assume the observer; set the IAM role ARN when using SSO or an assumed role."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.observer_trusted_principal_arn == null ? true : can(regex("^arn:[^:]+:iam::[0-9]{12}:(user|role)/.+$", var.observer_trusted_principal_arn))
+    error_message = "Use an IAM user or role ARN, not an STS assumed-role session ARN."
+  }
+}

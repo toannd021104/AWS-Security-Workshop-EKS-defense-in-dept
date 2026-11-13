@@ -39,18 +39,21 @@ def http(path,body=None,headers=None,expected=200):
  return json.loads(data) if data.startswith((b'{',b'[')) else code
 
 def make_probe(name,app):
- obj={'apiVersion':'v1','kind':'Pod','metadata':{'name':name,'namespace':'notes','labels':{'app':app}},'spec':{'serviceAccountName':'frontend','automountServiceAccountToken':False,'securityContext':{'runAsNonRoot':True,'runAsUser':10001,'seccompProfile':{'type':'RuntimeDefault'}},'containers':[{'name':'probe','image':IMAGE,'command':['sleep','1800'],'securityContext':{'allowPrivilegeEscalation':False,'readOnlyRootFilesystem':True,'capabilities':{'drop':['ALL']}},'resources':{'requests':{'cpu':'10m','memory':'32Mi'},'limits':{'cpu':'100m','memory':'96Mi'}}}]}}
+ labels={'app':app,'workshop-probe':name}
+ spec={'serviceAccountName':'frontend','automountServiceAccountToken':False,'securityContext':{'runAsNonRoot':True,'runAsUser':10001,'seccompProfile':{'type':'RuntimeDefault'}},'containers':[{'name':'probe','image':IMAGE,'command':['sleep','1800'],'securityContext':{'allowPrivilegeEscalation':False,'readOnlyRootFilesystem':True,'capabilities':{'drop':['ALL']}},'resources':{'requests':{'cpu':'10m','memory':'32Mi'},'limits':{'cpu':'100m','memory':'96Mi'}}}]}
+ obj={'apiVersion':'apps/v1','kind':'Deployment','metadata':{'name':name,'namespace':'notes'},'spec':{'replicas':1,'selector':{'matchLabels':{'workshop-probe':name}},'template':{'metadata':{'labels':labels},'spec':spec}}}
  p=subprocess.run(['kubectl','apply','-f','-'],input=json.dumps(obj),text=True,capture_output=True)
  expect(p.returncode==0,p.stderr)
- k('wait','--for=condition=Ready','pod/'+name,'-n','notes','--timeout=120s',timeout=130)
+ k('rollout','status','deployment/'+name,'-n','notes','--timeout=120s',timeout=130)
 
 def tcp(pod,host,port,allowed):
- code=f'''import socket
+ code=f"""import socket
 try:
- s=socket.create_connection(({host!r},{port}),timeout=4);s.close();ok=True
-except OSError:ok=False
-assert ok == {allowed!r}, "unexpected TCP connectivity"
-print("TCP allowed" if ok else "TCP blocked")'''
+ s=socket.create_connection(({host!r},{port}),timeout=4);s.close();result='connected'
+except TimeoutError:result='timeout'
+except OSError as e:raise AssertionError('Transport error is not proof of policy denial: '+type(e).__name__)
+assert result == {'connected' if allowed else 'timeout'!r}, 'Unexpected TCP result: '+result
+print('TCP allowed' if result == 'connected' else 'TCP timeout; compare against the positive application checks')"""
  return podexec(pod,code)
 
 def denied(code):return podexec('deployment/api',code)
@@ -139,19 +142,19 @@ except (OSError,TimeoutError):print("IMDS token unreachable from ordinary pod")'
   make_probe('probe-frontend','frontend');make_probe('probe-untrusted','untrusted')
   service=json.loads(k('get','svc','api','-n','notes','-o','json'))['spec']['clusterIP']
   policies=json.loads(k('get','networkpolicy','-n','notes','-o','json'))['items']
-  if not policies:check('Before isolation: untrusted can reach API',lambda:tcp('probe-untrusted',service,8080,True))
+  if not policies:check('Before isolation: untrusted can reach API',lambda:tcp('deployment/probe-untrusted',service,8080,True))
   k('apply','-f',str(R/'k8s/network-policies.yaml'));time.sleep(6)
-  check('NetworkPolicy frontend to API allowed',lambda:tcp('probe-frontend',service,8080,True))
-  check('NetworkPolicy untrusted to API denied',lambda:tcp('probe-untrusted',service,8080,False))
+  check('NetworkPolicy frontend to API allowed',lambda:tcp('deployment/probe-frontend',service,8080,True))
+  check('NetworkPolicy untrusted to API denied',lambda:tcp('deployment/probe-untrusted',service,8080,False))
   # Resolve externally on the workstation, so this negative test does not merely test DNS denial.
   import socket
   db_ip=socket.gethostbyname(C['db_host'])
-  check('NetworkPolicy frontend to RDS denied',lambda:tcp('probe-frontend',db_ip,5432,False))
+  check('NetworkPolicy frontend to RDS denied',lambda:tcp('deployment/probe-frontend',db_ip,5432,False))
   check('After isolation: API DB still works',lambda:http('/api/notes'))
   check('After isolation: SQS and worker still work',report_flow)
-  check('Frontend has no injected AWS application credentials',lambda:podexec('probe-frontend','import os,boto3; assert "AWS_CONTAINER_CREDENTIALS_FULL_URI" not in os.environ; assert boto3.Session().get_credentials() is None; print("No application or fallback node credentials")'))
+  check('Frontend has no injected AWS application credentials',lambda:podexec('deployment/probe-frontend','import os,boto3; assert "AWS_CONTAINER_CREDENTIALS_FULL_URI" not in os.environ; assert boto3.Session().get_credentials() is None; print("No application or fallback node credentials")'))
  finally:
-  k('delete','pod','probe-frontend','probe-untrusted','-n','notes','--ignore-not-found','--wait=false')
+  k('delete','deployment','probe-frontend','probe-untrusted','-n','notes','--ignore-not-found','--wait=false')
  check('API Pod Identity role',lambda:podexec('deployment/api','import boto3; a=boto3.client("sts").get_caller_identity()["Arn"]; assert ":assumed-role/eks-did-api/" in a; print("API uses its dedicated role")'))
  check('API cannot receive SQS',lambda:iam_deny('sqs','receive_message',{'QueueUrl':C['queue_url'],'WaitTimeSeconds':0}))
  check('Worker cannot send SQS',lambda:iam_deny('sqs','send_message',{'QueueUrl':C['queue_url'],'MessageBody':'negative-permission-test'},'deployment/worker'))
