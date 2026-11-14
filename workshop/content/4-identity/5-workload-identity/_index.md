@@ -54,6 +54,7 @@ kubectl get daemonset eks-pod-identity-agent -n kube-system
 Ví dụ API tạo association **nếu chưa tồn tại**:
 
 ```bash
+export API_ROLE_ARN=$(aws iam get-role --role-name eks-did-api --query 'Role.Arn' --output text)
 aws eks create-pod-identity-association --cluster-name eks-did \
   --namespace notes --service-account api --role-arn "$API_ROLE_ARN"
 ```

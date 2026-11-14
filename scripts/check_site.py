@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Check built Hugo HTML, image/download links, and accidental sensitive artifacts."""
-import argparse,pathlib,re,sys,urllib.parse,xml.etree.ElementTree as ET
+import argparse,json,pathlib,re,sys,urllib.parse,xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 R=pathlib.Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser();p.add_argument('--site',type=pathlib.Path,default=R/'.local/site');a=p.parse_args();site=a.site.resolve()
 xml=ET.parse(site/'sitemap.xml');loc=next(x.text for x in xml.iter() if x.tag.endswith('loc'));u=urllib.parse.urlsplit(loc)
 # Hugo sitemap can begin with a nested page; use base URL from home canonical URLs in index.json if needed.
 all_urls=[x.text for x in xml.iter() if x.tag.endswith('loc')]
-base_path=min((urllib.parse.urlsplit(x).path for x in all_urls),key=len).rstrip('/')+'/'
+records=json.loads((site/'index.json').read_text())
+base_path=min((urllib.parse.urlsplit(x['uri']).path for x in records),key=len).rstrip('/')+'/'
 errors=[];checked=0
 class Links(HTMLParser):
  def __init__(self):super().__init__();self.links=[];self.ids=set()

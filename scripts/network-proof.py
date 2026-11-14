@@ -39,6 +39,7 @@ report = {'timestamp_utc': datetime.datetime.now(datetime.timezone.utc).isoforma
           'stage': args.stage, 'region': lab.C['region'], 'results': lab.RESULTS,
           'limitations': ['Connectivity probes test only the named paths; they do not prove all egress is restricted.']}
 public = json.loads(re.sub(r'\b\d{12}\b', 'ACCOUNT', json.dumps(report, ensure_ascii=False)))
+(lab.R / 'evidence').mkdir(parents=True, exist_ok=True)
 (lab.R / 'evidence' / f'network-proof-{args.stage}.json').write_text(json.dumps(public, ensure_ascii=False, indent=2))
 if not lab.RESULTS or any(row['status'] != 'PASS' for row in lab.RESULTS):
     raise SystemExit(1)

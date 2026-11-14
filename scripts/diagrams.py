@@ -4,9 +4,15 @@ from pathlib import Path
 from html import escape
 import argparse, base64, urllib.parse, xml.etree.ElementTree as ET
 parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--language", choices=["vi", "en"], default="vi")
 parser.add_argument("--only", nargs="+", help="Regenerate only the named diagrams")
 args=parser.parse_args()
 R=Path(__file__).resolve().parents[1]; OUT=R/'workshop/static/images'; OUT.mkdir(parents=True,exist_ok=True)
+from diagram_labels import translate
+from PIL import ImageFont
+if args.language == 'en':
+ OUT=OUT/'en';OUT.mkdir(parents=True,exist_ok=True)
+def translated(text):return translate(text,args.language)
 ICONS=Path('/home/ubuntu/devops-blog2/src/assets/icons')
 MAP={'source':'aws/source-code.svg','secretsmanager':'aws/aws-secrets-manager.svg','alb':'aws/elastic-load-balancing-application-load-balancer.svg','eks':'aws/amazon-elastic-kubernetes-service.svg','rds':'aws/amazon-rds.svg','sqs':'aws/amazon-simple-queue-service.svg','nat':'aws/amazon-vpc-nat-gateway.svg','igw':'aws/amazon-vpc-internet-gateway.svg','iam':'aws/aws-identity-and-access-management.svg','acm':'aws/aws-certificate-manager.svg','waf':'aws/aws-waf.svg','ecr':'aws/amazon-elastic-container-registry.svg','kms':'aws/aws-key-management-service.svg','pod':'kubernetes/pod.svg','svc':'kubernetes/svc.svg','ing':'kubernetes/ing.svg','sa':'kubernetes/sa.svg','netpol':'kubernetes/netpol.svg','user':'kubernetes/user.svg','role':'kubernetes/role.svg','node':'kubernetes/node.svg','secret':'kubernetes/secret.svg'}
 # The local AWS collection now separates service tiles and resource symbols.
@@ -17,26 +23,40 @@ for key, value in list(MAP.items()):
 
 class Diagram:
  def __init__(self,title,width,height,transparent=False,cards=True):
+  title=translated(title)
   self.transparent=transparent;self.cards=cards
   self.w=width;self.h=height;self.shapes=[];self.edges=[];self.svg=[f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{width}" height="{height}" viewBox="0 0 {width} {height}"><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="none" stroke="#315675" stroke-width="1.5"/></marker></defs>'+('' if transparent else '<rect width="100%" height="100%" fill="white"/>')+'<g font-family="Arial, sans-serif">',f'<text x="32" y="39" font-size="23" font-weight="bold" fill="#173c60">{escape(title)}</text>' if title else '']
  def box(self,id,x,y,w,h,label,color='#148a98',fill='#f0f9fa'):
+  label=translated(label)
   self.svg.extend([f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="5" fill="{fill}" stroke="{color}" stroke-dasharray="7 5" stroke-width="1.5"/>',f'<text x="{x+14}" y="{y+24}" font-size="14" font-weight="bold" fill="{color}">{escape(label)}</text>']);self.shapes.append((id,label,x,y,w,h,f'rounded=0;dashed=1;fillColor={fill};strokeColor={color};verticalAlign=top;align=left;spacing=12;'))
  def node(self,id,x,y,label,icon=None,w=160,h=100,icon_size=44,font_size=13):
+  label=translated(label)
+  if args.language == 'en':icon_size=60
   if self.cards:self.svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="white" stroke="#d0dce6"/>')
   text_y=y+39
   if icon:
    p=ICONS/MAP[icon];data=p.read_bytes();b64=base64.b64encode(data).decode()
    self.svg.append(f'<image x="{x+(w-icon_size)/2}" y="{y+9}" width="{icon_size}" height="{icon_size}" xlink:href="data:image/svg+xml;base64,{b64}"/>');text_y=y+icon_size+29
    self.shapes.append((id+'-icon','',x+(w-icon_size)/2,y+9,icon_size,icon_size,'shape=image;image=data:image/svg+xml,'+urllib.parse.quote(data.decode(),safe='')+';'))
-  for i,line in enumerate(label.split('\n')):self.svg.append(f'<text x="{x+w/2}" y="{text_y+i*(font_size+4)}" text-anchor="middle" fill="#173c60" font-size="{font_size}">{escape(line)}</text>')
+  for i,line in enumerate(label.split('\n')):
+   if args.language == 'en':
+    tw=ImageFont.truetype('/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',font_size).getlength(line)+12
+    self.svg.append(f'<rect x="{x+w/2-tw/2}" y="{text_y+i*(font_size+4)-font_size}" width="{tw}" height="{font_size+6}" fill="white"/>')
+   self.svg.append(f'<text x="{x+w/2}" y="{text_y+i*(font_size+4)}" text-anchor="middle" fill="#173c60" font-size="{font_size}">{escape(line)}</text>')
   self.shapes.append((id,label,x,y,w,h,('rounded=1;fillColor=#ffffff;strokeColor=#d0dce6;' if self.cards else 'fillColor=none;strokeColor=none;')+f'fontSize={font_size};verticalAlign=bottom;spacingBottom=8;'))
  def edge(self,a,b,points,label='',dashed=False):
+  label=translated(label)
   path='M'+' L'.join(f'{x},{y}' for x,y in points)
   self.svg.append(f'<path d="{path}" fill="none" stroke="#315675" stroke-width="1.7" marker-end="url(#arrow)"'+(' stroke-dasharray="6 4"' if dashed else '')+'/>')
   if label:
    halo="none" if self.transparent else "white"
    start,end=max(zip(points,points[1:]),key=lambda v:abs(v[1][0]-v[0][0])+abs(v[1][1]-v[0][1]));x,y=(start[0]+end[0])/2,(start[1]+end[1])/2
    anchor="middle" if start[1] == end[1] else "start"
+   if args.language == 'en':
+    tw=ImageFont.truetype('/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',15).getlength(label)+12
+    lx=x-tw/2 if anchor=='middle' else x+6
+    ly=y-27 if start[1]==end[1] else y-15
+    self.svg.append(f'<rect x="{lx}" y="{ly}" width="{tw}" height="21" fill="white"/>')
    self.svg.append(f'<text x="{x if start[1] == end[1] else x+12}" y="{y-12 if start[1] == end[1] else y}" text-anchor="{anchor}" font-size="15" fill="#315675" paint-order="stroke" stroke="{halo}" stroke-width="4">{escape(label)}</text>')
   self.edges.append((a,b,points,label,dashed))
  def save(self,name):
@@ -45,12 +65,13 @@ class Diagram:
   root=ET.Element('mxfile',host='app.diagrams.net');dia=ET.SubElement(root,'diagram',name=name);model=ET.SubElement(dia,'mxGraphModel',pageWidth=str(self.w),pageHeight=str(self.h),grid='1',gridSize='10',background='none' if self.transparent else '#ffffff'); rr=ET.SubElement(model,'root');ET.SubElement(rr,'mxCell',id='0');ET.SubElement(rr,'mxCell',id='1',parent='0')
   # Containers first, then node cards, then icons, so icons remain visible.
   for id,label,x,y,w,h,style in sorted(self.shapes,key=lambda z:0 if 'dashed=1' in z[-1] else 2 if 'shape=image' in z[-1] else 1):
+   if args.language == 'en':style+='labelBackgroundColor=#ffffff;'
    c=ET.SubElement(rr,'mxCell',id=id,value=label,style=style,vertex='1',parent='1');ET.SubElement(c,'mxGeometry',x=str(x),y=str(y),width=str(w),height=str(h),attrib={'as':'geometry'})
   bounds={id:(x,y,w,h) for id,label,x,y,w,h,style in self.shapes}
   for i,(a,b,pts,label,dash) in enumerate(self.edges):
    sx,sy,sw,sh=bounds[a];tx,ty,tw,th=bounds[b]
    anchors=f'exitX={(pts[0][0]-sx)/sw};exitY={(pts[0][1]-sy)/sh};exitPerimeter=0;entryX={(pts[-1][0]-tx)/tw};entryY={(pts[-1][1]-ty)/th};entryPerimeter=0;'
-   c=ET.SubElement(rr,'mxCell',id=f'edge{i}',value=label,style='edgeStyle=orthogonalEdgeStyle;endArrow=open;fontSize=15;strokeColor=#315675;'+anchors+('dashed=1;' if dash else ''),edge='1',parent='1',source=a,target=b);g=ET.SubElement(c,'mxGeometry',relative='1',attrib={'as':'geometry'});arr=ET.SubElement(g,'Array',attrib={'as':'points'})
+   c=ET.SubElement(rr,'mxCell',id=f'edge{i}',value=label,style='edgeStyle=orthogonalEdgeStyle;endArrow=open;fontSize=15;strokeColor=#315675;labelBackgroundColor=#ffffff;'+anchors+('dashed=1;' if dash else ''),edge='1',parent='1',source=a,target=b);g=ET.SubElement(c,'mxGeometry',relative='1',attrib={'as':'geometry'});arr=ET.SubElement(g,'Array',attrib={'as':'points'})
    for x,y in pts[1:-1]:ET.SubElement(arr,'mxPoint',x=str(x),y=str(y))
   ET.ElementTree(root).write(OUT/(name+'.drawio'),encoding='utf-8',xml_declaration=True)
 
@@ -79,7 +100,7 @@ d.save('high-level')
 # Keep the detailed network renderer independent from the approved overviews.
 if not args.only or 'aws-architecture' in args.only:
  from network_diagram import generate
- generate(OUT)
+ generate(OUT,args.language)
 
 def chain(name,items,labels):
  d=Diagram('',len(items)*250,225,transparent=True,cards=False)

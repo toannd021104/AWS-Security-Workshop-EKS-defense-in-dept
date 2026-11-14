@@ -22,6 +22,8 @@ jobs:
           HUGO_VERSION: 0.128.0
         run: |
           curl -fsSL "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" | tar -xz -C "$RUNNER_TEMP" hugo
+      - name: Check bilingual lesson coverage and examples
+        run: python3 scripts/check_translations.py
       - name: Build
         run: '"$RUNNER_TEMP/hugo" --source workshop --minify --baseURL "${{ steps.pages.outputs.base_url }}/" --destination "$RUNNER_TEMP/site"'
       - name: Check website links and sensitive artifacts

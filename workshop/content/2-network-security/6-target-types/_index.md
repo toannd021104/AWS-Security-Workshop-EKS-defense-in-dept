@@ -34,7 +34,10 @@ kubectl get pods -n notes -l app=frontend -o wide
 kubectl get endpointslices -n notes -l kubernetes.io/service-name=frontend -o yaml
 aws elbv2 describe-target-groups \
   --query 'TargetGroups[?starts_with(TargetGroupName, `k8s-notes`)].{arn:TargetGroupArn,type:TargetType,port:Port}'
-# Export TARGET_GROUP_ARN từ kết quả trên.
+export ALB_ARN=$(aws elbv2 describe-load-balancers --names eks-did-notes \
+  --query 'LoadBalancers[0].LoadBalancerArn' --output text)
+export TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups --load-balancer-arn "$ALB_ARN" \
+  --query 'TargetGroups[0].TargetGroupArn' --output text)
 aws elbv2 describe-target-health --target-group-arn "$TARGET_GROUP_ARN"
 ```
 

@@ -1,0 +1,37 @@
+{
+  "review_date": "2026-11-14",
+  "scope": "Bilingual learner review and local replay; the AWS environment has stopped.",
+  "cloud_replay_performed": false,
+  "previous_live_report": "verification.json",
+  "translation_pairs": 46,
+  "shared_examples_checked": 133,
+  "english_diagram_pairs": 8,
+  "browser": {
+    "pages": 92,
+    "viewports": [
+      1500,
+      390
+    ],
+    "checks": [
+      "vi: 46 pages at 1500px; language metadata, counterpart links, overflow and navigation passed",
+      "vi: 46 pages at 390px; language metadata, counterpart links, overflow and navigation passed",
+      "vi: search, no results, clearing, menu, clipboard, zoom and Terraform branch merge passed",
+      "en: 46 pages at 1500px; language metadata, counterpart links, overflow and navigation passed",
+      "en: 46 pages at 390px; language metadata, counterpart links, overflow and navigation passed",
+      "en: search, no results, clearing, menu, clipboard, zoom and Terraform branch merge passed"
+    ],
+    "errors": []
+  },
+  "local_lab_replay": {
+    "scope": "Local replay only. No AWS calls or provisioning.",
+    "checks": [
+      "Fresh ZIP extraction: 43 files, evidence directory present, no state/private key",
+      "Fresh ZIP: exact setup preflight --offline passed tools, Python dependencies and Docker",
+      "Fresh ZIP: render.py succeeded with metadata fixture; 3 workloads, 2 serving-only Services, 6 NetworkPolicies; no cloud connection",
+      "Fresh ZIP: copying terraform.tfvars.example now passes exact terraform fmt -check",
+      "Fresh ZIP: terraform validate passed using cached providers, without plan/apply or AWS credentials",
+      "Fresh ZIP: every shell script passes bash -n"
+    ]
+  },
+  "independent_review": "learner-review-2026-11-14.md"
+}

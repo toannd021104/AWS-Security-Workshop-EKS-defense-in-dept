@@ -1,6 +1,6 @@
-admin_cidr   = "203.0.113.10/32" # Replace with your workstation public IP.
-dns_zone_name = "example.com." # Replace with an existing public Route 53 zone.
-# Disable only a feature that your sandbox explicitly denies; report it as unverified.
-enable_waf = true
-enable_kms = true
+admin_cidr    = "203.0.113.10/32" # Replace with your workstation public IP.
+dns_zone_name = "example.com."    # Replace with an existing public Route 53 zone.
+# Disable only a feature that your account permissions explicitly deny; report it as unverified.
+enable_waf       = true
+enable_kms       = true
 enable_inspector = true

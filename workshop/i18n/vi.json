@@ -1,0 +1,56 @@
+{
+  "collapse": {
+    "other": "Thu gọn menu"
+  },
+  "search": {
+    "other": "Tìm bài học"
+  },
+  "placeholder": {
+    "other": "Tên bài hoặc từ khóa…"
+  },
+  "contents": {
+    "other": "Nội dung workshop"
+  },
+  "download": {
+    "other": "Tải mã nguồn lab ↓"
+  },
+  "skip": {
+    "other": "Đến nội dung"
+  },
+  "openMenu": {
+    "other": "Mở menu bài học"
+  },
+  "overview": {
+    "other": "Tổng quan"
+  },
+  "breadcrumbs": {
+    "other": "Đường dẫn"
+  },
+  "navigation": {
+    "other": "Điều hướng bài học"
+  },
+  "previous": {
+    "other": "Trước"
+  },
+  "next": {
+    "other": "Tiếp"
+  },
+  "independent": {
+    "other": "Workshop thực hành độc lập"
+  },
+  "source": {
+    "other": "Mã nguồn lab"
+  },
+  "notFound": {
+    "other": "Không tìm thấy trang"
+  },
+  "notFoundText": {
+    "other": "Trang bạn mở không có trong workshop."
+  },
+  "backHome": {
+    "other": "Về trang tổng quan →"
+  },
+  "language": {
+    "other": "Ngôn ngữ"
+  }
+}

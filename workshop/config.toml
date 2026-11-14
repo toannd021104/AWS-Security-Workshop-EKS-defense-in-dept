@@ -39,3 +39,14 @@ includeFiles = ["*.tf", "*.json", "*.example", ".terraform.lock.hcl"]
 
 [markup.highlight]
 style = "github"
+
+[languages.vi]
+languageName = "Tiếng Việt"
+languageCode = "vi-VN"
+weight = 1
+[languages.en]
+languageName = "English"
+languageCode = "en-US"
+weight = 2
+[languages.en.params]
+description = "Implement and verify layered Amazon EKS security, from the Internet to the pod."

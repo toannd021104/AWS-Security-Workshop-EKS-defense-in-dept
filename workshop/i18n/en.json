@@ -1,0 +1,56 @@
+{
+  "collapse": {
+    "other": "Collapse menu"
+  },
+  "search": {
+    "other": "Find a lesson"
+  },
+  "placeholder": {
+    "other": "Lesson title or keyword…"
+  },
+  "contents": {
+    "other": "Workshop contents"
+  },
+  "download": {
+    "other": "Download lab source ↓"
+  },
+  "skip": {
+    "other": "Skip to content"
+  },
+  "openMenu": {
+    "other": "Open lesson menu"
+  },
+  "overview": {
+    "other": "Overview"
+  },
+  "breadcrumbs": {
+    "other": "Breadcrumbs"
+  },
+  "navigation": {
+    "other": "Lesson navigation"
+  },
+  "previous": {
+    "other": "Previous"
+  },
+  "next": {
+    "other": "Next"
+  },
+  "independent": {
+    "other": "Independent hands-on workshop"
+  },
+  "source": {
+    "other": "Lab source"
+  },
+  "notFound": {
+    "other": "Page not found"
+  },
+  "notFoundText": {
+    "other": "This page is not part of the workshop."
+  },
+  "backHome": {
+    "other": "Back to overview →"
+  },
+  "language": {
+    "other": "Language"
+  }
+}

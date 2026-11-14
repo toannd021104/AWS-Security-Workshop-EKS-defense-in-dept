@@ -22,6 +22,10 @@ Bộ kiểm tra chạy app flow, WAF, network allow/deny, observer credentials, 
 
 Image scanning và release gate có [báo cáo riêng](/evidence/image-scan.json): gate có thể chặn release dù các test chức năng/phân quyền PASS. Tải [SBOM CycloneDX thực tế](/evidence/sbom.cdx.json) để xem thành phần image. [Ghi nhận review độc lập và phạm vi kiểm thử](/evidence/workshop-review.md) giải thích những lỗi đã sửa và giới hạn kiểm chứng.
 
+## Review theo góc nhìn người học
+
+[Review hai ngôn ngữ ngày 2026-11-14](/evidence/learner-review-2026-11-14.md) kiểm tra trình tự Console/Terraform, các lệnh và gói ZIP. [Kết quả kiểm tra local và trình duyệt](/evidence/bilingual-validation-2026-11-14.json) ghi riêng phạm vi đã chạy. Môi trường AWS tham chiếu đã dừng; lượt review này không tạo lại tài nguyên hoặc chạy lại các phép thử cloud. Báo cáo AWS bên dưới giữ nguyên timestamp của lượt chạy trước.
+
 ## Đọc một kết quả bị từ chối
 
 | Bằng chứng | Lớp đang kiểm tra | Điều kiện đối chứng |

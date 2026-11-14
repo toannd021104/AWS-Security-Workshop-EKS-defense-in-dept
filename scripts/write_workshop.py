@@ -323,6 +323,13 @@ Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.
 Khi tạo thủ công, AWS API tương ứng là `CreateVpc`, `CreateSubnet`, `CreateRouteTable`, `CreateRoute` và `AssociateRouteTable`. Ví dụ tạo public route sau khi export hai ID thực:
 
 ```bash
+source scripts/env.sh
+export PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
+  --filters "Name=vpc-id,Values=$VPC_ID" Name=tag:Name,Values=eks-did-public \
+  --query 'RouteTables[0].RouteTableId' --output text)
+export INTERNET_GATEWAY_ID=$(aws ec2 describe-internet-gateways \
+  --filters "Name=attachment.vpc-id,Values=$VPC_ID" \
+  --query 'InternetGateways[0].InternetGatewayId' --output text)
 aws ec2 create-route --route-table-id "$PUBLIC_ROUTE_TABLE_ID" \
   --destination-cidr-block 0.0.0.0/0 --gateway-id "$INTERNET_GATEWAY_ID"
 ```
@@ -439,6 +446,9 @@ Security Group gắn với network interface (ENI), tổng hợp các allow rule
 Nếu tạo database SG bằng API, `AuthorizeSecurityGroupIngress` dùng referenced group:
 
 ```bash
+source scripts/env.sh
+export DB_SG_ID=$(aws rds describe-db-instances --db-instance-identifier eks-did \
+  --query 'DBInstances[0].VpcSecurityGroups[0].VpcSecurityGroupId' --output text)
 aws ec2 authorize-security-group-ingress --group-id "$DB_SG_ID" \
   --ip-permissions "IpProtocol=tcp,FromPort=5432,ToPort=5432,UserIdGroupPairs=[{GroupId=$NODE_SG}]"
 ```
@@ -550,7 +560,10 @@ kubectl get pods -n notes -l app=frontend -o wide
 kubectl get endpointslices -n notes -l kubernetes.io/service-name=frontend -o yaml
 aws elbv2 describe-target-groups \
   --query 'TargetGroups[?starts_with(TargetGroupName, `k8s-notes`)].{arn:TargetGroupArn,type:TargetType,port:Port}'
-# Export TARGET_GROUP_ARN từ kết quả trên.
+export ALB_ARN=$(aws elbv2 describe-load-balancers --names eks-did-notes \
+  --query 'LoadBalancers[0].LoadBalancerArn' --output text)
+export TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups --load-balancer-arn "$ALB_ARN" \
+  --query 'TargetGroups[0].TargetGroupArn' --output text)
 aws elbv2 describe-target-health --target-group-arn "$TARGET_GROUP_ARN"
 ```
 
@@ -1230,6 +1243,7 @@ kubectl get daemonset eks-pod-identity-agent -n kube-system
 Ví dụ API tạo association **nếu chưa tồn tại**:
 
 ```bash
+export API_ROLE_ARN=$(aws iam get-role --role-name eks-did-api --query 'Role.Arn' --output text)
 aws eks create-pod-identity-association --cluster-name eks-did \
   --namespace notes --service-account api --role-arn "$API_ROLE_ARN"
 ```
@@ -1656,6 +1670,10 @@ python3 scripts/verify.py --supply-chain
 Bộ kiểm tra chạy app flow, WAF, network allow/deny, observer credentials, IAM deny, PostgreSQL grants, PSA, IMDS và KMS round-trip. Các bài kiểm tra không khai thác lỗ hổng hoặc chạy workload privileged.
 
 Image scanning và release gate có [báo cáo riêng](/evidence/image-scan.json): gate có thể chặn release dù các test chức năng/phân quyền PASS. Tải [SBOM CycloneDX thực tế](/evidence/sbom.cdx.json) để xem thành phần image. [Ghi nhận review độc lập và phạm vi kiểm thử](/evidence/workshop-review.md) giải thích những lỗi đã sửa và giới hạn kiểm chứng.
+
+## Review theo góc nhìn người học
+
+[Review hai ngôn ngữ ngày 2026-11-14](/evidence/learner-review-2026-11-14.md) kiểm tra trình tự Console/Terraform, các lệnh và gói ZIP. [Kết quả kiểm tra local và trình duyệt](/evidence/bilingual-validation-2026-11-14.json) ghi riêng phạm vi đã chạy. Môi trường AWS tham chiếu đã dừng; lượt review này không tạo lại tài nguyên hoặc chạy lại các phép thử cloud. Báo cáo AWS bên dưới giữ nguyên timestamp của lượt chạy trước.
 
 ## Đọc một kết quả bị từ chối
 

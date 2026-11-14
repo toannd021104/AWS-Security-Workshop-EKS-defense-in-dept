@@ -54,7 +54,6 @@ bash scripts/prepare-unsigned.sh
 python3 scripts/verify.py --supply-chain
 # Gate trả exit 1 nếu scan chưa hoàn tất hoặc còn HIGH/CRITICAL:
 python3 scripts/scan-gate.py
-python3 scripts/check_site.py
 ```
 
 `prepare-unsigned.sh` tạo digest khác chỉ dùng làm negative admission test; không deploy image đó. Signing key private nằm trong `.local/`, public key trong `k8s/cosign.pub`. ECR verification token có hạn khoảng 12 giờ; refresh qua admission script. Kyverno ClusterPolicy dùng API legacy còn được hỗ trợ ở release đã pin, cần đánh giá migration ImageValidatingPolicy khi nâng cấp.
@@ -96,3 +95,18 @@ terraform -chdir=infrastructure/terraform apply destroy.tfplan
 Review đúng account và tài nguyên lab. Cleanup xóa Ingress trước để controller gỡ ALB; sau đó mới destroy VPC. RDS disposable không giữ final snapshot, ECR force-delete images; đừng dùng cho dữ liệu cần giữ. Inspector là account-level setting; chỉ tắt khi chính lab bật và không có consumer khác. CMK schedule deletion 7 ngày.
 
 EKS, EC2, ALB, NAT/public IPv4, RDS, WAF, Inspector và KMS tiếp tục tính phí khi để lab chạy. Hai node/private subnets không làm toàn hệ thống HA: lab dùng một NAT, Single-AZ RDS và một replica controller/admission để giảm chi phí.
+
+## English and Vietnamese editions
+
+The default Vietnamese edition keeps its existing URLs. English lessons are at `/en/`; use VI / EN in the header to switch to the same lesson. Both editions include all 46 pages, localized navigation/search/captions, and English diagram labels with matching SVG/draw.io sources.
+
+English content is authored in `_index.en.md` beside each Vietnamese page. The Vietnamese generators preserve these files; update both editions when changing an instruction, and run `python3 scripts/check_translations.py` before publishing. The verifier writes observed results in both languages. Regenerate English diagrams with `python3 scripts/diagrams.py --language en`.
+
+Website checks apply to the full repository (the lab ZIP contains runnable lab source):
+
+```bash
+.local/bin/hugo --source workshop --destination ../.local/site --baseURL http://localhost:1314/
+python3 scripts/check_site.py --site .local/site
+```
+
+Use your installed Hugo Extended executable if it is not at `.local/bin/hugo`. The learner review dated 2026-11-14 runs local/static checks only; its report is in `evidence/learner-review-2026-11-14.md`. The 2026-11-13 AWS results remain historical evidence, not a new cloud run after the environment stopped.

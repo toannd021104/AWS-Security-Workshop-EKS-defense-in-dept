@@ -857,6 +857,7 @@ Thay IP và zone bằng giá trị thật. Nếu `aws sts get-caller-identity` t
 
 ```bash
 terraform -chdir=infrastructure/terraform init
+terraform -chdir=infrastructure/terraform fmt
 terraform -chdir=infrastructure/terraform fmt -check
 terraform -chdir=infrastructure/terraform validate
 terraform -chdir=infrastructure/terraform plan -out=lab.tfplan

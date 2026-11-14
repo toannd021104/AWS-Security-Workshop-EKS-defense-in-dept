@@ -50,6 +50,13 @@ Các dòng khoanh đỏ thuộc VPC `eks-did`, có CIDR bắt đầu bằng `10.
 Khi tạo thủ công, AWS API tương ứng là `CreateVpc`, `CreateSubnet`, `CreateRouteTable`, `CreateRoute` và `AssociateRouteTable`. Ví dụ tạo public route sau khi export hai ID thực:
 
 ```bash
+source scripts/env.sh
+export PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
+  --filters "Name=vpc-id,Values=$VPC_ID" Name=tag:Name,Values=eks-did-public \
+  --query 'RouteTables[0].RouteTableId' --output text)
+export INTERNET_GATEWAY_ID=$(aws ec2 describe-internet-gateways \
+  --filters "Name=attachment.vpc-id,Values=$VPC_ID" \
+  --query 'InternetGateways[0].InternetGatewayId' --output text)
 aws ec2 create-route --route-table-id "$PUBLIC_ROUTE_TABLE_ID" \
   --destination-cidr-block 0.0.0.0/0 --gateway-id "$INTERNET_GATEWAY_ID"
 ```

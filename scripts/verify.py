@@ -181,10 +181,13 @@ else:raise AssertionError("root filesystem writable")'''))
  # Redact account IDs from public diagnostics while keeping local logs for investigation.
  public=json.loads(re.sub(r'\b\d{12}\b','ACCOUNT',json.dumps(results,ensure_ascii=False)))
  (R/'.local/verification.json').write_text(json.dumps(results,ensure_ascii=False,indent=2))
+ (R/'evidence').mkdir(parents=True,exist_ok=True)
  (R/'evidence/verification.json').write_text(json.dumps(public,ensure_ascii=False,indent=2))
  rows=['| Phép thử | Kết quả | Chi tiết |','|---|---|---|']+[f"| {x['test']} | {x['status']} | {x['detail'].replace('|','/').replace(chr(10),' ')[:240]} |" for x in public['results']]
  p=R/'workshop/content/validation/results/_index.md';p.parent.mkdir(parents=True,exist_ok=True)
  p.write_text('---\ntitle: "Kết quả kiểm chứng thực tế"\nweight: 1\n---\n\nThời điểm UTC: '+now+'\n\n'+'\n'.join(rows)+'\n\n### Giới hạn\n\n'+'\n'.join('- '+l for l in public['limitations'])+'\n')
+ english_rows=['| Test | Result | Detail |','|---|---|---|']+[f"| {x['test']} | {x['status']} | {x['detail'].replace('|','/').replace(chr(10),' ')[:240]} |" for x in public['results']]
+ (p.parent/'_index.en.md').write_text('---\ntitle: "Observed verification results"\nweight: 1\n---\n\nRecorded at (UTC): '+now+'\n\n'+'\n'.join(english_rows)+'\n\n### Limitations\n\n'+'\n'.join('- '+l for l in public['limitations'])+'\n')
  failed=sum(x['status']=='FAIL' for x in RESULTS);print(f'{len(RESULTS)-failed}/{len(RESULTS)} passed')
  return bool(failed)
 if __name__=='__main__':sys.exit(main())

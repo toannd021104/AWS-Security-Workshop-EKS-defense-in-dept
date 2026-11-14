@@ -5,16 +5,19 @@ from html import escape
 import urllib.parse
 import xml.etree.ElementTree as ET
 from PIL import ImageFont
+from diagram_labels import translate
 
 ICONS = Path('/home/ubuntu/devops-blog2/src/assets/icons')
 NS = '{http://www.w3.org/2000/svg}'
 
 class NetworkDiagram:
-    def __init__(self):
+    def __init__(self, language="vi"):
+        self.language = language
         self.frames, self.nodes, self.edges, self.labels = [], [], [], []
         self.font = '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf'
 
     def label(self, key, text, x, y, size=17, color='#233b50', center=True):
+        text = translate(text, self.language)
         # x/y locate the center or left edge, and the text baseline.
         font = ImageFont.truetype(self.font, size)
         width = round(font.getlength(text) + 12)
@@ -110,8 +113,8 @@ class NetworkDiagram:
         ET.ElementTree(root).write(out/'aws-architecture.drawio',encoding='utf-8',xml_declaration=True)
 
 
-def generate(out):
-    d=NetworkDiagram()
+def generate(out, language="vi"):
+    d=NetworkDiagram(language)
     # Exact golden ratio applies to the actual Cloud frame, not just the canvas.
     d.frame('cloud',190,30,1618,1000,'AWS Cloud','#526575')
     d.frame('region',215,75,1568,930,'Region · us-east-1','#00a4a6','region-group.svg')

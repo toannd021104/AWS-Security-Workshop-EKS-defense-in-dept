@@ -26,6 +26,9 @@ Security Group gắn với network interface (ENI), tổng hợp các allow rule
 Nếu tạo database SG bằng API, `AuthorizeSecurityGroupIngress` dùng referenced group:
 
 ```bash
+source scripts/env.sh
+export DB_SG_ID=$(aws rds describe-db-instances --db-instance-identifier eks-did \
+  --query 'DBInstances[0].VpcSecurityGroups[0].VpcSecurityGroupId' --output text)
 aws ec2 authorize-security-group-ingress --group-id "$DB_SG_ID" \
   --ip-permissions "IpProtocol=tcp,FromPort=5432,ToPort=5432,UserIdGroupPairs=[{GroupId=$NODE_SG}]"
 ```

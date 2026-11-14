@@ -4,6 +4,7 @@ import argparse,json,os,pathlib,re,sys,datetime,subprocess
 from collections import Counter
 import boto3
 r=pathlib.Path(__file__).resolve().parents[1]
+(r/'evidence').mkdir(parents=True,exist_ok=True)
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--candidate',action='store_true',help='Assess the local candidate digest without claiming it is deployed')
 args=parser.parse_args()
