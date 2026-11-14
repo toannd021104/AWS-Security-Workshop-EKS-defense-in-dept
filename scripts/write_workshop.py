@@ -571,9 +571,14 @@ Mong đợi registered IPs là frontend pod IPs và health `healthy`. Service v�
 
 ### Thử rollout có kiểm soát
 
+Namespace `notes` bật `elbv2.k8s.aws/pod-readiness-gate-inject: enabled` trong manifest. Khi Service và TargetGroupBinding đã tồn tại, controller thêm readiness gate cho frontend pod mới: Kubernetes chỉ coi pod Ready sau khi ALB báo target Healthy. Frontend có `preStop` chờ 10 giây và thời hạn shutdown 30 giây để controller bắt đầu deregister IP cũ trước khi Nginx dừng.
+
+Pods tạo ở lần deploy đầu trước khi TargetGroupBinding có mặt có thể chưa được inject gate; vẫn cần kiểm tra ALB Active và targets Healthy ở bước 0.7. Lượt rollout dưới đây tạo pod mới sau khi binding đã tồn tại. Sau rollout, cột READINESS GATES của frontend mới phải là `1/1`; nếu `<none>`, kiểm tra label namespace, selector Service và TargetGroupBinding trước khi kết luận đã đồng bộ readiness với ALB.
+
 ```bash
 kubectl rollout restart deployment/frontend -n notes
 kubectl rollout status deployment/frontend -n notes
+kubectl get pods -n notes -l app=frontend -o wide
 curl -fsS "https://$APP_HOST/" -o /dev/null
 ```
 
@@ -1651,7 +1656,7 @@ aws iam list-roles --query 'Roles[?starts_with(RoleName, `eks-did-`)].RoleName'
 aws kms list-aliases --query 'Aliases[?AliasName==`alias/eks-did`].AliasName'
 ```
 
-WAF, EIP, IAM roles và alias lab cần không còn trong kết quả. Key đã schedule deletion có thể còn trạng thái PendingDeletion đến hết waiting period; giữ Key ID trong ghi chép nếu cần đối chiếu. Kiểm tra CloudWatch log groups theo tên cluster. Giữ lại source, public key và báo cáo đã loại credentials; không upload state, registry auth secret hoặc private signing key.
+WAF, EIP, IAM roles và alias lab cần không còn trong kết quả. Key đã schedule deletion có thể còn trạng thái PendingDeletion đến hết waiting period; giữ Key ID trong ghi chép nếu cần đối chiếu. Kiểm tra CloudWatch log groups theo tên cluster. Sau khi xác nhận cluster đã bị xóa và không cần giữ log, xóa đúng group `/aws/eks/eks-did/cluster` trong CloudWatch → Logs → Log groups; CLI tương đương là `aws logs delete-log-group --log-group-name /aws/eks/eks-did/cluster`. Group này do EKS tự tạo nên không nằm trong Terraform state của lab. Giữ lại source, public key và báo cáo đã loại credentials; không upload state, registry auth secret hoặc private signing key.
 ''')
 write(Path('validation'),'Kiểm chứng và kết quả thực hành',80,r'''
 ## Ý định và kết quả là hai thứ khác nhau
@@ -1673,7 +1678,11 @@ Image scanning và release gate có [báo cáo riêng](/evidence/image-scan.json
 
 ## Review theo góc nhìn người học
 
-[Review hai ngôn ngữ ngày 2026-11-14](/evidence/learner-review-2026-11-14.md) kiểm tra trình tự Console/Terraform, các lệnh và gói ZIP. [Kết quả kiểm tra local và trình duyệt](/evidence/bilingual-validation-2026-11-14.json) ghi riêng phạm vi đã chạy. Môi trường AWS tham chiếu đã dừng; lượt review này không tạo lại tài nguyên hoặc chạy lại các phép thử cloud. Báo cáo AWS bên dưới giữ nguyên timestamp của lượt chạy trước.
+[Review hai ngôn ngữ ban đầu ngày 2026-11-14](/evidence/learner-review-2026-11-14.md) và [kiểm tra local/trình duyệt](/evidence/bilingual-validation-2026-11-14.json) được thực hiện khi môi trường tham chiếu cũ đã dừng, chưa chạy lại AWS.
+
+Sau đó, [lượt thực hành AWS mới cùng ngày](/evidence/live-learner-replay-2026-11-14.json) bắt đầu từ clone GitHub và Terraform state mới. Lượt này phát hiện EBS default key không còn tồn tại và lỗi 502 khi rollout frontend; source đã bổ sung key EBS rõ ràng, ALB readiness gates và thời gian shutdown. Sau sửa, 25/25 phép thử cuối đạt, network proof trước/sau đạt 4/4 và 5/5; 28/28 mẫu HTTP trong một rollout trả 200. [Chi tiết 59 khối lệnh đã chạy](/evidence/executed-command-blocks-2026-11-14.json) giữ cả lần lỗi ban đầu và kết quả chạy lại.
+
+Phạm vi thực tế là nhánh Terraform và các bài vận hành, có bước khôi phục node group; chưa chạy mới toàn bộ nhánh Console. Cleanup đã xóa 65 tài nguyên Terraform và đạt 18/18 kiểm tra sau dọn dẹp, giữ lại hosted zone có sẵn; demo KMS key đang chờ xóa theo thời hạn bảy ngày. Timeout RDS ban đầu và recovery được ghi riêng trong báo cáo; kết quả không có nghĩa hướng dẫn gốc chạy thành công ngay lần đầu. [Báo cáo cũ ngày 2026-11-13](/evidence/archive/2026-11-13/verification.json) được lưu riêng; kết quả bên dưới mang timestamp của lượt mới.
 
 ## Đọc một kết quả bị từ chối
 

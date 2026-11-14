@@ -1,0 +1,35 @@
+{
+  "timestamp_utc": "2026-11-13T15:12:17.096867+00:00",
+  "image_digest": "sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f",
+  "assessment_scope": "deployed",
+  "inspector_coverage_scanned": true,
+  "active_findings_by_severity": {
+    "MEDIUM": 10,
+    "HIGH": 4,
+    "LOW": 3
+  },
+  "release_gate": "BLOCK",
+  "high_critical_findings": [
+    {
+      "title": "CVE-2026-19499 - glibc",
+      "severity": "HIGH",
+      "fix_available": "NO"
+    },
+    {
+      "title": "CVE-2026-5435 - glibc",
+      "severity": "HIGH",
+      "fix_available": "NO"
+    },
+    {
+      "title": "CVE-2026-76844 - zlib",
+      "severity": "HIGH",
+      "fix_available": "YES"
+    },
+    {
+      "title": "CVE-2026-85091 - zlib",
+      "severity": "HIGH",
+      "fix_available": "YES"
+    }
+  ],
+  "note": "The workshop application demonstrates network/identity controls; it is not approved for production release. No exception is silently granted for a missing fix."
+}

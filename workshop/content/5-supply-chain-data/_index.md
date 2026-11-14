@@ -9,7 +9,7 @@ Network và IAM đã thu hẹp đường truy cập, nhưng không trả lời i
 
 Scan đúng digest đang chạy, đọc release gate, tạo SBOM và chữ ký rồi thử admission bằng một image chưa ký. Tiếp theo kiểm tra master secret của RDS, quyền bootstrap và encryption context của KMS.
 
-Kết quả scan phải được đánh giá riêng với chức năng ứng dụng. Lượt scan tham chiếu ngày 2026-11-13 (UTC) ghi 0 CRITICAL, 4 HIGH, 10 MEDIUM, 3 LOW, 0 UNTRIAGED; release gate **BLOCK**. Đọc timestamp, digest và coverage trong báo cáo để đối chiếu đúng lượt build; không suy ra kết quả của image khác hoặc một lần scan mới. Hoàn thành phần này rồi dùng [Tổng kết](/summary/) để đối chiếu toàn bộ bằng chứng trước khi cleanup.
+Kết quả scan phải được đánh giá riêng với chức năng ứng dụng. Lượt scan tham chiếu ngày 2026-11-14 (UTC) ghi 0 CRITICAL, 4 HIGH, 10 MEDIUM, 3 LOW, 1 UNTRIAGED; release gate **BLOCK**. Đọc timestamp, digest và coverage trong báo cáo để đối chiếu đúng lượt build; không suy ra kết quả của image khác hoặc một lần scan mới. Hoàn thành phần này rồi dùng [Tổng kết](/summary/) để đối chiếu toàn bộ bằng chứng trước khi cleanup.
 
 ## Các bài trong phần này
 

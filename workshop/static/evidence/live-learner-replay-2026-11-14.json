@@ -1,0 +1,206 @@
+{
+  "date": "2026-11-14",
+  "recorded_at_utc": "2026-11-14T05:47:08.057097+00:00",
+  "scope": "Live learner replay from a fresh public GitHub clone and fresh Terraform state in a different AWS account, using profile guru/us-east-1; corrections and explicit provisioning recovery were required.",
+  "base_commit": "aff6d3d",
+  "unmodified_original_instructions_passed_without_intervention": false,
+  "corrected_operational_exercises_passed": true,
+  "fresh_full_stack_reprovision_after_all_corrections": false,
+  "provisioning": {
+    "path": "Terraform, then published build/deploy scripts",
+    "initial_plan_create_count": 65,
+    "apply_completed": true,
+    "recovery": {
+      "timestamp_utc": "2026-11-14T05:02:27.066657+00:00",
+      "initial_failure": "Worker launches terminated with Client.InvalidKMSKey.InvalidState; the regional EBS default references a nonexistent KMS key.",
+      "fix": "Explicitly select enabled AWS-managed alias/aws/ebs in launch template; replace failed node group.",
+      "recovery": "After EKS node group remained DELETING for more than 13 minutes, deleted its verified empty Auto Scaling group without ForceDelete.",
+      "retry": "After more than 20 minutes of DELETING, isolated Terraform config uses node_group_name private-workers-retry and create_before_destroy to create corrected nodes before waiting on old group deletion; public lab name remains private-workers."
+    }
+  },
+  "command_replay": {
+    "selected_blocks": 59,
+    "attempts": 61,
+    "initial_unexpected_command_failures": [
+      {
+        "index": 2,
+        "page": "preparation/8-baseline",
+        "block": 4,
+        "exit_code": 22
+      },
+      {
+        "index": 20,
+        "page": "2-network-security/6-target-types",
+        "block": 1,
+        "exit_code": 22
+      }
+    ],
+    "final_unexpected_command_failures": 0,
+    "details": "executed-command-blocks-2026-11-14.json"
+  },
+  "corrections": [
+    {
+      "problem": "Encrypted worker roots inherited a regional EBS default referring to a nonexistent KMS key; launches terminated with Client.InvalidKMSKey.InvalidState.",
+      "change": "Resolve and explicitly select AWS-managed alias/aws/ebs in the launch template; retain encryption. Document selection, required KMS read permissions, and Auto Scaling launch diagnostics in both languages.",
+      "verification": "Corrected private-worker group reached ACTIVE; two private workers passed IMDS options and workload tests."
+    },
+    {
+      "problem": "Published frontend restart completed Kubernetes rollout but the following HTTP request returned HTTP 502 before ALB registration/draining converged.",
+      "change": "Namespace opt-in for ALB pod readiness gate injection; frontend preStop delay of 10 seconds and a 30-second shutdown grace; explain first-deploy Service/TGB dependency and injected gate checks.",
+      "verification": "New frontend pods showed readiness gates 1/1; corrected published rollout completed; 28/28 HTTP samples returned 200, no observed request errors."
+    },
+    {
+      "problem": "First baseline note POST returned HTTP 503 with psycopg ConnectionTimeout while HTTP health remained 200.",
+      "change": "Document baseline failure diagnosis and safe read-only retry; healthz is explicitly not a database test. No claim of a permanent root-cause fix.",
+      "verification": "Both API replicas subsequently completed two direct SELECT current_user checks each (~0.5s); the repeated baseline persisted/read a note and processed its matching report. First failure retained in command attempts."
+    }
+  ],
+  "network_proofs": {
+    "before": {
+      "passed": 4,
+      "total": 4
+    },
+    "after": {
+      "passed": 5,
+      "total": 5
+    }
+  },
+  "final_suite": {
+    "timestamp_utc": "2026-11-14T05:33:49.154729+00:00",
+    "passed": 25,
+    "total": 25,
+    "report": "verification.json"
+  },
+  "rollout_traffic": {
+    "http_200": 28,
+    "total": 28,
+    "errors": [],
+    "scope": "HTTP GET / during the corrected published frontend restart; not a general availability guarantee"
+  },
+  "image_scan": {
+    "timestamp_utc": "2026-11-14T05:18:33.155780+00:00",
+    "image_digest": "sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f",
+    "assessment_scope": "deployed",
+    "inspector_coverage_scanned": true,
+    "active_findings_by_severity": {
+      "LOW": 3,
+      "MEDIUM": 10,
+      "UNTRIAGED": 1,
+      "HIGH": 4
+    },
+    "release_gate": "BLOCK",
+    "high_critical_findings": [
+      {
+        "title": "CVE-2026-76844 - zlib",
+        "severity": "HIGH",
+        "fix_available": "YES"
+      },
+      {
+        "title": "CVE-2026-5435 - glibc",
+        "severity": "HIGH",
+        "fix_available": "NO"
+      },
+      {
+        "title": "CVE-2026-19499 - glibc",
+        "severity": "HIGH",
+        "fix_available": "NO"
+      },
+      {
+        "title": "CVE-2026-85091 - zlib",
+        "severity": "HIGH",
+        "fix_available": "YES"
+      }
+    ],
+    "note": "The workshop application demonstrates network/identity controls; it is not approved for production release. No exception is silently granted for a missing fix."
+  },
+  "cleanup": {
+    "status": "COMPLETED",
+    "timestamp_utc": "2026-11-14T05:45:56.737719+00:00",
+    "terraform_destroyed_resources": 65,
+    "terraform_state_managed_resources_remaining": 0,
+    "results": [
+      {
+        "check": "EKS cluster absent",
+        "status": "PASS"
+      },
+      {
+        "check": "RDS instance absent",
+        "status": "PASS"
+      },
+      {
+        "check": "ALB absent",
+        "status": "PASS"
+      },
+      {
+        "check": "Lab VPC absent",
+        "status": "PASS"
+      },
+      {
+        "check": "Lab NAT no longer active or deleting",
+        "status": "PASS"
+      },
+      {
+        "check": "Lab EIP released",
+        "status": "PASS"
+      },
+      {
+        "check": "Worker root volumes deleted",
+        "status": "PASS"
+      },
+      {
+        "check": "Lab IAM roles absent",
+        "status": "PASS"
+      },
+      {
+        "check": "SQS queue absent",
+        "status": "PASS"
+      },
+      {
+        "check": "ECR repository absent",
+        "status": "PASS"
+      },
+      {
+        "check": "Lab WAF absent",
+        "status": "PASS"
+      },
+      {
+        "check": "Lab ACM certificate absent",
+        "status": "PASS"
+      },
+      {
+        "check": "KMS alias absent",
+        "status": "PASS"
+      },
+      {
+        "check": "Demonstration KMS key PendingDeletion",
+        "status": "PASS"
+      },
+      {
+        "check": "Lab CloudWatch logs removed",
+        "status": "PASS"
+      },
+      {
+        "check": "Application DNS removed; hosted zone and delegation retained",
+        "status": "PASS"
+      },
+      {
+        "check": "RDS-managed master secret absent or pending deletion",
+        "status": "PASS"
+      },
+      {
+        "check": "Lab-only ECR Inspector scanning disabled",
+        "status": "PASS"
+      }
+    ],
+    "note": "The dedicated demo KMS key is scheduled for deletion after seven days. The pre-existing hosted zone/delegation and account-wide defaults are retained. Only the lab EKS CloudWatch log group was deleted manually after cluster deletion."
+  },
+  "limitations": [
+    "Console provisioning was documented/reviewed, not executed end to end. The tested setup path was Terraform.",
+    "Provisioning recovery used an isolated temporary private-workers-retry name and create_before_destroy after the failed group remained DELETING; the published default name remains private-workers.",
+    "The complete stack was not reprovisioned a second time after the corrections; corrected node creation, manifest rollout and shared exercises were retested on this run.",
+    "One initial database ConnectionTimeout was transient on observed retests; later success does not establish its root cause.",
+    "The traffic observation covers one controlled rollout and is not an availability guarantee.",
+    "Functional/security tests passing does not override Inspector BLOCK or establish production readiness.",
+    "Private HTTP remains ALB→frontend→API; SG/NetworkPolicy do not encrypt these hops."
+  ]
+}

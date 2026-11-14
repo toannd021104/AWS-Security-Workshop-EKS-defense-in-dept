@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-11-13T15:17:07.161725+00:00",
+  "timestamp_utc": "2026-11-14T05:33:49.154729+00:00",
   "results": [
     {
       "test": "HTTPS frontend",
@@ -59,7 +59,7 @@
     {
       "test": "After isolation: API DB still works",
       "status": "PASS",
-      "detail": "[{'id': 5, 'body': 'validation-16457f2e'}, {'id': 4, 'body': 'validation-2dc7e63d'}, {'id': 3, 'body': 'validation-c8fdeccc'}, {'id': 2, 'body': 'validation-3af85468'}, {'id': 1, 'body': 'validation-5d6e295e'}]"
+      "detail": "[{'id': 5, 'body': 'validation-0f2e6afe'}, {'id': 4, 'body': 'validation-401babfc'}, {'id': 3, 'body': 'validation-3d17336e'}, {'id': 2, 'body': 'Hello from the request path'}, {'id': 1, 'body': 'baseline-note'}]"
     },
     {
       "test": "After isolation: SQS and worker still work",

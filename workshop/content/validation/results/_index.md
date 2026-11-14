@@ -3,7 +3,9 @@ title: "Kết quả kiểm chứng thực tế"
 weight: 1
 ---
 
-Thời điểm UTC: 2026-11-13T15:17:07.161725+00:00
+Thời điểm UTC: 2026-11-14T05:33:49.154729+00:00
+
+> Lượt tham chiếu này có sửa lỗi và khôi phục node group. 25 phép thử không chạy lại quá trình tạo hạ tầng hoặc nhánh Console. Xem [phạm vi và giới hạn của lượt thực hành AWS](/evidence/live-learner-replay-2026-11-14.json).
 
 | Phép thử | Kết quả | Chi tiết |
 |---|---|---|
@@ -18,7 +20,7 @@ Thời điểm UTC: 2026-11-13T15:17:07.161725+00:00
 | NetworkPolicy frontend to API allowed | PASS | TCP allowed  |
 | NetworkPolicy untrusted to API denied | PASS | TCP timeout; compare against the positive application checks  |
 | NetworkPolicy frontend to RDS denied | PASS | TCP timeout; compare against the positive application checks  |
-| After isolation: API DB still works | PASS | [{'id': 5, 'body': 'validation-16457f2e'}, {'id': 4, 'body': 'validation-2dc7e63d'}, {'id': 3, 'body': 'validation-c8fdeccc'}, {'id': 2, 'body': 'validation-3af85468'}, {'id': 1, 'body': 'validation-5d6e295e'}] |
+| After isolation: API DB still works | PASS | [{'id': 5, 'body': 'validation-0f2e6afe'}, {'id': 4, 'body': 'validation-401babfc'}, {'id': 3, 'body': 'validation-3d17336e'}, {'id': 2, 'body': 'Hello from the request path'}, {'id': 1, 'body': 'baseline-note'}] |
 | After isolation: SQS and worker still work | PASS | API SendMessage → worker Receive/Delete → RDS report persisted |
 | Frontend has no injected AWS application credentials | PASS | No application or fallback node credentials  |
 | API Pod Identity role | PASS | API uses its dedicated role  |

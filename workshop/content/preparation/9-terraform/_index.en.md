@@ -48,6 +48,8 @@ enable_inspector = true
 
 Substitute real IP/zone. If STS reports an assumed-role/SSO session, set `observer_trusted_principal_arn = "YOUR_ADMIN_IAM_ROLE_ARN"` using the IAM role ARN from Console, not the STS session ARN. Terraform checks this before creating observer. Disable optional service flags only when recording their exercises as unverified due to account restrictions. WAF supports the edge test; KMS/Inspector support chapter 5.
 
+Worker EBS volumes always use the AWS-managed `alias/aws/ebs` key. `enable_kms` controls only the customer-managed demonstration key in 5.4. Terraform needs `kms:ListAliases` and `kms:DescribeKey` to resolve the EBS key even with `enable_kms=false`. It does not change the account-wide EBS default.
+
 ## Create infrastructure
 
 ```bash
@@ -64,7 +66,9 @@ terraform -chdir=infrastructure/terraform plan -out=lab.tfplan
 terraform -chdir=infrastructure/terraform apply lab.tfplan
 ```
 
-Wait for completion. Terraform creates VPC, EKS/nodes/add-ons, RDS/SQS/ECR, ACM/WAF, workload roles/associations, and enabled optional resources. It does not build images or deploy frontend/API/worker.
+Wait for completion. EKS control plane, managed node group, and RDS creation are asynchronous; the full step can take tens of minutes. Do not start another apply while the operation is active. If the node group waits, inspect EC2 → Auto Scaling groups → Activity to distinguish startup from launch errors; see the [EBS key check in EKS setup](/preparation/3-eks/).
+
+Terraform creates VPC, EKS/nodes/add-ons, RDS/SQS/ECR, ACM/WAF, workload roles/associations, and enabled optional resources. It does not build images or deploy frontend/API/worker.
 
 State/plan contain sensitive infrastructure information; keep them outside Git/website. Teams need an appropriate remote backend and locking before sharing state operations.
 

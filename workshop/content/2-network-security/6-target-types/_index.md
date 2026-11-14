@@ -45,9 +45,14 @@ Mong đợi registered IPs là frontend pod IPs và health `healthy`. Service v�
 
 ### Thử rollout có kiểm soát
 
+Namespace `notes` bật `elbv2.k8s.aws/pod-readiness-gate-inject: enabled` trong manifest. Khi Service và TargetGroupBinding đã tồn tại, controller thêm readiness gate cho frontend pod mới: Kubernetes chỉ coi pod Ready sau khi ALB báo target Healthy. Frontend có `preStop` chờ 10 giây và thời hạn shutdown 30 giây để controller bắt đầu deregister IP cũ trước khi Nginx dừng.
+
+Pods tạo ở lần deploy đầu trước khi TargetGroupBinding có mặt có thể chưa được inject gate; vẫn cần kiểm tra ALB Active và targets Healthy ở bước 0.7. Lượt rollout dưới đây tạo pod mới sau khi binding đã tồn tại. Sau rollout, cột READINESS GATES của frontend mới phải là `1/1`; nếu `<none>`, kiểm tra label namespace, selector Service và TargetGroupBinding trước khi kết luận đã đồng bộ readiness với ALB.
+
 ```bash
 kubectl rollout restart deployment/frontend -n notes
 kubectl rollout status deployment/frontend -n notes
+kubectl get pods -n notes -l app=frontend -o wide
 curl -fsS "https://$APP_HOST/" -o /dev/null
 ```
 

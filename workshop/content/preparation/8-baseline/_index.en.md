@@ -65,6 +65,8 @@ POST returns `id` and `body`; GET includes the same note:
 
 Your ID may exceed 1 and the list may contain previous test data. Reading back the note verifies API-to-RDS operations and required SQL privileges.
 
+If `/healthz` returns 200 but a note operation returns 503, the baseline has not passed: this health check tests the HTTP handler, not RDS. Inspect `kubectl logs -n notes -l app=api --tail=50 --prefix=true` and the `db-init` log; check Job completion, SGs, and database IAM permissions. For a transient `ConnectionTimeout`, retry a read-only GET after checking connectivity. Repeat POST only after understanding the previous result, then match the saved ID; stop here if the failure persists.
+
 ## Request a worker report
 
 ```bash

@@ -1,6 +1,6 @@
 {
   "review_date": "2026-11-14",
-  "scope": "Bilingual learner review and local replay; the AWS environment has stopped.",
+  "scope": "Initial bilingual learner review and local replay, before the later live AWS replay on the same date.",
   "cloud_replay_performed": false,
   "previous_live_report": "verification.json",
   "translation_pairs": 46,
@@ -33,5 +33,6 @@
       "Fresh ZIP: every shell script passes bash -n"
     ]
   },
-  "independent_review": "learner-review-2026-11-14.md"
+  "independent_review": "learner-review-2026-11-14.md",
+  "followup_live_report": "live-learner-replay-2026-11-14.json"
 }

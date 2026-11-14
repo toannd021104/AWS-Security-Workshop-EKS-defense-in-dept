@@ -64,3 +64,6 @@ All findings above are now **closed** in the current reviewed files:
 Fresh final checks still report all **46 English pages**, zero executable bash differences between VN/EN (comments excluded), successful parsing of all 15 Python scripts and bash syntax for all six shell scripts. JSON/YAML block parity was also checked across all 46 pairs.
 
 **Final assessment:** no concrete unresolved source/order/package blocker remains from this review. Both provisioning paths are statically coherent and converge on the same application baseline. This is a local learner walkthrough and code/package review; no AWS was accessed today, and it does not add a fresh live Console-provisioning claim to the historical 2026-11-13 Terraform/CLI evidence.
+
+
+Follow-up: this was the initial offline review. A later [live AWS learner replay](live-learner-replay-2026-11-14.json) on the same date records cloud execution, additional corrections, and cleanup separately.

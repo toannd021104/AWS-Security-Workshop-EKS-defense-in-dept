@@ -50,6 +50,8 @@ enable_inspector = true
 
 Thay IP và zone bằng giá trị thật. Nếu `aws sts get-caller-identity` trả STS assumed-role/SSO session ARN, thêm `observer_trusted_principal_arn = "YOUR_ADMIN_IAM_ROLE_ARN"` vào tfvars; lấy IAM role ARN từ IAM Console, không dùng STS session ARN. Terraform kiểm tra đầu vào này trước khi tạo role observer. Các flags liên quan dịch vụ bị giới hạn bởi quyền truy cập hoặc chính sách tài khoản chỉ được tắt khi đã ghi nhận phần bài tương ứng chưa được kiểm chứng. WAF cần cho phép thử edge; KMS và Inspector được dùng ở chương 5.
 
+EBS của worker luôn được mã hóa bằng AWS-managed key `alias/aws/ebs`; `enable_kms` chỉ điều khiển customer-managed key dùng trong bài 5.4. Terraform cần quyền `kms:ListAliases` và `kms:DescribeKey` để xác định EBS key, kể cả khi `enable_kms=false`. Không thay đổi EBS default key của toàn account.
+
 ## Tạo hạ tầng
 
 ```bash
@@ -66,7 +68,7 @@ terraform -chdir=infrastructure/terraform plan -out=lab.tfplan
 terraform -chdir=infrastructure/terraform apply lab.tfplan
 ```
 
-Chờ apply hoàn tất. Terraform tạo VPC, EKS/nodes/add-ons, RDS/SQS/ECR, ACM/WAF, workload roles/associations và các tài nguyên được bật trong cấu hình. Nó chưa build image và chưa triển khai frontend/API/worker.
+Chờ apply hoàn tất. EKS control plane, managed node group và RDS tạo bất đồng bộ; toàn bước có thể mất hàng chục phút. Không chạy apply thứ hai khi operation còn hoạt động. Nếu node group chờ lâu, xem EC2 → Auto Scaling groups → Activity để phân biệt đang khởi động với lỗi launch; tham khảo [kiểm tra EBS key ở bước EKS](/preparation/3-eks/). Terraform tạo VPC, EKS/nodes/add-ons, RDS/SQS/ECR, ACM/WAF, workload roles/associations và các tài nguyên được bật trong cấu hình. Nó chưa build image và chưa triển khai frontend/API/worker.
 
 State và plan lưu thông tin hạ tầng nhạy cảm; giữ ngoài Git và website. Nhóm nhiều người cần remote backend và locking phù hợp trước khi cùng thao tác state.
 

@@ -89,7 +89,7 @@ Giữ các cấu hình tùy chỉnh khác nếu có. Lưu và đối chiếu đ�
 ## Tạo launch template và managed node group
 
 1. EC2 → **Launch templates → Create launch template**, tên `eks-did-nodes`. Giữ AMI, instance type, subnet, IAM instance profile và Security Groups không được chỉ định trong template; EKS/node group sẽ cung cấp các giá trị đó. Không chọn key pair.
-2. Storage: root device `/dev/xvda`, EBS **20 GiB gp3**, encryption Enabled, Delete on termination Enabled.
+2. Storage: root device `/dev/xvda`, EBS **20 GiB gp3**, encryption Enabled, chọn rõ KMS key **`alias/aws/ebs`**, Delete on termination Enabled. Không để key mặc định của account nếu chưa kiểm tra key đó còn tồn tại và Enabled.
 3. Advanced details → Metadata options: metadata endpoint Enabled, **IMDSv2 required**, response hop limit **1**. Tạo template và ghi lại version.
 4. EKS → cluster → **Compute → Add node group**, tên `private-workers`, node IAM role `eks-did-node-role`. Bật sử dụng launch template vừa tạo, đúng version.
 5. Chọn AL2023 x86_64 phù hợp EKS, instance type `t3.medium`, On-Demand; desired/min/max đều **2** cho lab. Nếu giao diện khóa AMI/instance type, kiểm tra template có đang ghi đè các trường này không.
@@ -112,6 +112,6 @@ ip-10-20-35-10.ec2.internal   Ready    <none>   5m    v1.35.x
 ip-10-20-51-20.ec2.internal   Ready    <none>   5m    v1.35.x
 ```
 
-Cần có hai nodes `Ready`, không có external public IP; aws-node, CoreDNS, kube-proxy và Pod Identity Agent hoạt động. Nếu node chưa join, đối chiếu NAT route, CNI IRSA role và node IAM policies. Nếu kubectl không kết nối được, kiểm tra workstation IP còn nằm trong endpoint allowlist.
+Cần có hai nodes `Ready`, không có external public IP; aws-node, CoreDNS, kube-proxy và Pod Identity Agent hoạt động. Nếu node chưa join, đối chiếu NAT route, CNI IRSA role và node IAM policies. Nếu instances vừa tạo đã bị terminate, mở EC2 → Auto Scaling groups → node group → Activity. Lỗi `Client.InvalidKMSKey.InvalidState` có thể do EBS default key không tồn tại, bị vô hiệu hóa hoặc thiếu quyền; kiểm tra KMS key của volume/template. Lab chọn AWS-managed `alias/aws/ebs` rõ ràng thay vì thay đổi EBS default của cả account. Với customer-managed key, cần cấp quyền phù hợp cho Auto Scaling service-linked role trước khi tạo node. Nếu kubectl không kết nối được, kiểm tra workstation IP còn nằm trong endpoint allowlist.
 
 Tiếp tục [tạo RDS, SQS và ECR](/preparation/4-data-services/).

@@ -109,4 +109,4 @@ Website checks apply to the full repository (the lab ZIP contains runnable lab s
 python3 scripts/check_site.py --site .local/site
 ```
 
-Use your installed Hugo Extended executable if it is not at `.local/bin/hugo`. The learner review dated 2026-11-14 runs local/static checks only; its report is in `evidence/learner-review-2026-11-14.md`. The 2026-11-13 AWS results remain historical evidence, not a new cloud run after the environment stopped.
+Use your installed Hugo Extended executable if it is not at `.local/bin/hugo`. The initial 2026-11-14 learner review was local/static; a later [live AWS replay](https://toannd021104.github.io/AWS-Security-Workshop-EKS-defense-in-dept/evidence/live-learner-replay-2026-11-14.json) used a fresh clone/state and the Terraform path. It records 59 operational command blocks, required corrections/recovery, 25/25 final checks, and 18/18 cleanup checks after destroying 65 resources. Read its limitations: the original instructions needed fixes, and a second complete stack was not provisioned after those fixes. The November 13 reports are retained under `evidence/archive/2026-11-13/`.

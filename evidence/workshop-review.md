@@ -1,5 +1,7 @@
 # Workshop review — 2026-11-13
 
+> Historical review: resource-state statements below describe the November 13 run. See [the November 14 live learner replay](live-learner-replay-2026-11-14.json) for current execution, corrections, and cleanup.
+
 An independent agent reviewed all 46 learner pages, source generators, application manifests, Terraform, deployment, discovery, verification and signing scripts. The review was static; the primary agent ran the AWS checks separately.
 
 Nine initial findings and follow-up regressions were corrected: controller-owned network probes; probes excluded from Service backends; timeout distinguished from connection refusal; deployed digest checked before scanning/signing; explicit candidate scan/sign path; Terraform resource reuse; complete observer IAM inputs/policies; completed initializer Job lifecycle; dependency-ordered cleanup; required WAF discovery and deferred demonstration KMS key.

@@ -14,7 +14,7 @@ def add(kind, name, spec=None, **fields):
     obj={'apiVersion':version,'kind':kind,'metadata':{'name':name,'namespace':'notes'}}
     if spec is not None: obj['spec']=spec
     obj.update(fields); manifest.append(obj); return obj
-manifest.append({'apiVersion':'v1','kind':'Namespace','metadata':{'name':'notes','labels':{'pod-security.kubernetes.io/enforce':'restricted','pod-security.kubernetes.io/enforce-version':'v1.35','pod-security.kubernetes.io/warn':'restricted','pod-security.kubernetes.io/audit':'restricted'}}})
+manifest.append({'apiVersion':'v1','kind':'Namespace','metadata':{'name':'notes','labels':{'elbv2.k8s.aws/pod-readiness-gate-inject':'enabled','pod-security.kubernetes.io/enforce':'restricted','pod-security.kubernetes.io/enforce-version':'v1.35','pod-security.kubernetes.io/warn':'restricted','pod-security.kubernetes.io/audit':'restricted'}}})
 for name in ['frontend','api','worker','db-init']:
     add('ServiceAccount',name,automountServiceAccountToken=False)
 nginx='''pid /tmp/nginx.pid;
@@ -44,6 +44,9 @@ for name in ['frontend','api','worker','db-init']:
     c={'name':name,'image':'nginxinc/nginx-unprivileged:1.28-alpine' if name=='frontend' else image,'securityContext':container_security,'resources':{'requests':{'cpu':'50m','memory':'96Mi'},'limits':{'cpu':'500m','memory':'256Mi'}}}
     pod={'serviceAccountName':name,'automountServiceAccountToken':False,'securityContext':security,'containers':[c]}
     if name=='frontend':
+        # Keep Nginx serving while the controller starts deregistering old IPs.
+        c['lifecycle']={'preStop':{'exec':{'command':['/bin/sh','-c','sleep 10']}}}
+        pod['terminationGracePeriodSeconds']=30
         c['args']=['nginx','-c','/etc/workshop/nginx.conf','-g','daemon off;']
         c['volumeMounts']=[{'name':'config','mountPath':'/etc/workshop','readOnly':True},{'name':'config','mountPath':'/usr/share/nginx/html/index.html','subPath':'index.html','readOnly':True},{'name':'tmp','mountPath':'/tmp'}]
         pod['volumes']=[{'name':'config','configMap':{'name':'frontend'}},{'name':'tmp','emptyDir':{'sizeLimit':'32Mi'}}]

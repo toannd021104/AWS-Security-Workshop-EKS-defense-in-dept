@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:dd647f94-1d38-4374-be0a-31176cb803f5",
+  "serialNumber": "urn:uuid:e78f09ba-2e86-4f2f-b9ec-6a9261ec505f",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-13T15:11:22+00:00",
+    "timestamp": "2026-11-14T05:29:40+00:00",
     "tools": {
       "components": [
         {
@@ -20,10 +20,10 @@
       ]
     },
     "component": {
-      "bom-ref": "pkg:oci/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f?arch=amd64&repository_url=672682388275.dkr.ecr.us-east-1.amazonaws.com%2Feks-did%2Fnotes",
+      "bom-ref": "pkg:oci/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f?arch=amd64&repository_url=ACCOUNT.dkr.ecr.us-east-1.amazonaws.com%2Feks-did%2Fnotes",
       "type": "container",
-      "name": "672682388275.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f",
-      "purl": "pkg:oci/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f?arch=amd64&repository_url=672682388275.dkr.ecr.us-east-1.amazonaws.com%2Feks-did%2Fnotes",
+      "name": "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f",
+      "purl": "pkg:oci/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f?arch=amd64&repository_url=ACCOUNT.dkr.ecr.us-east-1.amazonaws.com%2Feks-did%2Fnotes",
       "properties": [
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -71,23 +71,31 @@
         },
         {
           "name": "aquasecurity:trivy:Reference",
-          "value": "672682388275.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f"
+          "value": "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f"
         },
         {
           "name": "aquasecurity:trivy:RepoDigest",
-          "value": "672682388275.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f"
+          "value": "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f"
         },
         {
           "name": "aquasecurity:trivy:RepoDigest",
-          "value": "936286918025.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f"
+          "value": "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f"
+        },
+        {
+          "name": "aquasecurity:trivy:RepoDigest",
+          "value": "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "672682388275.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes:review-20261113"
+          "value": "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes:lab-20261114050850"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
-          "value": "936286918025.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes:lab-20261107124947"
+          "value": "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes:review-20261113"
+        },
+        {
+          "name": "aquasecurity:trivy:RepoTag",
+          "value": "ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/eks-did/notes:lab-20261107124947"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
@@ -106,7 +114,7 @@
   },
   "components": [
     {
-      "bom-ref": "21acd351-f801-4a43-b55e-6fa4bb29096b",
+      "bom-ref": "e3ebe985-8830-4a9f-b8f0-6245d70465e2",
       "type": "operating-system",
       "name": "debian",
       "version": "13.7",
@@ -7254,7 +7262,7 @@
   ],
   "dependencies": [
     {
-      "ref": "21acd351-f801-4a43-b55e-6fa4bb29096b",
+      "ref": "e3ebe985-8830-4a9f-b8f0-6245d70465e2",
       "dependsOn": [
         "pkg:deb/debian/apt@3.0.4?arch=amd64&distro=debian-13.7",
         "pkg:deb/debian/bash@5.2.37-2%2Bb10?arch=amd64&distro=debian-13.7",
@@ -7845,9 +7853,9 @@
       ]
     },
     {
-      "ref": "pkg:oci/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f?arch=amd64&repository_url=672682388275.dkr.ecr.us-east-1.amazonaws.com%2Feks-did%2Fnotes",
+      "ref": "pkg:oci/notes@sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f?arch=amd64&repository_url=ACCOUNT.dkr.ecr.us-east-1.amazonaws.com%2Feks-did%2Fnotes",
       "dependsOn": [
-        "21acd351-f801-4a43-b55e-6fa4bb29096b",
+        "e3ebe985-8830-4a9f-b8f0-6245d70465e2",
         "pkg:pypi/CacheControl@0.14.4",
         "pkg:pypi/boto3@1.40.61",
         "pkg:pypi/botocore@1.40.76",

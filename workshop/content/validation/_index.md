@@ -24,7 +24,11 @@ Image scanning và release gate có [báo cáo riêng](/evidence/image-scan.json
 
 ## Review theo góc nhìn người học
 
-[Review hai ngôn ngữ ngày 2026-11-14](/evidence/learner-review-2026-11-14.md) kiểm tra trình tự Console/Terraform, các lệnh và gói ZIP. [Kết quả kiểm tra local và trình duyệt](/evidence/bilingual-validation-2026-11-14.json) ghi riêng phạm vi đã chạy. Môi trường AWS tham chiếu đã dừng; lượt review này không tạo lại tài nguyên hoặc chạy lại các phép thử cloud. Báo cáo AWS bên dưới giữ nguyên timestamp của lượt chạy trước.
+[Review hai ngôn ngữ ban đầu ngày 2026-11-14](/evidence/learner-review-2026-11-14.md) và [kiểm tra local/trình duyệt](/evidence/bilingual-validation-2026-11-14.json) được thực hiện khi môi trường tham chiếu cũ đã dừng, chưa chạy lại AWS.
+
+Sau đó, [lượt thực hành AWS mới cùng ngày](/evidence/live-learner-replay-2026-11-14.json) bắt đầu từ clone GitHub và Terraform state mới. Lượt này phát hiện EBS default key không còn tồn tại và lỗi 502 khi rollout frontend; source đã bổ sung key EBS rõ ràng, ALB readiness gates và thời gian shutdown. Sau sửa, 25/25 phép thử cuối đạt, network proof trước/sau đạt 4/4 và 5/5; 28/28 mẫu HTTP trong một rollout trả 200. [Chi tiết 59 khối lệnh đã chạy](/evidence/executed-command-blocks-2026-11-14.json) giữ cả lần lỗi ban đầu và kết quả chạy lại.
+
+Phạm vi thực tế là nhánh Terraform và các bài vận hành, có bước khôi phục node group; chưa chạy mới toàn bộ nhánh Console. Cleanup đã xóa 65 tài nguyên Terraform và đạt 18/18 kiểm tra sau dọn dẹp, giữ lại hosted zone có sẵn; demo KMS key đang chờ xóa theo thời hạn bảy ngày. Timeout RDS ban đầu và recovery được ghi riêng trong báo cáo; kết quả không có nghĩa hướng dẫn gốc chạy thành công ngay lần đầu. [Báo cáo cũ ngày 2026-11-13](/evidence/archive/2026-11-13/verification.json) được lưu riêng; kết quả bên dưới mang timestamp của lượt mới.
 
 ## Đọc một kết quả bị từ chối
 

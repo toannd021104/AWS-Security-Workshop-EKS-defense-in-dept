@@ -1,0 +1,1082 @@
+{
+  "scope": "59 selected operational bash blocks from the English lessons; choose the Terraform provisioning branch. Infrastructure setup, build/deploy and cleanup are recorded separately. Mutually exclusive Console/API creation alternatives and conditional update paths were not executed.",
+  "blocks": [
+    {
+      "page": "preparation/8-baseline",
+      "block": 0,
+      "command": "source scripts/env.sh\nprintf 'Hostname: %s\\n' \"$APP_HOST\"\ncurl -sS -o /dev/null -w '%{http_code}\\n' \"https://$APP_HOST/\"\n",
+      "index": 0,
+      "attempts": [
+        {
+          "index": 0,
+          "page": "preparation/8-baseline",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 1.4
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "preparation/8-baseline",
+      "block": 2,
+      "command": "curl -fsS \"https://$APP_HOST/api/healthz\"\nprintf '\\n'\n",
+      "index": 1,
+      "attempts": [
+        {
+          "index": 1,
+          "page": "preparation/8-baseline",
+          "block": 2,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 1.2
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "preparation/8-baseline",
+      "block": 4,
+      "command": "curl -fsS \"https://$APP_HOST/api/notes\" \\\n  -H 'Content-Type: application/json' -d '{\"body\":\"baseline-note\"}'\nprintf '\\n'\ncurl -fsS \"https://$APP_HOST/api/notes\"\nprintf '\\n'\n",
+      "index": 2,
+      "attempts": [
+        {
+          "index": 2,
+          "page": "preparation/8-baseline",
+          "block": 4,
+          "exit_code": 22,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 10.3
+        },
+        {
+          "index": 2,
+          "page": "preparation/8-baseline",
+          "block": 4,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 3.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "preparation/8-baseline",
+      "block": 7,
+      "command": "curl -fsS -X POST \"https://$APP_HOST/api/reports\"\nprintf '\\n'\n",
+      "index": 3,
+      "attempts": [
+        {
+          "index": 3,
+          "page": "preparation/8-baseline",
+          "block": 7,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 1.2
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "preparation/8-baseline",
+      "block": 9,
+      "command": "curl -fsS \"https://$APP_HOST/api/reports\"\nprintf '\\n'\nkubectl logs deployment/worker -n notes --tail=10\n",
+      "index": 4,
+      "attempts": [
+        {
+          "index": 4,
+          "page": "preparation/8-baseline",
+          "block": 9,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 4.3
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "preparation/8-baseline",
+      "block": 10,
+      "command": "kubectl get pods -n notes -l app=frontend -o wide\n",
+      "index": 5,
+      "attempts": [
+        {
+          "index": 5,
+          "page": "preparation/8-baseline",
+          "block": 10,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 2.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "preparation/8-baseline",
+      "block": 12,
+      "command": "kubectl logs -n notes -l app=frontend --tail=10 --prefix=true\n",
+      "index": 6,
+      "attempts": [
+        {
+          "index": 6,
+          "page": "preparation/8-baseline",
+          "block": 12,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 2.6
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "preparation/8-baseline",
+      "block": 14,
+      "command": "curl -sS -o /dev/null -w '%{http_code}\\n' \\\n  -H 'x-workshop-test: block-me' \"https://$APP_HOST/\"\n",
+      "index": 7,
+      "attempts": [
+        {
+          "index": 7,
+          "page": "preparation/8-baseline",
+          "block": 14,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 1.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "preparation/8-baseline",
+      "block": 15,
+      "command": "kubectl get networkpolicy -n notes\n",
+      "index": 8,
+      "attempts": [
+        {
+          "index": 8,
+          "page": "preparation/8-baseline",
+          "block": 15,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 2.7
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/1-request-flow",
+      "block": 0,
+      "command": "source scripts/env.sh\nprintf 'Hostname: %s\\n' \"$APP_HOST\"\n",
+      "index": 9,
+      "attempts": [
+        {
+          "index": 9,
+          "page": "2-network-security/1-request-flow",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 0.0
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/1-request-flow",
+      "block": 1,
+      "command": "curl -sS -o /dev/null -w '%{http_code}\\n' \"https://$APP_HOST/\"\n",
+      "index": 10,
+      "attempts": [
+        {
+          "index": 10,
+          "page": "2-network-security/1-request-flow",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 1.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/1-request-flow",
+      "block": 3,
+      "command": "curl -fsS \"https://$APP_HOST/api/healthz\"\nprintf '\\n'\n",
+      "index": 11,
+      "attempts": [
+        {
+          "index": 11,
+          "page": "2-network-security/1-request-flow",
+          "block": 3,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 1.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/1-request-flow",
+      "block": 5,
+      "command": "kubectl get pods -n notes -l app=frontend -o wide\n",
+      "index": 12,
+      "attempts": [
+        {
+          "index": 12,
+          "page": "2-network-security/1-request-flow",
+          "block": 5,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 2.2
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/1-request-flow",
+      "block": 7,
+      "command": "kubectl logs -n notes -l app=frontend --tail=10 --prefix=true\n",
+      "index": 13,
+      "attempts": [
+        {
+          "index": 13,
+          "page": "2-network-security/1-request-flow",
+          "block": 7,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 4.2
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/1-request-flow",
+      "block": 9,
+      "command": "curl -fsS \"https://$APP_HOST/api/notes\" \\\n  -H 'Content-Type: application/json' -d '{\"body\":\"Hello from the request path\"}'\ncurl -fsS \"https://$APP_HOST/api/notes\"\n",
+      "index": 14,
+      "attempts": [
+        {
+          "index": 14,
+          "page": "2-network-security/1-request-flow",
+          "block": 9,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 3.7
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/2-vpc",
+      "block": 1,
+      "command": "VPC_ID=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=eks-did --query 'Vpcs[0].VpcId' --output text)\naws ec2 describe-subnets --filters \"Name=vpc-id,Values=$VPC_ID\" \\\n  --query 'Subnets[].{id:SubnetId,cidr:CidrBlock,az:AvailabilityZone,publicIP:MapPublicIpOnLaunch}'\naws ec2 describe-route-tables --filters \"Name=vpc-id,Values=$VPC_ID\" \\\n  --query 'RouteTables[].{id:RouteTableId,subnets:Associations[].SubnetId,routes:Routes}'\n",
+      "index": 15,
+      "attempts": [
+        {
+          "index": 15,
+          "page": "2-network-security/2-vpc",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 7.4
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/3-edge",
+      "block": 1,
+      "command": "aws acm list-certificates --certificate-statuses ISSUED\ncurl -sS -o /dev/null -w '%{http_code}\\n' \"http://$APP_HOST/\"\ncurl -sS -o /dev/null -w '%{http_code}\\n' \"https://$APP_HOST/\"\ncurl -sS -o /dev/null -w '%{http_code}\\n' -H 'x-workshop-test: block-me' \"https://$APP_HOST/\"\n",
+      "index": 16,
+      "attempts": [
+        {
+          "index": 16,
+          "page": "2-network-security/3-edge",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 6.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/4-security-groups",
+      "block": 1,
+      "command": "aws ec2 describe-security-group-rules \\\n  --filters \"Name=group-id,Values=$NODE_SG\" \\\n  --query 'SecurityGroupRules[].{egress:IsEgress,port:FromPort,to:ToPort,source:ReferencedGroupInfo.GroupId,cidr:CidrIpv4}'\naws ec2 describe-network-acls --filters \"Name=vpc-id,Values=$VPC_ID\" \\\n  --query 'NetworkAcls[].{id:NetworkAclId,associations:Associations[].SubnetId,rules:Entries}'\n",
+      "index": 17,
+      "attempts": [
+        {
+          "index": 17,
+          "page": "2-network-security/4-security-groups",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 6.9
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/5-controller-ingress",
+      "block": 2,
+      "command": "kubectl get ingress -n notes --watch\n# When ADDRESS contains the ALB hostname, stop watching with Ctrl-C.\npython3 scripts/publish-dns.py\n",
+      "index": 18,
+      "attempts": [
+        {
+          "index": 18,
+          "page": "2-network-security/5-controller-ingress",
+          "block": 2,
+          "exit_code": 0,
+          "interactive_watch_stopped_after_address": true
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/6-target-types",
+      "block": 0,
+      "command": "kubectl get pods -n notes -l app=frontend -o wide\nkubectl get endpointslices -n notes -l kubernetes.io/service-name=frontend -o yaml\naws elbv2 describe-target-groups \\\n  --query 'TargetGroups[?starts_with(TargetGroupName, `k8s-notes`)].{arn:TargetGroupArn,type:TargetType,port:Port}'\nexport ALB_ARN=$(aws elbv2 describe-load-balancers --names eks-did-notes \\\n  --query 'LoadBalancers[0].LoadBalancerArn' --output text)\nexport TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups --load-balancer-arn \"$ALB_ARN\" \\\n  --query 'TargetGroups[0].TargetGroupArn' --output text)\naws elbv2 describe-target-health --target-group-arn \"$TARGET_GROUP_ARN\"\n",
+      "index": 19,
+      "attempts": [
+        {
+          "index": 19,
+          "page": "2-network-security/6-target-types",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 16.6
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "2-network-security/6-target-types",
+      "block": 1,
+      "command": "kubectl rollout restart deployment/frontend -n notes\nkubectl rollout status deployment/frontend -n notes\nkubectl get pods -n notes -l app=frontend -o wide\ncurl -fsS \"https://$APP_HOST/\" -o /dev/null\n",
+      "index": 20,
+      "attempts": [
+        {
+          "index": 20,
+          "page": "2-network-security/6-target-types",
+          "block": 1,
+          "exit_code": 22,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 18.6
+        },
+        {
+          "index": 20,
+          "page": "2-network-security/6-target-types",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 39.6
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/1-networking",
+      "block": 0,
+      "command": "kubectl get pods -n notes -o wide --show-labels\nkubectl get services -n notes\nkubectl get endpointslices -n notes -l kubernetes.io/service-name=api\nkubectl get deployment frontend -n notes -o yaml\n",
+      "index": 21,
+      "attempts": [
+        {
+          "index": 21,
+          "page": "3-kubernetes-security/1-networking",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 8.3
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/1-networking",
+      "block": 1,
+      "command": "kubectl exec -n notes deployment/frontend -- \\\n  wget -qO- http://api.notes.svc.cluster.local:8080/healthz\n",
+      "index": 22,
+      "attempts": [
+        {
+          "index": 22,
+          "page": "3-kubernetes-security/1-networking",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 3.3
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/2-networkpolicy",
+      "block": 0,
+      "command": "source scripts/env.sh\nkubectl get networkpolicy -n notes\npython3 scripts/network-proof.py --stage before\n",
+      "index": 23,
+      "attempts": [
+        {
+          "index": 23,
+          "page": "3-kubernetes-security/2-networkpolicy",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 33.6
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/2-networkpolicy",
+      "block": 1,
+      "command": "kubectl get networkpolicy -n notes\nkubectl apply -f k8s/network-policies.yaml\nkubectl describe networkpolicy frontend -n notes\nkubectl describe networkpolicy api -n notes\n",
+      "index": 24,
+      "attempts": [
+        {
+          "index": 24,
+          "page": "3-kubernetes-security/2-networkpolicy",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 13.3
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/2-networkpolicy",
+      "block": 3,
+      "command": "python3 scripts/network-proof.py --stage after\n",
+      "index": 25,
+      "attempts": [
+        {
+          "index": 25,
+          "page": "3-kubernetes-security/2-networkpolicy",
+          "block": 3,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 43.9
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/3-vpc-cni",
+      "block": 2,
+      "command": "aws eks describe-addon --cluster-name eks-did --addon-name vpc-cni \\\n  --query 'addon.{version:addonVersion,status:status,configuration:configurationValues}'\nkubectl get daemonset aws-node -n kube-system\nkubectl get pods -n kube-system -l k8s-app=aws-node \\\n  -o jsonpath='{range .items[*]}{.metadata.name}{\"  \"}{.spec.containers[*].name}{\"\\n\"}{end}'\n",
+      "index": 26,
+      "attempts": [
+        {
+          "index": 26,
+          "page": "3-kubernetes-security/3-vpc-cni",
+          "block": 2,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 6.5
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/4-pod-security",
+      "block": 0,
+      "command": "kubectl label namespace notes \\\n  pod-security.kubernetes.io/enforce=restricted \\\n  pod-security.kubernetes.io/enforce-version=v1.35 \\\n  pod-security.kubernetes.io/audit=restricted \\\n  pod-security.kubernetes.io/warn=restricted --overwrite\n",
+      "index": 27,
+      "attempts": [
+        {
+          "index": 27,
+          "page": "3-kubernetes-security/4-pod-security",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 1.9
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/4-pod-security",
+      "block": 1,
+      "command": "kubectl run psa-negative -n notes --image=nginx:1.28-alpine \\\n  --dry-run=server -o yaml\n",
+      "index": 28,
+      "attempts": [
+        {
+          "index": 28,
+          "page": "3-kubernetes-security/4-pod-security",
+          "block": 1,
+          "exit_code": 1,
+          "expected_nonzero_possible": true,
+          "elapsed_seconds": 1.9
+        }
+      ],
+      "final_exit_code": 1,
+      "interpretation": "Expected security denial"
+    },
+    {
+      "page": "3-kubernetes-security/4-pod-security",
+      "block": 2,
+      "command": "kubectl get pods -n notes\nkubectl get deployment api -n notes -o jsonpath='{.spec.template.spec.securityContext}'\n",
+      "index": 29,
+      "attempts": [
+        {
+          "index": 29,
+          "page": "3-kubernetes-security/4-pod-security",
+          "block": 2,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 4.8
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/5-securitycontext",
+      "block": 2,
+      "command": "kubectl exec -n notes deployment/api -- id\nkubectl exec -n notes deployment/api -- python -c \\\n  'from pathlib import Path; Path(\"/app/should-not-write\").write_text(\"test\")'\n",
+      "index": 30,
+      "attempts": [
+        {
+          "index": 30,
+          "page": "3-kubernetes-security/5-securitycontext",
+          "block": 2,
+          "exit_code": 1,
+          "expected_nonzero_possible": true,
+          "elapsed_seconds": 6.2
+        }
+      ],
+      "final_exit_code": 1,
+      "interpretation": "Expected security denial"
+    },
+    {
+      "page": "3-kubernetes-security/5-securitycontext",
+      "block": 3,
+      "command": "curl -fsS \"https://$APP_HOST/api/healthz\"\n",
+      "index": 31,
+      "attempts": [
+        {
+          "index": 31,
+          "page": "3-kubernetes-security/5-securitycontext",
+          "block": 3,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 1.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/6-node-imds",
+      "block": 0,
+      "command": "aws ec2 describe-instances \\\n  --filters Name=tag:eks:cluster-name,Values=eks-did Name=instance-state-name,Values=running \\\n  --query 'Reservations[].Instances[].{id:InstanceId,publicIP:PublicIpAddress,metadata:MetadataOptions,profile:IamInstanceProfile.Arn}'\n",
+      "index": 32,
+      "attempts": [
+        {
+          "index": 32,
+          "page": "3-kubernetes-security/6-node-imds",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 2.5
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "3-kubernetes-security/6-node-imds",
+      "block": 1,
+      "command": "kubectl exec -n notes deployment/api -- python -c '\nimport urllib.request\nr=urllib.request.Request(\"http://169.254.169.254/latest/api/token\",method=\"PUT\",headers={\"X-aws-ec2-metadata-token-ttl-seconds\":\"60\"})\ntry:\n    urllib.request.urlopen(r,timeout=3)\n    raise SystemExit(\"UNEXPECTED: pod reached IMDS; investigate\")\nexcept (TimeoutError, OSError):\n    print(\"Expected: ordinary application pod cannot obtain IMDS token\")'\n",
+      "index": 33,
+      "attempts": [
+        {
+          "index": 33,
+          "page": "3-kubernetes-security/6-node-imds",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 6.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/1-authentication-authorization",
+      "block": 0,
+      "command": "aws sts get-caller-identity\nkubectl auth can-i list pods -n notes\nkubectl auth can-i get secrets -n notes\n",
+      "index": 34,
+      "attempts": [
+        {
+          "index": 34,
+          "page": "4-identity/1-authentication-authorization",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 6.6
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/2-endpoint",
+      "block": 1,
+      "command": "aws eks describe-cluster --name eks-did \\\n  --query 'cluster.resourcesVpcConfig.{public:endpointPublicAccess,private:endpointPrivateAccess,cidrs:publicAccessCidrs}'\ncurl -fsS https://checkip.amazonaws.com\n",
+      "index": 35,
+      "attempts": [
+        {
+          "index": 35,
+          "page": "4-identity/2-endpoint",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 2.2
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/3-human-access",
+      "block": 0,
+      "command": "ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)\nOBSERVER_ARN=\"arn:aws:iam::$ACCOUNT_ID:role/eks-did-observer\"\naws sts get-caller-identity --query Arn --output text\n",
+      "index": 36,
+      "attempts": [
+        {
+          "index": 36,
+          "page": "4-identity/3-human-access",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 4.0
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/3-human-access",
+      "block": 5,
+      "command": "ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)\nOBSERVER_ARN=\"arn:aws:iam::$ACCOUNT_ID:role/eks-did-observer\"\naws eks list-access-entries --cluster-name eks-did\naws eks describe-access-entry --cluster-name eks-did --principal-arn \"$OBSERVER_ARN\"\naws eks list-associated-access-policies --cluster-name eks-did --principal-arn \"$OBSERVER_ARN\"\n",
+      "index": 37,
+      "attempts": [
+        {
+          "index": 37,
+          "page": "4-identity/3-human-access",
+          "block": 5,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 8.0
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/4-rbac",
+      "block": 2,
+      "command": "kubectl apply -f .local/observer-rbac.yaml\n",
+      "index": 38,
+      "attempts": [
+        {
+          "index": 38,
+          "page": "4-identity/4-rbac",
+          "block": 2,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 2.8
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/4-rbac",
+      "block": 3,
+      "command": "ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)\naws eks update-kubeconfig --name eks-did \\\n  --role-arn \"arn:aws:iam::$ACCOUNT_ID:role/eks-did-observer\" \\\n  --kubeconfig .local/observer-kubeconfig --alias observer\nkubectl --kubeconfig .local/observer-kubeconfig get pods -n notes\nkubectl --kubeconfig .local/observer-kubeconfig auth can-i patch deployments -n notes\nkubectl --kubeconfig .local/observer-kubeconfig get secrets -n notes\n",
+      "index": 39,
+      "attempts": [
+        {
+          "index": 39,
+          "page": "4-identity/4-rbac",
+          "block": 3,
+          "exit_code": 1,
+          "expected_nonzero_possible": true,
+          "elapsed_seconds": 14.8
+        }
+      ],
+      "final_exit_code": 1,
+      "interpretation": "Expected security denial"
+    },
+    {
+      "page": "4-identity/4-rbac",
+      "block": 4,
+      "command": "kubectl --kubeconfig .local/observer-kubeconfig patch deployment api -n notes \\\n  --type merge -p '{\"spec\":{\"replicas\":1}}' --dry-run=server\n",
+      "index": 40,
+      "attempts": [
+        {
+          "index": 40,
+          "page": "4-identity/4-rbac",
+          "block": 4,
+          "exit_code": 1,
+          "expected_nonzero_possible": true,
+          "elapsed_seconds": 3.3
+        }
+      ],
+      "final_exit_code": 1,
+      "interpretation": "Expected security denial"
+    },
+    {
+      "page": "4-identity/5-workload-identity",
+      "block": 0,
+      "command": "aws eks list-pod-identity-associations --cluster-name eks-did\nkubectl get daemonset eks-pod-identity-agent -n kube-system\n",
+      "index": 41,
+      "attempts": [
+        {
+          "index": 41,
+          "page": "4-identity/5-workload-identity",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 4.3
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/5-workload-identity",
+      "block": 2,
+      "command": "kubectl exec -n notes deployment/api -- python -c \\\n  'import boto3; print(boto3.client(\"sts\").get_caller_identity()[\"Arn\"])'\n",
+      "index": 42,
+      "attempts": [
+        {
+          "index": 42,
+          "page": "4-identity/5-workload-identity",
+          "block": 2,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 3.9
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/6-least-privilege",
+      "block": 1,
+      "command": "aws rds describe-db-instances --db-instance-identifier eks-did \\\n  --query 'DBInstances[0].{resourceID:DbiResourceId,secret:MasterUserSecret.SecretArn}'\n",
+      "index": 43,
+      "attempts": [
+        {
+          "index": 43,
+          "page": "4-identity/6-least-privilege",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 2.8
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/6-least-privilege",
+      "block": 2,
+      "command": "curl -fsS \"https://$APP_HOST/api/reports\" -X POST\nkubectl logs -n notes deployment/worker --tail=10\ncurl -fsS \"https://$APP_HOST/api/reports\"\n",
+      "index": 44,
+      "attempts": [
+        {
+          "index": 44,
+          "page": "4-identity/6-least-privilege",
+          "block": 2,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 5.9
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/6-least-privilege",
+      "block": 3,
+      "command": "kubectl exec -n notes deployment/api -- python -c '\nimport boto3,os\nfrom botocore.exceptions import ClientError\ntry:\n    boto3.client(\"sqs\").receive_message(QueueUrl=os.environ[\"QUEUE_URL\"],WaitTimeSeconds=0)\n    raise SystemExit(\"UNEXPECTED: API can receive messages\")\nexcept ClientError as e:\n    print(e.response[\"Error\"][\"Code\"])\n    assert \"AccessDenied\" in e.response[\"Error\"][\"Code\"]'\n",
+      "index": 45,
+      "attempts": [
+        {
+          "index": 45,
+          "page": "4-identity/6-least-privilege",
+          "block": 3,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 3.9
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "4-identity/6-least-privilege",
+      "block": 4,
+      "command": "kubectl exec -n notes deployment/api -- python -c '\nimport main, psycopg\ntry:\n    with main.connect() as conn:\n        conn.execute(\"INSERT INTO notes.reports(id,note_count) VALUES(gen_random_uuid(),0)\")\n    raise SystemExit(\"UNEXPECTED: API can insert reports\")\nexcept psycopg.errors.InsufficientPrivilege:\n    print(\"DENIED: notes_api cannot insert reports\")'\n",
+      "index": 46,
+      "attempts": [
+        {
+          "index": 46,
+          "page": "4-identity/6-least-privilege",
+          "block": 4,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 5.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/1-scanning",
+      "block": 0,
+      "command": "source scripts/env.sh\nIMAGE=$(python3 scripts/deployed-image.py)\nprintf '%s\\n' \"$IMAGE\"\naws ecr describe-images --repository-name eks-did/notes \\\n  --query 'imageDetails[].{digest:imageDigest,tags:imageTags,scan:imageScanStatus.status}'\n",
+      "index": 47,
+      "attempts": [
+        {
+          "index": 47,
+          "page": "5-supply-chain-data/1-scanning",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 11.0
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/1-scanning",
+      "block": 1,
+      "command": "SCAN_FILTER=$(jq -cn --arg digest \"${IMAGE##*@}\" \\\n  '{ecrImageHash:[{comparison:\"EQUALS\",value:$digest}],findingStatus:[{comparison:\"EQUALS\",value:\"ACTIVE\"}]}')\naws inspector2 batch-get-account-status \\\n  --account-ids \"$(aws sts get-caller-identity --query Account --output text)\"\naws inspector2 list-findings --filter-criteria \"$SCAN_FILTER\" \\\n  --query 'findings[].{severity:severity,title:title}'\n",
+      "index": 48,
+      "attempts": [
+        {
+          "index": 48,
+          "page": "5-supply-chain-data/1-scanning",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 14.8
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/1-scanning",
+      "block": 2,
+      "command": "python3 scripts/scan-gate.py\n",
+      "index": 49,
+      "attempts": [
+        {
+          "index": 49,
+          "page": "5-supply-chain-data/1-scanning",
+          "block": 2,
+          "exit_code": 1,
+          "expected_nonzero_possible": true,
+          "elapsed_seconds": 12.6
+        }
+      ],
+      "final_exit_code": 1,
+      "interpretation": "Inspector BLOCK on observed HIGH findings"
+    },
+    {
+      "page": "5-supply-chain-data/2-sbom-signing",
+      "block": 0,
+      "command": "cosign version\ntrivy --version\npython3 scripts/preflight.py --stage supply-chain\n",
+      "index": 50,
+      "attempts": [
+        {
+          "index": 50,
+          "page": "5-supply-chain-data/2-sbom-signing",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 4.0
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/2-sbom-signing",
+      "block": 1,
+      "command": "source scripts/env.sh\nbash scripts/supply-chain.sh\n",
+      "index": 51,
+      "attempts": [
+        {
+          "index": 51,
+          "page": "5-supply-chain-data/2-sbom-signing",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 24.2
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/2-sbom-signing",
+      "block": 2,
+      "command": "IMAGE=$(cat .local/image.txt)\ncosign verify --insecure-ignore-tlog --key k8s/cosign.pub \"$IMAGE\"\n",
+      "index": 52,
+      "attempts": [
+        {
+          "index": 52,
+          "page": "5-supply-chain-data/2-sbom-signing",
+          "block": 2,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 4.3
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/2-sbom-signing",
+      "block": 3,
+      "command": "bash scripts/admission.sh\nbash scripts/prepare-unsigned.sh\nkubectl get clusterpolicy verify-notes-image\n",
+      "index": 53,
+      "attempts": [
+        {
+          "index": 53,
+          "page": "5-supply-chain-data/2-sbom-signing",
+          "block": 3,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 97.6
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/2-sbom-signing",
+      "block": 4,
+      "command": "python3 scripts/verify.py --supply-chain\n",
+      "index": 54,
+      "attempts": [
+        {
+          "index": 54,
+          "page": "5-supply-chain-data/2-sbom-signing",
+          "block": 4,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 146.6
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/3-secrets",
+      "block": 0,
+      "command": "aws secretsmanager describe-secret --secret-id \"$DB_SECRET_ARN\" \\\n  --query '{arn:ARN,rotation:RotationEnabled,key:KmsKeyId}'\nkubectl get job db-init -n notes\nkubectl logs job/db-init -n notes\n",
+      "index": 55,
+      "attempts": [
+        {
+          "index": 55,
+          "page": "5-supply-chain-data/3-secrets",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 7.0
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/3-secrets",
+      "block": 1,
+      "command": "kubectl exec -n notes deployment/api -- python -c '\nimport boto3,os\nfrom botocore.exceptions import ClientError\ntry:\n    boto3.client(\"secretsmanager\").get_secret_value(SecretId=os.environ[\"DB_SECRET_ARN\"])\n    raise SystemExit(\"UNEXPECTED: API can read master secret\")\nexcept ClientError as e:\n    print(e.response[\"Error\"][\"Code\"])\n    assert \"AccessDenied\" in e.response[\"Error\"][\"Code\"]'\n",
+      "index": 56,
+      "attempts": [
+        {
+          "index": 56,
+          "page": "5-supply-chain-data/3-secrets",
+          "block": 1,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 4.1
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/4-encryption",
+      "block": 0,
+      "command": "mkdir -p .local\nprintf 'eks-defense-in-depth-demo' > .local/plaintext.txt\naws kms encrypt --key-id alias/eks-did \\\n  --plaintext fileb://.local/plaintext.txt \\\n  --encryption-context Workshop=eks-did \\\n  --query CiphertextBlob --output text | base64 --decode > .local/ciphertext.bin\naws kms decrypt --ciphertext-blob fileb://.local/ciphertext.bin \\\n  --encryption-context Workshop=eks-did \\\n  --query Plaintext --output text | base64 --decode > .local/decrypted.txt\ncmp .local/plaintext.txt .local/decrypted.txt\n",
+      "index": 57,
+      "attempts": [
+        {
+          "index": 57,
+          "page": "5-supply-chain-data/4-encryption",
+          "block": 0,
+          "exit_code": 0,
+          "expected_nonzero_possible": false,
+          "elapsed_seconds": 4.0
+        }
+      ],
+      "final_exit_code": 0,
+      "interpretation": "Completed; expectations also checked by the final suite where applicable"
+    },
+    {
+      "page": "5-supply-chain-data/4-encryption",
+      "block": 1,
+      "command": "aws kms decrypt --ciphertext-blob fileb://.local/ciphertext.bin \\\n  --encryption-context Workshop=other \\\n  --query Plaintext --output text\n",
+      "index": 58,
+      "attempts": [
+        {
+          "index": 58,
+          "page": "5-supply-chain-data/4-encryption",
+          "block": 1,
+          "exit_code": 254,
+          "expected_nonzero_possible": true,
+          "elapsed_seconds": 1.8
+        }
+      ],
+      "final_exit_code": 254,
+      "interpretation": "Expected security denial"
+    }
+  ]
+}

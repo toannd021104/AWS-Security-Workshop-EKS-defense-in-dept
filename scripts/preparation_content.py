@@ -305,7 +305,7 @@ Giữ các cấu hình tùy chỉnh khác nếu có. Lưu và đối chiếu đ�
 ## Tạo launch template và managed node group
 
 1. EC2 → **Launch templates → Create launch template**, tên `eks-did-nodes`. Giữ AMI, instance type, subnet, IAM instance profile và Security Groups không được chỉ định trong template; EKS/node group sẽ cung cấp các giá trị đó. Không chọn key pair.
-2. Storage: root device `/dev/xvda`, EBS **20 GiB gp3**, encryption Enabled, Delete on termination Enabled.
+2. Storage: root device `/dev/xvda`, EBS **20 GiB gp3**, encryption Enabled, chọn rõ KMS key **`alias/aws/ebs`**, Delete on termination Enabled. Không để key mặc định của account nếu chưa kiểm tra key đó còn tồn tại và Enabled.
 3. Advanced details → Metadata options: metadata endpoint Enabled, **IMDSv2 required**, response hop limit **1**. Tạo template và ghi lại version.
 4. EKS → cluster → **Compute → Add node group**, tên `private-workers`, node IAM role `eks-did-node-role`. Bật sử dụng launch template vừa tạo, đúng version.
 5. Chọn AL2023 x86_64 phù hợp EKS, instance type `t3.medium`, On-Demand; desired/min/max đều **2** cho lab. Nếu giao diện khóa AMI/instance type, kiểm tra template có đang ghi đè các trường này không.
@@ -328,7 +328,7 @@ ip-10-20-35-10.ec2.internal   Ready    <none>   5m    v1.35.x
 ip-10-20-51-20.ec2.internal   Ready    <none>   5m    v1.35.x
 ```
 
-Cần có hai nodes `Ready`, không có external public IP; aws-node, CoreDNS, kube-proxy và Pod Identity Agent hoạt động. Nếu node chưa join, đối chiếu NAT route, CNI IRSA role và node IAM policies. Nếu kubectl không kết nối được, kiểm tra workstation IP còn nằm trong endpoint allowlist.
+Cần có hai nodes `Ready`, không có external public IP; aws-node, CoreDNS, kube-proxy và Pod Identity Agent hoạt động. Nếu node chưa join, đối chiếu NAT route, CNI IRSA role và node IAM policies. Nếu instances vừa tạo đã bị terminate, mở EC2 → Auto Scaling groups → node group → Activity. Lỗi `Client.InvalidKMSKey.InvalidState` có thể do EBS default key không tồn tại, bị vô hiệu hóa hoặc thiếu quyền; kiểm tra KMS key của volume/template. Lab chọn AWS-managed `alias/aws/ebs` rõ ràng thay vì thay đổi EBS default của cả account. Với customer-managed key, cần cấp quyền phù hợp cho Auto Scaling service-linked role trước khi tạo node. Nếu kubectl không kết nối được, kiểm tra workstation IP còn nằm trong endpoint allowlist.
 
 Tiếp tục [tạo RDS, SQS và ECR](/preparation/4-data-services/).
 '''),
@@ -726,6 +726,8 @@ POST trả một object có `id` và `body`; GET trả danh sách chứa ghi ch�
 
 ID thực tế có thể lớn hơn 1 và danh sách có thể đã có dữ liệu thử khác. Việc đọc lại đúng ghi chú xác nhận luồng API → RDS và quyền SQL cần thiết.
 
+Nếu `/healthz` trả 200 nhưng thao tác ghi chú trả 503, baseline chưa đạt: health này chỉ kiểm tra HTTP handler, không kiểm tra RDS. Xem `kubectl logs -n notes -l app=api --tail=50 --prefix=true` và log `db-init`; kiểm tra job đã Complete, SG và quyền IAM database. Với `ConnectionTimeout` tạm thời, thử lại GET chỉ đọc sau khi kiểm tra kết nối. Chỉ gửi lại POST khi đã hiểu kết quả lần trước, rồi đối chiếu ID vừa tạo; nếu lỗi lặp lại, dừng tại đây thay vì sang NetworkPolicy.
+
 ## Gửi yêu cầu báo cáo cho worker
 
 ```bash
@@ -853,6 +855,8 @@ enable_inspector = true
 
 Thay IP và zone bằng giá trị thật. Nếu `aws sts get-caller-identity` trả STS assumed-role/SSO session ARN, thêm `observer_trusted_principal_arn = "YOUR_ADMIN_IAM_ROLE_ARN"` vào tfvars; lấy IAM role ARN từ IAM Console, không dùng STS session ARN. Terraform kiểm tra đầu vào này trước khi tạo role observer. Các flags liên quan dịch vụ bị giới hạn bởi quyền truy cập hoặc chính sách tài khoản chỉ được tắt khi đã ghi nhận phần bài tương ứng chưa được kiểm chứng. WAF cần cho phép thử edge; KMS và Inspector được dùng ở chương 5.
 
+EBS của worker luôn được mã hóa bằng AWS-managed key `alias/aws/ebs`; `enable_kms` chỉ điều khiển customer-managed key dùng trong bài 5.4. Terraform cần quyền `kms:ListAliases` và `kms:DescribeKey` để xác định EBS key, kể cả khi `enable_kms=false`. Không thay đổi EBS default key của toàn account.
+
 ## Tạo hạ tầng
 
 ```bash
@@ -869,7 +873,7 @@ terraform -chdir=infrastructure/terraform plan -out=lab.tfplan
 terraform -chdir=infrastructure/terraform apply lab.tfplan
 ```
 
-Chờ apply hoàn tất. Terraform tạo VPC, EKS/nodes/add-ons, RDS/SQS/ECR, ACM/WAF, workload roles/associations và các tài nguyên được bật trong cấu hình. Nó chưa build image và chưa triển khai frontend/API/worker.
+Chờ apply hoàn tất. EKS control plane, managed node group và RDS tạo bất đồng bộ; toàn bước có thể mất hàng chục phút. Không chạy apply thứ hai khi operation còn hoạt động. Nếu node group chờ lâu, xem EC2 → Auto Scaling groups → Activity để phân biệt đang khởi động với lỗi launch; tham khảo [kiểm tra EBS key ở bước EKS](/preparation/3-eks/). Terraform tạo VPC, EKS/nodes/add-ons, RDS/SQS/ECR, ACM/WAF, workload roles/associations và các tài nguyên được bật trong cấu hình. Nó chưa build image và chưa triển khai frontend/API/worker.
 
 State và plan lưu thông tin hạ tầng nhạy cảm; giữ ngoài Git và website. Nhóm nhiều người cần remote backend và locking phù hợp trước khi cùng thao tác state.
 

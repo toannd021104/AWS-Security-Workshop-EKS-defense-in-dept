@@ -4,6 +4,12 @@ data "aws_availability_zones" "available" {
 
 data "aws_caller_identity" "current" {}
 
+# Select the AWS-managed EBS key explicitly. An account's regional default can
+# reference an unavailable customer key and prevent managed workers from booting.
+data "aws_kms_alias" "ebs" {
+  name = "alias/aws/ebs"
+}
+
 data "tls_certificate" "eks_oidc" {
   url = aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
@@ -229,6 +235,7 @@ resource "aws_launch_template" "nodes" {
       volume_size           = 20
       volume_type           = "gp3"
       encrypted             = true
+      kms_key_id            = data.aws_kms_alias.ebs.target_key_arn
       delete_on_termination = true
     }
   }

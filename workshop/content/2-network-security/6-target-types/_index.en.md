@@ -45,9 +45,14 @@ Registered IPs should match frontend pod IPs and be `healthy`. The Service helps
 
 ### Perform a controlled rollout
 
+The manifest labels namespace `notes` with `elbv2.k8s.aws/pod-readiness-gate-inject: enabled`. Once the Service and TargetGroupBinding exist, the controller injects a gate into new frontend pods: Kubernetes waits for the ALB target to become Healthy before marking the pod Ready. A 10-second `preStop` delay and 30-second shutdown grace period keep Nginx serving while the controller begins deregistering old IPs.
+
+Initial pods created before the TargetGroupBinding exists may have no injected gate; step 0.7 still requires an Active ALB and Healthy targets. This rollout creates new pods after the binding exists. Afterwards, new frontend pods should show `1/1` in READINESS GATES. If they show `<none>`, inspect the namespace label, Service selector, and TargetGroupBinding before assuming ALB readiness is synchronized.
+
 ```bash
 kubectl rollout restart deployment/frontend -n notes
 kubectl rollout status deployment/frontend -n notes
+kubectl get pods -n notes -l app=frontend -o wide
 curl -fsS "https://$APP_HOST/" -o /dev/null
 ```
 

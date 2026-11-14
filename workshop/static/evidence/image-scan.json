@@ -1,19 +1,20 @@
 {
-  "timestamp_utc": "2026-11-13T15:12:17.096867+00:00",
+  "timestamp_utc": "2026-11-14T05:18:33.155780+00:00",
   "image_digest": "sha256:3496bce36924ceb92b7e7ee0bf147894fbd4275dce79a656de05f8307be4ba3f",
   "assessment_scope": "deployed",
   "inspector_coverage_scanned": true,
   "active_findings_by_severity": {
+    "LOW": 3,
     "MEDIUM": 10,
-    "HIGH": 4,
-    "LOW": 3
+    "UNTRIAGED": 1,
+    "HIGH": 4
   },
   "release_gate": "BLOCK",
   "high_critical_findings": [
     {
-      "title": "CVE-2026-19499 - glibc",
+      "title": "CVE-2026-76844 - zlib",
       "severity": "HIGH",
-      "fix_available": "NO"
+      "fix_available": "YES"
     },
     {
       "title": "CVE-2026-5435 - glibc",
@@ -21,9 +22,9 @@
       "fix_available": "NO"
     },
     {
-      "title": "CVE-2026-76844 - zlib",
+      "title": "CVE-2026-19499 - glibc",
       "severity": "HIGH",
-      "fix_available": "YES"
+      "fix_available": "NO"
     },
     {
       "title": "CVE-2026-85091 - zlib",

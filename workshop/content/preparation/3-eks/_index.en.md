@@ -88,7 +88,7 @@ Preserve other custom settings. Save and verify role/configuration. Check pod/ad
 ## Create launch template and managed node group
 
 1. **EC2 → Launch templates → Create** `eks-did-nodes`. Leave AMI, instance type, subnet, instance profile, and SGs unspecified for EKS/node-group configuration. Do not select a key pair.
-2. Root `/dev/xvda`: **20 GiB gp3**, encrypted, Delete on termination Enabled.
+2. Root `/dev/xvda`: **20 GiB gp3**, encrypted, explicitly choose KMS key **`alias/aws/ebs`**, Delete on termination Enabled. Do not accept an account default key without checking that it exists and is Enabled.
 3. **Advanced details → Metadata options**: endpoint Enabled, **IMDSv2 required**, hop limit **1**. Save the template version.
 4. **EKS → cluster → Compute → Add node group**: `private-workers`, role `eks-did-node-role`, use that launch template/version.
 5. Choose compatible AL2023 x86_64, `t3.medium`, On-Demand, desired/min/max **2**. If AMI/type fields are locked, check for template overrides.
@@ -112,5 +112,8 @@ ip-10-20-51-20.ec2.internal   Ready    <none>   5m    v1.35.x
 ```
 
 Require two Ready nodes with no external public IPs and running aws-node/CoreDNS/kube-proxy/Pod Identity Agent. If nodes do not join, inspect NAT routes, CNI IRSA, and node IAM. For kubectl connection issues, check your current public IP against the allowlist.
+
+
+If instances terminate immediately after launch, inspect **EC2 → Auto Scaling groups → node group → Activity**. `Client.InvalidKMSKey.InvalidState` can indicate a missing/disabled EBS key or missing key permissions. Check the volume/template key. This lab explicitly selects AWS-managed `alias/aws/ebs` without changing the account-wide EBS default. A customer-managed key also requires suitable permissions for the Auto Scaling service-linked role before nodes can launch.
 
 Continue to [RDS, SQS, and ECR](/preparation/4-data-services/).

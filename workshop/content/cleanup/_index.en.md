@@ -64,4 +64,4 @@ aws iam list-roles --query 'Roles[?starts_with(RoleName, `eks-did-`)].RoleName'
 aws kms list-aliases --query 'Aliases[?AliasName==`alias/eks-did`].AliasName'
 ```
 
-Lab WAF, EIP, roles, and alias should be absent. A scheduled key remains PendingDeletion until its waiting period ends; retain its ID for checking. Inspect cluster-specific CloudWatch log groups. Keep source, public key, and sanitized reports; never upload state, registry credentials, kubeconfig, or private signing key.
+Lab WAF, EIP, roles, and alias should be absent. A scheduled key remains PendingDeletion until its waiting period ends; retain its ID for checking. Inspect cluster-specific CloudWatch log groups. After confirming the cluster is deleted and logs are no longer needed, delete exactly `/aws/eks/eks-did/cluster` in CloudWatch → Logs → Log groups; the equivalent CLI is `aws logs delete-log-group --log-group-name /aws/eks/eks-did/cluster`. EKS creates this group automatically, so it is outside this lab's Terraform state. Keep source, public key, and sanitized reports; never upload state, registry credentials, kubeconfig, or private signing key.

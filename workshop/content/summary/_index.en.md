@@ -36,7 +36,7 @@ TLS ends at ALB; frontend/API use internal HTTP. SGs and NetworkPolicy restrict 
 
 One NAT, Single-AZ RDS, and one controller/admission replica reduce lab cost. Reassess availability for real systems. Signing policy covers the specified application repository, not every image.
 
-The [reference scan](/evidence/image-scan.json) on **2026-11-13 UTC** recorded 0 CRITICAL, 4 HIGH, 10 MEDIUM, 3 LOW, 0 UNTRIAGED; gate **BLOCK**. Compare timestamp/digest/coverage; do not infer another build's results. Passing functional and authorization tests does not approve that image for release.
+The [reference scan](/evidence/image-scan.json) on **2026-11-14 UTC** recorded 0 CRITICAL, 4 HIGH, 10 MEDIUM, 3 LOW, 1 UNTRIAGED; gate **BLOCK**. Compare timestamp/digest/coverage; do not infer another build's results. Passing functional and authorization tests does not approve that image for release.
 
 ## Finish the lab
 

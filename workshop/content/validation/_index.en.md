@@ -24,7 +24,11 @@ The [image scan/release gate](/evidence/image-scan.json) is separate and can blo
 
 ## Learner walkthrough review
 
-The [bilingual learner review dated 2026-11-14](/evidence/learner-review-2026-11-14.md) checks Console/Terraform order, commands, and the downloadable ZIP. [Local and browser results](/evidence/bilingual-validation-2026-11-14.json) record the checks actually executed. The reference AWS environment has stopped; this review neither reprovisioned it nor reran cloud tests. The AWS report retains its earlier run timestamp.
+The [initial bilingual review on 2026-11-14](/evidence/learner-review-2026-11-14.md) and [local/browser checks](/evidence/bilingual-validation-2026-11-14.json) ran after the earlier reference environment stopped, without a cloud replay.
+
+A [later live AWS replay on the same date](/evidence/live-learner-replay-2026-11-14.json) started from a fresh public GitHub clone and fresh Terraform state. It found an unavailable default EBS key and a frontend rollout returning 502. The source now explicitly selects the EBS key and adds ALB readiness gates and a shutdown delay. After corrections, the final suite passed 25/25, network proofs passed 4/4 before and 5/5 after isolation, and 28/28 HTTP samples during one rollout returned 200. The [59 executed command blocks](/evidence/executed-command-blocks-2026-11-14.json) retain initial failures and successful retests.
+
+The tested scope is the Terraform path and operational exercises, with an explicit node-group recovery; Console provisioning was not executed end to end. Cleanup destroyed 65 Terraform resources and passed 18/18 checks, retaining the existing hosted zone; the demo KMS key is scheduled for deletion after seven days. The initial RDS timeout and recovery are recorded separately. These results do not mean the original instructions passed on the first attempt. The [2026-11-13 report](/evidence/archive/2026-11-13/verification.json) is archived separately; results below carry the new run timestamp.
 
 ## Interpret a denied result
 

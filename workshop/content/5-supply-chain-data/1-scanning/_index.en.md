@@ -56,7 +56,7 @@ Basic scan and Inspector APIs have different lifecycles/statuses. `start-image-s
 python3 scripts/scan-gate.py
 ```
 
-The script requires completed scan coverage for the **deployed digest**. It exits 1 for HIGH/CRITICAL findings or incomplete coverage. The [scan report](/evidence/image-scan.json) records timestamp/digest. The reference scan on **2026-11-13 UTC** found 0 CRITICAL, 4 HIGH, 10 MEDIUM, 3 LOW, 0 UNTRIAGED; gate **BLOCK**. Do not apply these results to another image or scan. Missing fixes do not silently waive HIGH/CRITICAL findings. Continued use for network/identity exercises is not production release approval.
+The script requires completed scan coverage for the **deployed digest**. It exits 1 for HIGH/CRITICAL findings or incomplete coverage. The [scan report](/evidence/image-scan.json) records timestamp/digest. The reference scan on **2026-11-14 UTC** found 0 CRITICAL, 4 HIGH, 10 MEDIUM, 3 LOW, 1 UNTRIAGED; gate **BLOCK**. Do not apply these results to another image or scan. Missing fixes do not silently waive HIGH/CRITICAL findings. Continued use for network/identity exercises is not production release approval.
 
 When patches are available, update base/dependencies and build a new digest. Before signing/deploying, run `python3 scripts/scan-gate.py --candidate`. It validates repository/account and assesses `.local/image.txt` without claiming the image is running. Wait for Inspector coverage and rerun if incomplete. Continue release only on ALLOW; candidate evidence is saved separately in `evidence/candidate-image-scan.json`. Fix remaining HIGH/CRITICAL findings rather than bypassing the gate. After rollout, run the default gate against the running image.
 

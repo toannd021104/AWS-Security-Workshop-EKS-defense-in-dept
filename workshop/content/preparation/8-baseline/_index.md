@@ -65,6 +65,8 @@ POST trả một object có `id` và `body`; GET trả danh sách chứa ghi ch�
 
 ID thực tế có thể lớn hơn 1 và danh sách có thể đã có dữ liệu thử khác. Việc đọc lại đúng ghi chú xác nhận luồng API → RDS và quyền SQL cần thiết.
 
+Nếu `/healthz` trả 200 nhưng thao tác ghi chú trả 503, baseline chưa đạt: health này chỉ kiểm tra HTTP handler, không kiểm tra RDS. Xem `kubectl logs -n notes -l app=api --tail=50 --prefix=true` và log `db-init`; kiểm tra job đã Complete, SG và quyền IAM database. Với `ConnectionTimeout` tạm thời, thử lại GET chỉ đọc sau khi kiểm tra kết nối. Chỉ gửi lại POST khi đã hiểu kết quả lần trước, rồi đối chiếu ID vừa tạo; nếu lỗi lặp lại, dừng tại đây thay vì sang NetworkPolicy.
+
 ## Gửi yêu cầu báo cáo cho worker
 
 ```bash
